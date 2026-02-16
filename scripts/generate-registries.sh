@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
+# Regenerates agent-registry.md and skills-registry.md from filesystem.
+# Run after creating or modifying any skill or agent file.
+#
+# Reads YAML frontmatter (name, domain, description) from:
+#   .claude/skills/*/SKILL.md  →  skills-registry.md
+#   .claude/agents/*.md        →  agent-registry.md
+
 set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Extract a field value from YAML frontmatter between --- markers
+# Usage: extract_field <field_name> <file_path>
 extract_field() {
   awk -v field="$1" '
     /^---$/ { if (in_fm) exit; in_fm=1; next }
@@ -11,7 +20,7 @@ extract_field() {
   ' "$2"
 }
 
-# Generate agent-registry.md
+# -- Agent Registry --
 {
   echo "# Agent Registry"
   echo ""
@@ -23,13 +32,14 @@ extract_field() {
     name=$(extract_field name "$agent_file")
     [ -z "$name" ] && continue
     domain=$(extract_field domain "$agent_file")
+    # Count skills listed under the "skills:" YAML key
     count=$(awk '/^skills:/{f=1;next} f&&/^  - /{c++} f&&/^[a-z]/{f=0} END{print c+0}' "$agent_file")
     echo "| $name | $domain | $count |"
   done
   echo ""
 } > agent-registry.md
 
-# Generate skills-registry.md
+# -- Skills Registry --
 {
   echo "# Skills Registry"
   echo ""

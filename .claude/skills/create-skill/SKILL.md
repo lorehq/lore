@@ -47,6 +47,7 @@ Domain = the **tool/platform/service** used, NOT the purpose.
 
 - Uses specific external tool/API/CLI? → Domain = that tool/platform
 - About Lore's own operation? → Domain = Orchestrator
+- Built-in agent tools (Bash, Read, Write, Grep, Task, etc.)? → Domain = Orchestrator. Don't create agents for framework tools.
 - Unsure? → "What breaks if this service is unavailable?" = your domain
 
 ### Step 3: Update Registries

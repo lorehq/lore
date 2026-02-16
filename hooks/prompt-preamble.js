@@ -1,3 +1,6 @@
+// Hook: UserPromptSubmit
+// Fires before every user message. One-line reminder to delegate and plan.
+
 const { getAgentDomains } = require('./lib/parse-agents');
 
 const agents = getAgentDomains();

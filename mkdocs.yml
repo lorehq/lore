@@ -1,0 +1,18 @@
+site_name: Lore
+docs_dir: docs
+theme:
+  name: material
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - search
+
+nav:
+  - Home: index.md

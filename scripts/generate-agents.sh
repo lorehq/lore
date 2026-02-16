@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Batch-generates agent files for domains that have skills but no agent.
+# Skips Orchestrator domain (internal skills don't get their own agent).
+# Run generate-registries.sh after this to update the registry tables.
+#
+# This is a catch-up tool. Normally, create-skill handles agent creation
+# one at a time. Use this when skills were added manually without agents.
+
 set -eo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -7,11 +14,12 @@ cd "$REPO_ROOT"
 [[ -d .claude/skills ]] || { echo "No skills directory"; exit 0; }
 mkdir -p .claude/agents
 
+# Extract a field from YAML frontmatter
 get_field() {
   awk -v f="$1" '/^---$/{if(fm)exit;fm=1;next} fm&&$1==f":"{sub("^"f": *","");print;exit}' "$2"
 }
 
-# Map existing agents by domain
+# -- Map existing agents by domain --
 declare -A existing
 for f in .claude/agents/*.md; do
   [[ -f "$f" ]] || continue
@@ -19,7 +27,7 @@ for f in .claude/agents/*.md; do
   [[ -n "$d" ]] && existing["$d"]=1
 done
 
-# Group skills by domain
+# -- Group skills by domain (skip Orchestrator) --
 declare -A domain_skills
 for skill_dir in .claude/skills/*/; do
   sf="$skill_dir/SKILL.md"
@@ -36,13 +44,16 @@ done
 
 echo "Found ${#domain_skills[@]} domains"
 
+# -- Create missing agents --
 for domain in "${!domain_skills[@]}"; do
   [[ -v existing["$domain"] ]] && { echo "Skip $domain — agent exists"; continue; }
 
+  # Convert domain name to kebab-case slug for the filename
   slug=$(echo "$domain" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
   agent_name="${slug}-agent"
   skills="${domain_skills[$domain]}"
 
+  # Build YAML skills list
   skills_yaml=""
   for s in $skills; do skills_yaml+="  - $s"$'\n'; done
 
