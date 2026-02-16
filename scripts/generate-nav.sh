@@ -22,7 +22,8 @@ scan_dir() {
   for subdir in "$dir"/*/; do
     [[ -d "$subdir" ]] || continue
     local name=$(basename "$subdir")
-    [[ "$name" == .* ]] && continue # Skip hidden dirs
+    [[ "$name" == .* ]] && continue   # Skip hidden dirs
+    [[ "$name" == "archive" ]] && continue  # Skip archive dirs
 
     # Convert kebab-case dir name to Title Case for nav label
     local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
@@ -71,6 +72,11 @@ EOF
 {
   echo "nav:"
   echo "  - Home: index.md"
+
+  if [[ -d "$DOCS/work" ]]; then
+    echo "  - Work:"
+    scan_dir "$DOCS/work" "      "
+  fi
 
   if [[ -d "$DOCS/environment" ]]; then
     echo "  - Environment:"
