@@ -25,13 +25,13 @@
     "PostToolUse": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node hooks/post-edit-reminder.js || true" }]
+        "hooks": [{ "type": "command", "command": "node hooks/knowledge-tracker.js || true" }]
       }
     ],
     "PostToolUseFailure": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node hooks/post-edit-reminder.js || true" }]
+        "hooks": [{ "type": "command", "command": "node hooks/knowledge-tracker.js || true" }]
       }
     ]
   }

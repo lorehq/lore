@@ -127,7 +127,7 @@ emit_work_subsections() {
   echo "  - Docs: https://lorehq.github.io/lore-docs/"
 } > "$OUTPUT"
 
-# Clear the nav-dirty flag (set by post-edit-reminder.js when docs/ files change).
+# Clear the nav-dirty flag (set by knowledge-tracker.js when docs/ files change).
 # This signals that nav is now in sync with the docs/ directory structure.
 rm -f "$REPO_ROOT/.git/lore-nav-dirty"
 

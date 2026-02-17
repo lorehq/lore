@@ -9,10 +9,27 @@ Lore is a lightweight framework that gives coding agents persistent memory. Inst
 ```bash
 npx create-lore my-project
 cd my-project
+```
+
+**Claude Code:**
+
+```bash
 claude
 ```
 
-No configuration. The framework activates through hooks and conventions automatically.
+**OpenCode:**
+
+```bash
+opencode
+```
+
+No configuration needed. Hooks and plugins activate automatically on both platforms.
+
+## Before / After
+
+**Without Lore** — Every session starts cold. The agent re-discovers your project structure, re-learns API quirks, and makes the same mistakes. Knowledge from yesterday's debugging session is gone.
+
+**With Lore** — The agent knows your project. API quirks captured last week load automatically. Domain-specific work delegates to specialized agents. Your roadmap picks up where you left off.
 
 ## What You Get
 
@@ -24,15 +41,25 @@ No configuration. The framework activates through hooks and conventions automati
 
 ## How It Works
 
-Lore is a directory of markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
+Lore is a directory of markdown files, hooks/plugins that shape agent behavior, and scripts that keep everything consistent.
 
 | Component | Location | What it does |
 |-----------|----------|--------------|
-| **Hooks** | `hooks/` | Fire on session start, tool use, and edits. Reinforce capture habits and route knowledge to the right place. |
-| **Skills** | `.claude/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. Loaded by agents when relevant. |
-| **Agents** | `.claude/agents/` | Domain-specific workers. One agent per domain, created automatically as skills accumulate. Run on cheaper models. |
+| **Hooks** | `hooks/` | Claude Code hooks — fire on session start, tool use, and edits. |
+| **Plugins** | `.opencode/plugins/` | OpenCode plugins — same behavior, different platform. |
+| **Skills** | `.claude/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. |
+| **Agents** | `.claude/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. |
 | **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
-| **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent as it grows. |
+| **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent. |
+
+## Supported Platforms
+
+| Platform | Integration | How it works |
+|----------|-------------|--------------|
+| **Claude Code** | `hooks/` + `CLAUDE.md` | Hooks fire on lifecycle events. CLAUDE.md loaded automatically. |
+| **OpenCode** | `.opencode/plugins/` + `opencode.json` | Plugins fire on lifecycle events. opencode.json points to CLAUDE.md. |
+
+Both platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
 
 ## Commands
 
