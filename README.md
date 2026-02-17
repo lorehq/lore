@@ -40,6 +40,10 @@ Lore is a directory of markdown files, hooks that shape agent behavior, and scri
 |---------|-------------|
 | `/capture` | Review session work, capture skills, update registries, validate consistency |
 | `/consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
+| `/serve-docs` | Browse your knowledge base locally at localhost:8000 |
+| `/stop-docs` | Stop the docs server |
+
+Docker alternative: `/serve-docs-docker` — no Python required, supports multiple instances.
 
 ## License
 

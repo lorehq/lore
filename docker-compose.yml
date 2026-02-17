@@ -1,0 +1,11 @@
+# Docs server — run with: docker compose up -d
+# LORE_DOCS_PORT is set by /serve-docs-docker for multi-instance support
+services:
+  docs:
+    build: .
+    ports:
+      - "${LORE_DOCS_PORT:-8000}:8000"
+    volumes:
+      - .:/docs
+    stdin_open: true
+    tty: true

@@ -10,4 +10,7 @@
 | create-roadmap | Orchestrator | Create a roadmap folder with frontmatter and validation |
 | create-skill | Orchestrator | Create a new skill when an operation required non-obvious knowledge |
 | create-todo-with-capture | Orchestrator | Append a capture checkpoint to task lists |
+| serve-docs-docker | Documentation | Start the docs site via Docker. No Python required. Supports multiple instances with deterministic ports. |
+| serve-docs | Documentation | Start the local docs site with live reload. Installs Python and mkdocs-material if needed. |
+| stop-docs | Documentation | Stop the local docs site (started by /serve-docs or /serve-docs-docker). |
 

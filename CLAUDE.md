@@ -69,3 +69,4 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Knowledge: `docs/environment/`, `docs/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
 - Hooks: `hooks/`
+- Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/serve-docs`)
