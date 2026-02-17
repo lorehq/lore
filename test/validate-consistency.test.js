@@ -19,6 +19,11 @@ function setup() {
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.claude', 'agents'), { recursive: true });
+  // Canonical instructions + generated copies
+  const instructions = '# Lore\n\nTest instructions.\n';
+  fs.writeFileSync(path.join(dir, '.lore', 'instructions.md'), instructions);
+  fs.writeFileSync(path.join(dir, 'CLAUDE.md'), instructions);
+  fs.writeFileSync(path.join(dir, '.cursorrules'), instructions);
   // Empty registry files
   fs.writeFileSync(path.join(dir, 'skills-registry.md'), '| Skill | Domain | Description |\n|---|---|---|\n');
   fs.writeFileSync(path.join(dir, 'agent-registry.md'), '| Agent | Domain | Description |\n|---|---|---|\n');
@@ -165,6 +170,24 @@ test('passes: fully consistent setup', () => {
   const { code, stdout } = runScript(dir);
   assert.equal(code, 0);
   assert.ok(stdout.includes('PASSED'));
+});
+
+test('fails: CLAUDE.md out of sync with .lore/instructions.md', () => {
+  const dir = setup();
+  // Make CLAUDE.md differ from canonical
+  fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Stale copy\n');
+  const { code, stdout } = runScript(dir);
+  assert.equal(code, 1);
+  assert.ok(stdout.includes('CLAUDE.md out of sync'));
+});
+
+test('fails: .cursorrules out of sync with .lore/instructions.md', () => {
+  const dir = setup();
+  // Make .cursorrules differ from canonical
+  fs.writeFileSync(path.join(dir, '.cursorrules'), '# Stale copy\n');
+  const { code, stdout } = runScript(dir);
+  assert.equal(code, 1);
+  assert.ok(stdout.includes('.cursorrules out of sync'));
 });
 
 test('fails: platform copy out of sync with canonical source', () => {

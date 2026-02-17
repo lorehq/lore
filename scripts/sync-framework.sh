@@ -6,7 +6,7 @@
 #
 # Framework-owned (synced):
 #   hooks/, lib/, scripts/, .opencode/, opencode.json,
-#   .claude/settings.json, .lore/skills/<built-in>/, CLAUDE.md, .gitignore
+#   .claude/settings.json, .lore/skills/<built-in>/, .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
 #   docs/, .lore/agents/, mkdocs.yml, .lore-config, MEMORY.local.md, *-registry.md
@@ -42,7 +42,7 @@ if [ -d "$SOURCE/.lore/skills" ]; then
 fi
 
 # Single files
-cp "$SOURCE/CLAUDE.md" "$TARGET/CLAUDE.md"
+cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
