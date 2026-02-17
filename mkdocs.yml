@@ -35,9 +35,8 @@ extra_css:
 plugins:
   - search
 nav:
-  - Home: index.md
-  - Work:
-      - Overview: work/index.md
+  - Home:
+      - Overview: index.md
       - Roadmaps:
           - Overview: work/roadmaps/index.md
       - Plans:
@@ -46,15 +45,15 @@ nav:
           - Overview: work/brainstorms/index.md
   - Context:
       - Overview: context/index.md
+      - Agent Rules: context/agent-rules.md
       - Conventions:
           - Overview: context/conventions/index.md
       - Diagrams:
           - Overview: context/diagrams/index.md
-      - Personal:
-          - Overview: context/personal/index.md
       - Runbooks:
           - Overview: context/runbooks/index.md
       - Systems:
           - Overview: context/systems/index.md
   - Guides:
-      - Customizing Context: guides/customizing-context.md
+      - Commands: guides/commands.md
+      - Customization: guides/customization.md

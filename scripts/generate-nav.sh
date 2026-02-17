@@ -24,8 +24,8 @@ scan_dir() {
     local name=$(basename "$subdir")
     [[ "$name" == .* ]] && continue   # Skip hidden dirs
     [[ "$name" == "archive" ]] && continue  # Skip archive dirs
-    # Auto-scaffold: if dir has no .md files, create an index.md from the dir name
-    if ! find "${subdir%/}" -name '*.md' | grep -q .; then
+    # Auto-scaffold: if dir has no index.md, create one from the dir name
+    if [[ ! -f "${subdir%/}/index.md" ]]; then
       local scaffold_title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "# ${scaffold_title}" > "${subdir%/}/index.md"
     fi
@@ -45,7 +45,7 @@ scan_dir() {
   for file in "$dir"/*.md; do
     [[ -f "$file" ]] || continue
     local name=$(basename "$file" .md)
-    [[ "$name" == "index" || "$name" == "README" ]] && continue
+    [[ "$name" == "index" || "$name" == "README" || "$name" == "agent-rules" ]] && continue
     local relative="${file#$DOCS/}"
     local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     echo "${indent}- ${title}: ${relative}"
@@ -81,28 +81,26 @@ fi
 # its folder exists AND contains at least one .md file (not just .gitkeep).
 # To add a new top-level section, append its docs/ subfolder name here.
 # NOTE: "work" is handled separately below with hardcoded subsection order.
-NAV_SECTIONS=("work" "context" "guides")
+NAV_SECTIONS=("context" "guides")
 
-# Emit the Work section with hardcoded subsection order.
+# Emit work subsections (roadmaps, plans, brainstorms) under Home.
 # Work structure is framework-controlled — operators create items via
 # /create-roadmap, /create-plan, /create-brainstorm but don't modify
 # the folder structure itself.
-emit_work_nav() {
+emit_work_subsections() {
+  local indent="$1"
   local work="$DOCS/work"
   [[ -d "$work" ]] && find "$work" -path '*/archive' -prune -o -name '*.md' -print | grep -q . || return 0
 
-  echo "  - Work:"
-  # Overview if it exists
-  [[ -f "$work/index.md" ]] && echo "      - Overview: work/index.md"
   # Fixed order: Roadmaps > Plans > Brainstorms
   for subsection in roadmaps plans brainstorms; do
     if [[ -d "$work/$subsection" ]] && find "$work/$subsection" -path '*/archive' -prune -o -name '*.md' -print | grep -q .; then
       title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-      echo "      - ${title}:"
+      echo "${indent}- ${title}:"
       # Show subsection overview
-      [[ -f "$work/$subsection/index.md" ]] && echo "          - Overview: work/$subsection/index.md"
+      [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - Overview: work/$subsection/index.md"
       # Scan items within (each roadmap/plan/brainstorm folder)
-      scan_dir "$work/$subsection" "          "
+      scan_dir "$work/$subsection" "${indent}    "
     fi
   done
 }
@@ -111,19 +109,20 @@ emit_work_nav() {
 {
   echo "$HEADER"
   echo "nav:"
-  echo "  - Home: index.md"
+  echo "  - Home:"
+  echo "      - Overview: index.md"
+  emit_work_subsections "      "
 
   for section in "${NAV_SECTIONS[@]}"; do
-    # Work gets special handling for fixed subsection order
-    if [[ "$section" == "work" ]]; then
-      emit_work_nav
-      continue
-    fi
-    # All other sections: include if folder has .md content, scan dynamically
+    # All sections: include if folder has .md content, scan dynamically
     if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
       title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "  - ${title}:"
       [[ -f "$DOCS/$section/index.md" ]] && echo "      - Overview: $section/index.md"
+      # Agent rules pinned after overview in context section
+      if [[ "$section" == "context" && -f "$DOCS/$section/agent-rules.md" ]]; then
+        echo "      - Agent Rules: $section/agent-rules.md"
+      fi
       scan_dir "$DOCS/$section" "      "
     fi
   done

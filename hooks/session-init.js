@@ -84,9 +84,9 @@ CAPTURE: After substantive work → capture knowledge, create skills, validate c
 if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
 if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
 
-// Project context — operator customization surface (docs/index.md)
+// Project context — operator customization surface (docs/context/agent-rules.md)
 try {
-  const raw = fs.readFileSync(path.join(root, 'docs', 'index.md'), 'utf8');
+  const raw = fs.readFileSync(path.join(root, 'docs', 'context', 'agent-rules.md'), 'utf8');
   const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
   if (stripped) output += '\n\nPROJECT:\n' + stripped;
 } catch { /* file missing */ }
@@ -101,12 +101,12 @@ const agentsTree = buildTree(path.join(root, '.claude', 'agents'));
 if (agentsTree.length > 0) trees.push('.claude/agents/\n' + agentsTree.join('\n'));
 if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
 
-// Ensure docs/context/personal/ exists (gitignored, sticky — recreated if deleted)
-const personalDir = path.join(root, 'docs', 'context', 'personal');
-const personalIndex = path.join(personalDir, 'index.md');
-if (!fs.existsSync(personalIndex)) {
-  fs.mkdirSync(personalDir, { recursive: true });
-  fs.writeFileSync(personalIndex, `# Personal Notes
+// Ensure docs/context/local/ exists (gitignored, sticky — recreated if deleted)
+const localDir = path.join(root, 'docs', 'context', 'local');
+const localIndex = path.join(localDir, 'index.md');
+if (!fs.existsSync(localIndex)) {
+  fs.mkdirSync(localDir, { recursive: true });
+  fs.writeFileSync(localIndex, `# Local Notes
 
 This folder is gitignored — anything here stays local to your machine.
 
@@ -115,6 +115,29 @@ anything you don't want committed to the shared repo.
 
 This folder shows up in nav and the context path guide like any other
 section, but git won't track its contents.
+`);
+}
+
+// Ensure docs/context/agent-rules.md exists (sticky — recreated if deleted)
+const agentRulesPath = path.join(root, 'docs', 'context', 'agent-rules.md');
+if (!fs.existsSync(agentRulesPath)) {
+  fs.mkdirSync(path.join(root, 'docs', 'context'), { recursive: true });
+  fs.writeFileSync(agentRulesPath, `# Agent Rules
+
+<!-- Injected into every agent session as PROJECT context. -->
+<!-- Customize with your project identity, behavior rules, and coding standards. -->
+
+## About
+
+Describe your project — what it is, what repos are involved, key constraints.
+
+## Agent Behavior
+
+Rules for how the agent should operate in this instance.
+
+## Conventions
+
+Coding patterns, naming standards, tooling preferences.
 `);
 }
 
