@@ -29,8 +29,8 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
-  - pymdownx.tasklist
   - pymdownx.tilde
+  - pymdownx.tasklist
 extra_css:
   - https://fonts.googleapis.com/icon?family=Material+Icons
   - stylesheets/theme.css
