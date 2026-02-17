@@ -25,6 +25,14 @@
   text-shadow: 0 0 8px rgba(180, 190, 255, 0.3);
 }
 
+/* External link indicator in nav and tabs */
+.md-nav a[href^="http"]::after,
+.md-tabs a[href^="http"]::after {
+  content: " \2197";
+  font-size: 0.75em;
+  opacity: 0.5;
+}
+
 /* Parchment — warm ivory background, ink-brown text */
 [data-md-color-scheme="default"] {
   --md-default-bg-color: #FAF6F0;
