@@ -29,7 +29,7 @@ function setup(opts = {}) {
   // Minimal structure so the hook doesn't error
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
 
   if (opts.config) {
     fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config));
@@ -132,11 +132,11 @@ test('creates MEMORY.local.md if missing', () => {
 test('builds knowledge map tree', () => {
   const dir = setup();
   // Create some skill directories
-  fs.mkdirSync(path.join(dir, '.claude', 'skills', 'my-skill'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.claude', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
+  fs.mkdirSync(path.join(dir, '.lore', 'skills', 'my-skill'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
   const out = runHook(dir);
   assert.ok(out.includes('KNOWLEDGE MAP:'));
-  assert.ok(out.includes('.claude/skills/'));
+  assert.ok(out.includes('.lore/skills/'));
   assert.ok(out.includes('my-skill/'));
 });
 
