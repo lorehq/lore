@@ -91,16 +91,30 @@ try {
   if (stripped) output += '\n\nPROJECT:\n' + stripped;
 } catch { /* file missing */ }
 
-// Conventions — coding rules, docs formatting, naming standards
-// Check both flat file and directory forms
+// Conventions — read all .md files from conventions directory (or flat file fallback)
 try {
-  const convPath = fs.existsSync(path.join(root, 'docs', 'context', 'conventions.md'))
-    ? path.join(root, 'docs', 'context', 'conventions.md')
-    : path.join(root, 'docs', 'context', 'conventions', 'index.md');
-  const raw = fs.readFileSync(convPath, 'utf8');
-  const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
-  if (stripped) output += '\n\nCONVENTIONS:\n' + stripped;
-} catch { /* file missing */ }
+  const convDir = path.join(root, 'docs', 'context', 'conventions');
+  const convFile = path.join(root, 'docs', 'context', 'conventions.md');
+  const parts = [];
+  if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
+    // Read all .md files: index.md first, then rest alphabetically
+    const files = fs.readdirSync(convDir).filter(f => f.endsWith('.md')).sort((a, b) => {
+      if (a === 'index.md') return -1;
+      if (b === 'index.md') return 1;
+      return a.localeCompare(b);
+    });
+    for (const file of files) {
+      const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
+      const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+      if (stripped) parts.push(stripped);
+    }
+  } else if (fs.existsSync(convFile)) {
+    const raw = fs.readFileSync(convFile, 'utf8');
+    const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+    if (stripped) parts.push(stripped);
+  }
+  if (parts.length > 0) output += '\n\nCONVENTIONS:\n' + parts.join('\n\n');
+} catch { /* missing */ }
 
 // Knowledge map — show what exists for agent orientation
 const trees = [];
@@ -150,28 +164,26 @@ Rules for how the agent should operate in this instance.
 }
 
 // Ensure docs/context/conventions exists (sticky — scaffolded if neither path exists)
-const convFile = path.join(root, 'docs', 'context', 'conventions.md');
-const convIndex = path.join(root, 'docs', 'context', 'conventions', 'index.md');
-if (!fs.existsSync(convFile) && !fs.existsSync(convIndex)) {
-  fs.mkdirSync(path.join(root, 'docs', 'context', 'conventions'), { recursive: true });
-  fs.writeFileSync(convIndex, `# Conventions
+const convStickyFile = path.join(root, 'docs', 'context', 'conventions.md');
+const convStickyDir = path.join(root, 'docs', 'context', 'conventions');
+if (!fs.existsSync(convStickyFile) && !fs.existsSync(convStickyDir)) {
+  fs.mkdirSync(convStickyDir, { recursive: true });
+  fs.writeFileSync(path.join(convStickyDir, 'index.md'), `# Conventions
 
-<!-- Injected into every agent session as CONVENTIONS context. -->
+Operational rules and standards for this environment. Each page covers a specific domain.
+`);
+  fs.writeFileSync(path.join(convStickyDir, 'docs.md'), `# Docs
 
-Naming standards, formatting rules, and patterns for this environment.
-
-## Docs Formatting
+## Formatting
 
 - **Checkboxes** (\`- [x]\`/\`- [ ]\`) for all actionable items: scope, deliverables, success criteria
 - **Strikethrough** (\`~~text~~\`) on completed item text: \`- [x] ~~Done item~~\`
 - **No emoji icons** — no checkmarks, no colored circles, no decorative symbols
 - **Blank line before lists** — required for MkDocs to render lists correctly
+`);
+  fs.writeFileSync(path.join(convStickyDir, 'coding.md'), `# Coding
 
-## Commit Messages
-
-- Imperative mood: "Add feature" not "Added feature"
-- Focus on the "why" rather than the "what"
-- Include \`Co-Authored-By\` trailer when agent-assisted
+Add your coding rules here — standards the agent should follow when writing code.
 `);
 }
 
