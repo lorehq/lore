@@ -89,7 +89,7 @@ NAV_SECTIONS=("guides" "work" "environment" "runbooks")
 # the folder structure itself.
 emit_work_nav() {
   local work="$DOCS/work"
-  [[ -d "$work" ]] && find "$work" -path '*/archive' -prune -o -name '*.md' -print | grep -q . || return
+  [[ -d "$work" ]] && find "$work" -path '*/archive' -prune -o -name '*.md' -print | grep -q . || return 0
 
   echo "  - Work:"
   # Overview if it exists
