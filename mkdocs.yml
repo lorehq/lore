@@ -2,8 +2,7 @@ site_name: Lore
 docs_dir: docs
 theme:
   name: material
-  icon:
-    logo: material/book-open-page-variant
+  logo: assets/logo.svg
   palette:
     - scheme: slate
       accent: amber
