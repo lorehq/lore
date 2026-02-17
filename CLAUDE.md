@@ -2,6 +2,10 @@
 
 Knowledge-persistent coding agent framework. No application code — hooks, skills, agents, and docs that persist across sessions.
 
+## Repo Boundary
+
+**This is a knowledge hub. All code changes happen in external repos — NEVER here.** A Lore instance contains only knowledge files (docs, skills, agents), hooks, scripts, and work tracking. The operator's application code, infrastructure, and configs live in their own repos. If a task requires writing application code, stop and ask which repo it belongs in. Do not create `src/`, `lib/`, or any application code directories in a Lore instance.
+
 ## Core Behaviors
 
 1. Creates skills and agents as needed (not pre-emptively)
