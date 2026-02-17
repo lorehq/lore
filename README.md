@@ -72,6 +72,10 @@ Both platforms share the same knowledge base — skills, agents, docs, and work 
 
 Docker alternative: `/serve-docs-docker` — no Python required, supports multiple instances.
 
+## Documentation
+
+Full docs: [lorehq.github.io/lore-docs](https://lorehq.github.io/lore-docs/)
+
 ## License
 
 [Apache-2.0](LICENSE)
