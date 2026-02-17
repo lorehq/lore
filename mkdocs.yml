@@ -29,6 +29,9 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
 extra_css:
   - https://fonts.googleapis.com/icon?family=Material+Icons
   - stylesheets/theme.css
