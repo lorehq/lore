@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const hookPath = path.join(__dirname, '..', 'hooks', 'post-edit-reminder.js');
+const hookPath = path.join(__dirname, '..', 'hooks', 'knowledge-tracker.js');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-reminder-'));

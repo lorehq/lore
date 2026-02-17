@@ -25,7 +25,7 @@ Run these checks and present a formatted summary to the operator:
    - `SessionStart` → `session-init.js`
    - `UserPromptSubmit` → `prompt-preamble.js`
    - `PreToolUse` → `protect-memory.js`
-   - `PostToolUse` → `post-edit-reminder.js`
+   - `PostToolUse` → `knowledge-tracker.js`
    - Report each as OK or MISSING.
 
 3. **Counts** — count and report:

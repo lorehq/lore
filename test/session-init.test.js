@@ -6,22 +6,24 @@ const path = require('path');
 const os = require('os');
 
 // session-init.js uses __dirname:
-//   require('./lib/parse-agents') → hooks/lib/parse-agents.js
+//   require('../lib/banner') → lib/banner.js
 //   root = path.join(__dirname, '..') → parent of hooks/
-// So temp structure needs: tmp/hooks/session-init.js + tmp/hooks/lib/parse-agents.js
+// So temp structure needs: tmp/hooks/session-init.js + tmp/lib/banner.js
 // and all data files under tmp/
 
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-'));
-  const hooksDir = path.join(dir, 'hooks', 'lib');
-  fs.mkdirSync(hooksDir, { recursive: true });
+  fs.mkdirSync(path.join(dir, 'hooks'), { recursive: true });
   fs.copyFileSync(
     path.join(__dirname, '..', 'hooks', 'session-init.js'),
     path.join(dir, 'hooks', 'session-init.js')
   );
+  // Shared lib — hook resolves ../lib/banner relative to hooks/
+  const libDir = path.join(dir, 'lib');
+  fs.mkdirSync(libDir, { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', 'hooks', 'lib', 'parse-agents.js'),
-    path.join(hooksDir, 'parse-agents.js')
+    path.join(__dirname, '..', 'lib', 'banner.js'),
+    path.join(libDir, 'banner.js')
   );
 
   // Minimal structure so the hook doesn't error
@@ -194,10 +196,13 @@ test('injects flat conventions.md as fallback', () => {
   assert.ok(out.includes('Flat file rules.'));
 });
 
-test('omits CONVENTIONS section when neither path exists', () => {
+test('scaffolds conventions and includes them when neither path exists', () => {
+  // ensureStickyFiles now runs before buildBanner, so the scaffold is
+  // always present on first run. CONVENTIONS section appears immediately.
   const dir = setup();
   const out = runHook(dir);
-  assert.ok(!out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')));
 });
 
 test('creates sticky conventions directory scaffold when neither path exists', () => {
