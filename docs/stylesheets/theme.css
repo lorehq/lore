@@ -28,9 +28,12 @@
 /* External link indicator in nav and tabs */
 .md-nav a[href^="http"]::after,
 .md-tabs a[href^="http"]::after {
-  content: " \2197";
-  font-size: 0.75em;
-  opacity: 0.5;
+  content: "open_in_new";
+  font-family: "Material Icons";
+  font-size: 1em;
+  margin-left: 0.2em;
+  vertical-align: middle;
+  opacity: 0.6;
 }
 
 /* Parchment — warm ivory background, ink-brown text */
