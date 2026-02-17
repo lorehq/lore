@@ -28,7 +28,7 @@ if (!filePath.includes('docs/context/')) {
 
 // -- Generate ASCII tree of a directory --
 // Shows directories first (sorted), then files (sorted).
-// Max depth of 3 to keep output readable.
+// Depth 0 = root dir; stops recursing when depth exceeds 3 (4 levels total).
 function tree(dir, prefix, depth) {
   if (depth > 3 || !fs.existsSync(dir)) return '';
   const entries = fs.readdirSync(dir, { withFileTypes: true })

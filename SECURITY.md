@@ -22,4 +22,4 @@ Lore is a convention-based framework with no runtime server or network services.
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | Yes       |
+| 0.3.x   | Yes       |
