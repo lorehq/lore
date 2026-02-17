@@ -16,7 +16,7 @@ docs/environment/
     └── index.md
 ```
 
-The directory name becomes the nav label (kebab-case is converted to Title Case: `my-new-section` becomes "My New Section").
+Use kebab-case for directory names — the nav generator converts them to Title Case (`my-new-section` becomes "My New Section"). Underscores and camelCase won't convert cleanly.
 
 ## Removing a Default Section
 
@@ -59,6 +59,12 @@ docs/environment/
 ├── storage/            # NAS, backups, replication
 └── services/           # Apps, dashboards, automation
 ```
+
+## Personal Notes
+
+The `personal/` directory inside `docs/environment/` is gitignored by default. Use it for local-only notes — credentials references, personal bookmarks, scratch thinking — anything you don't want committed.
+
+It appears in nav and the environment path guide like any other section, but git won't track it.
 
 ## Nav Generation
 

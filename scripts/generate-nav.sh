@@ -24,6 +24,11 @@ scan_dir() {
     local name=$(basename "$subdir")
     [[ "$name" == .* ]] && continue   # Skip hidden dirs
     [[ "$name" == "archive" ]] && continue  # Skip archive dirs
+    # Auto-scaffold: if dir has no .md files, create an index.md from the dir name
+    if ! find "${subdir%/}" -name '*.md' | grep -q .; then
+      local scaffold_title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+      echo "# ${scaffold_title}" > "${subdir%/}/index.md"
+    fi
 
     # Convert kebab-case dir name to Title Case for nav label
     local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
@@ -75,7 +80,32 @@ fi
 # Only sections listed here appear in nav. Each is included only when
 # its folder exists AND contains at least one .md file (not just .gitkeep).
 # To add a new top-level section, append its docs/ subfolder name here.
+# NOTE: "work" is handled separately below with hardcoded subsection order.
 NAV_SECTIONS=("guides" "work" "environment" "runbooks")
+
+# Emit the Work section with hardcoded subsection order.
+# Work structure is framework-controlled — operators create items via
+# /create-roadmap, /create-plan, /create-brainstorm but don't modify
+# the folder structure itself.
+emit_work_nav() {
+  local work="$DOCS/work"
+  [[ -d "$work" ]] && find "$work" -name '*.md' | grep -q . || return
+
+  echo "  - Work:"
+  # Overview if it exists
+  [[ -f "$work/index.md" ]] && echo "      - Overview: work/index.md"
+  # Fixed order: Roadmaps > Plans > Brainstorms
+  for subsection in roadmaps plans brainstorms; do
+    if [[ -d "$work/$subsection" ]] && find "$work/$subsection" -name '*.md' | grep -q .; then
+      title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+      echo "      - ${title}:"
+      # Show subsection overview
+      [[ -f "$work/$subsection/index.md" ]] && echo "          - Overview: work/$subsection/index.md"
+      # Scan items within (each roadmap/plan/brainstorm folder)
+      scan_dir "$work/$subsection" "          "
+    fi
+  done
+}
 
 # Write preserved header + fresh nav
 {
@@ -84,9 +114,13 @@ NAV_SECTIONS=("guides" "work" "environment" "runbooks")
   echo "  - Home: index.md"
 
   for section in "${NAV_SECTIONS[@]}"; do
-    # Skip sections with no .md content (empty dirs or .gitkeep-only)
+    # Work gets special handling for fixed subsection order
+    if [[ "$section" == "work" ]]; then
+      emit_work_nav
+      continue
+    fi
+    # All other sections: include if folder has .md content, scan dynamically
     if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
-      # Convert kebab-case folder name to Title Case for nav label
       title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "  - ${title}:"
       scan_dir "$DOCS/$section" "      "

@@ -39,16 +39,19 @@ nav:
   - Guides:
       - Customizing Environment: guides/customizing-environment.md
   - Work:
-      - Brainstorms:
-          - Overview: work/brainstorms/index.md
-      - Plans:
-          - Overview: work/plans/index.md
+      - Overview: work/index.md
       - Roadmaps:
           - Overview: work/roadmaps/index.md
+      - Plans:
+          - Overview: work/plans/index.md
+      - Brainstorms:
+          - Overview: work/brainstorms/index.md
   - Environment:
       - Conventions:
           - Overview: environment/conventions/index.md
       - Diagrams:
           - Overview: environment/diagrams/index.md
+      - Personal:
+          - Overview: environment/personal/index.md
       - Systems:
           - Overview: environment/systems/index.md
