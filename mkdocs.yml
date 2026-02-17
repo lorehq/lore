@@ -32,6 +32,8 @@ markdown_extensions:
   - pymdownx.details
 extra_css:
   - stylesheets/theme.css
+extra_javascript:
+  - javascripts/external-links.js
 plugins:
   - search
 nav:
