@@ -38,7 +38,7 @@
 
 /* Hide right-hand TOC sidebar */
 .md-sidebar--secondary {
-  display: none;
+  display: none !important;
 }
 
 /* Parchment — warm ivory background, ink-brown text */
