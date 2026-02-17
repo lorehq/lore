@@ -2,7 +2,26 @@ site_name: Lore
 docs_dir: docs
 theme:
   name: material
+  icon:
+    logo: material/book-open-page-variant
+  palette:
+    - scheme: slate
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+    - search.highlight
 markdown_extensions:
+  - admonition
   - tables
   - toc:
       permalink: true
@@ -11,6 +30,9 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+extra_css:
+  - stylesheets/theme.css
 plugins:
   - search
 
