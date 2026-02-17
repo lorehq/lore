@@ -5,7 +5,8 @@
 # Usage: scripts/sync-framework.sh <source-dir>
 #
 # Framework-owned (synced):
-#   hooks/, scripts/, .claude/settings.json, .claude/skills/<built-in>/, CLAUDE.md, .gitignore
+#   hooks/, lib/, scripts/, .opencode/, opencode.json,
+#   .claude/settings.json, .claude/skills/<built-in>/, CLAUDE.md, .gitignore
 #
 # Operator-owned (never touched):
 #   docs/, .claude/agents/, mkdocs.yml, .lore-config, MEMORY.local.md, *-registry.md
@@ -27,7 +28,9 @@ fi
 
 # Framework directories — overwrite contents, don't delete operator extras
 rsync -a "$SOURCE/hooks/" "$TARGET/hooks/"
+rsync -a "$SOURCE/lib/" "$TARGET/lib/"
 rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
+rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
 
 # Built-in skills — overwrite existing, don't delete operator skills
 if [ -d "$SOURCE/.claude/skills" ]; then
@@ -41,5 +44,6 @@ fi
 cp "$SOURCE/CLAUDE.md" "$TARGET/CLAUDE.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
+cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
 
 echo "Framework synced from $SOURCE"
