@@ -59,5 +59,5 @@ nav:
   - Guides:
       - Commands: guides/commands.md
       - Customization: guides/customization.md
-      - Hub Spoke: guides/hub-spoke.md
+      - Working Across Repos: guides/working-across-repos.md
   - Docs: https://lorehq.github.io/lore-docs/
