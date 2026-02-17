@@ -36,9 +36,9 @@ The operator types `/update-lore` to sync their instance with the latest Lore re
 ## What Gets Synced
 
 **Overwritten (framework-owned):**
-- `hooks/`, `scripts/`
+- `hooks/`, `lib/`, `scripts/`, `.opencode/`
 - `.claude/settings.json`, `.claude/skills/<built-in>/`
-- `CLAUDE.md`, `.gitignore`
+- `CLAUDE.md`, `.gitignore`, `opencode.json`
 
 **Never touched (operator-owned):**
 - `docs/`, `.claude/agents/`, `mkdocs.yml`
