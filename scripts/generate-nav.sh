@@ -123,6 +123,7 @@ emit_work_nav() {
     if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
       title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "  - ${title}:"
+      [[ -f "$DOCS/$section/index.md" ]] && echo "      - Overview: $section/index.md"
       scan_dir "$DOCS/$section" "      "
     fi
   done
