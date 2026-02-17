@@ -101,6 +101,23 @@ const agentsTree = buildTree(path.join(root, '.claude', 'agents'));
 if (agentsTree.length > 0) trees.push('.claude/agents/\n' + agentsTree.join('\n'));
 if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
 
+// Ensure docs/environment/personal/ exists (gitignored, sticky — recreated if deleted)
+const personalDir = path.join(root, 'docs', 'environment', 'personal');
+const personalIndex = path.join(personalDir, 'index.md');
+if (!fs.existsSync(personalIndex)) {
+  fs.mkdirSync(personalDir, { recursive: true });
+  fs.writeFileSync(personalIndex, `# Personal Notes
+
+This folder is gitignored — anything here stays local to your machine.
+
+Use it for scratch notes, credentials references, personal bookmarks, or
+anything you don't want committed to the shared repo.
+
+This folder shows up in nav and the environment path guide like any other
+section, but git won't track its contents.
+`);
+}
+
 // Append local memory if it has content beyond the default header
 const memPath = path.join(root, 'MEMORY.local.md');
 if (!fs.existsSync(memPath)) fs.writeFileSync(memPath, '# Local Memory\n');
