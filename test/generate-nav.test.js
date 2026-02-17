@@ -28,12 +28,13 @@ function runScript(dir) {
   return { stdout: out, nav: fs.readFileSync(path.join(dir, 'mkdocs.yml'), 'utf8') };
 }
 
-test('generates nav with Home section containing Overview for minimal repo', () => {
+test('generates nav with Home section and index page for minimal repo', () => {
   const dir = setup();
   const { nav } = runScript(dir);
   assert.ok(nav.includes('nav:'));
   assert.ok(nav.includes('- Home:'));
-  assert.ok(nav.includes('- Overview: index.md'));
+  assert.ok(nav.includes('- index.md'));
+  assert.ok(!nav.includes('- Overview:'), 'should not have separate Overview entries');
 });
 
 test('includes work subsections under Home with active roadmap', () => {
@@ -121,7 +122,7 @@ test('auto-scaffold creates index.md when dir has .md files but no index.md', ()
   const { nav } = runScript(dir);
   // Should have auto-created index.md
   assert.ok(fs.existsSync(path.join(sub, 'index.md')), 'index.md should be auto-scaffolded');
-  assert.ok(nav.includes('- Overview: context/inventory/index.md'));
+  assert.ok(nav.includes('- context/inventory/index.md'));
   assert.ok(nav.includes('- Inventory:'));
 });
 

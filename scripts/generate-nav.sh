@@ -13,7 +13,7 @@ OUTPUT="$REPO_ROOT/mkdocs.yml"
 
 # Recursively scan a directory and emit mkdocs nav entries.
 # Processes subdirectories first (alphabetically), then loose .md files.
-# If a subdir contains index.md, it becomes the "Overview" link.
+# If a subdir contains index.md, it becomes the section index page.
 scan_dir() {
   local dir="${1%/}" indent="$2"  # Strip trailing slash to avoid double-slash in paths
   [[ -d "$dir" ]] || return
@@ -34,9 +34,9 @@ scan_dir() {
     local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     echo "${indent}- ${title}:"
 
-    # Use index.md as the section overview if it exists
+    # Use index.md as the section index page (navigation.indexes makes heading clickable)
     local rel="${subdir#$DOCS/}"
-    [[ -f "${subdir}index.md" ]] && echo "${indent}    - Overview: ${rel}index.md"
+    [[ -f "${subdir}index.md" ]] && echo "${indent}    - ${rel}index.md"
 
     scan_dir "$subdir" "${indent}    "
   done
@@ -97,7 +97,7 @@ emit_work_subsections() {
     [[ -d "$work/$subsection" ]] || continue
     title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     echo "${indent}- ${title}:"
-    [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - Overview: work/$subsection/index.md"
+    [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - work/$subsection/index.md"
     scan_dir "$work/$subsection" "${indent}    "
   done
 }
@@ -107,7 +107,7 @@ emit_work_subsections() {
   echo "$HEADER"
   echo "nav:"
   echo "  - Home:"
-  echo "      - Overview: index.md"
+  echo "      - index.md"
   emit_work_subsections "      "
 
   for section in "${NAV_SECTIONS[@]}"; do
@@ -115,7 +115,7 @@ emit_work_subsections() {
     if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
       title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "  - ${title}:"
-      [[ -f "$DOCS/$section/index.md" ]] && echo "      - Overview: $section/index.md"
+      [[ -f "$DOCS/$section/index.md" ]] && echo "      - $section/index.md"
       # Agent rules pinned after overview in context section
       if [[ "$section" == "context" && -f "$DOCS/$section/agent-rules.md" ]]; then
         echo "      - Agent Rules: $section/agent-rules.md"
