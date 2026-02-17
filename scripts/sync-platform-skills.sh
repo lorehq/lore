@@ -2,7 +2,7 @@
 # Copies canonical skills and agents from .lore/ to platform-specific directories.
 # Uses rsync --delete so removed items disappear from platform copies too.
 #
-# Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursorrules)
+# Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursorrules), OpenCode
 # Future: Windsurf, etc.
 
 set -euo pipefail

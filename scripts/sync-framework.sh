@@ -5,7 +5,7 @@
 # Usage: scripts/sync-framework.sh <source-dir>
 #
 # Framework-owned (synced):
-#   hooks/, lib/, scripts/, .opencode/, opencode.json,
+#   hooks/, lib/, scripts/, .opencode/, .cursor/, opencode.json,
 #   .claude/settings.json, .lore/skills/<built-in>/, .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
@@ -31,6 +31,7 @@ rsync -a "$SOURCE/hooks/" "$TARGET/hooks/"
 rsync -a "$SOURCE/lib/" "$TARGET/lib/"
 rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
 rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
+rsync -a "$SOURCE/.cursor/" "$TARGET/.cursor/"
 
 # Built-in skills — overwrite existing, don't delete operator skills
 if [ -d "$SOURCE/.lore/skills" ]; then
