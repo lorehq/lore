@@ -65,15 +65,15 @@ test('excludes archive directories from nav output', () => {
   assert.ok(!nav.includes('Old Plan'), 'archived content should not appear in nav');
 });
 
-test('no empty sections when only archive content exists', () => {
+test('work subsections always appear even with only archive content', () => {
   const dir = setup();
-  // Work dir with only archive content — the bug we fixed
   const archive = path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-roadmap');
   fs.mkdirSync(archive, { recursive: true });
   fs.writeFileSync(path.join(archive, 'index.md'), '# Old\n');
 
   const { nav } = runScript(dir);
-  assert.ok(!nav.includes('- Roadmaps:'), 'Roadmaps subsection should not appear when only archive content exists');
+  assert.ok(nav.includes('- Roadmaps:'), 'Roadmaps subsection should always appear');
+  assert.ok(!nav.includes('Old Roadmap'), 'archived content should not appear in nav');
 });
 
 test('includes Context section when content exists', () => {

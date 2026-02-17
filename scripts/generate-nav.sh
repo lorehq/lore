@@ -90,18 +90,15 @@ NAV_SECTIONS=("context" "guides")
 emit_work_subsections() {
   local indent="$1"
   local work="$DOCS/work"
-  [[ -d "$work" ]] && find "$work" -path '*/archive' -prune -o -name '*.md' -print | grep -q . || return 0
+  [[ -d "$work" ]] || return 0
 
-  # Fixed order: Roadmaps > Plans > Brainstorms
+  # Always show all three — structure is framework-controlled, never skipped
   for subsection in roadmaps plans brainstorms; do
-    if [[ -d "$work/$subsection" ]] && find "$work/$subsection" -path '*/archive' -prune -o -name '*.md' -print | grep -q .; then
-      title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-      echo "${indent}- ${title}:"
-      # Show subsection overview
-      [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - Overview: work/$subsection/index.md"
-      # Scan items within (each roadmap/plan/brainstorm folder)
-      scan_dir "$work/$subsection" "${indent}    "
-    fi
+    [[ -d "$work/$subsection" ]] || continue
+    title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    echo "${indent}- ${title}:"
+    [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - Overview: work/$subsection/index.md"
+    scan_dir "$work/$subsection" "${indent}    "
   done
 }
 
