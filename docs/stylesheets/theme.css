@@ -1,12 +1,12 @@
-/* Moonlit — cool blue tint on dark mode, amber header */
+/* Moonlit — cool blue tint on dark mode, dark neutral header */
 [data-md-color-scheme="slate"] {
   --md-default-fg-color: rgba(220, 228, 255, 0.87);
   --md-default-fg-color--light: rgba(220, 228, 255, 0.54);
-  --md-primary-fg-color: #FFA000;
-  --md-primary-fg-color--light: #FFC040;
-  --md-primary-fg-color--dark: #E08F00;
-  --md-primary-bg-color: #2B1D0E;
-  --md-primary-bg-color--light: #3D2B18;
+  --md-primary-fg-color: #1E1E24;
+  --md-primary-fg-color--light: #2A2A32;
+  --md-primary-fg-color--dark: #141418;
+  --md-primary-bg-color: #E8E8F0;
+  --md-primary-bg-color--light: #C0C0CC;
 }
 
 /* Amber title + glow on dark mode */
@@ -33,9 +33,9 @@
   --md-default-fg-color--light: rgba(58, 46, 36, 0.54);
   --md-code-bg-color: #EDE5D8;
   --md-code-fg-color: #3A2E24;
-  --md-primary-fg-color: #FFA000;
-  --md-primary-fg-color--light: #FFC040;
-  --md-primary-fg-color--dark: #E08F00;
-  --md-primary-bg-color: #2B1D0E;
-  --md-primary-bg-color--light: #3D2B18;
+  --md-primary-fg-color: #2B2B33;
+  --md-primary-fg-color--light: #3A3A44;
+  --md-primary-fg-color--dark: #1E1E26;
+  --md-primary-bg-color: #E8E8F0;
+  --md-primary-bg-color--light: #C0C0CC;
 }
