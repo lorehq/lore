@@ -1,28 +1,20 @@
 ---
-title: Lore
+title: Home
 ---
 
-# Lore
+# Project Name
 
-Knowledge-persistent coding agent framework. Hooks, skills, agents, and docs that compound across sessions.
+<!-- This file is your operator context — injected into every agent session. -->
+<!-- Customize it to replace what you'd normally put in CLAUDE.md or agents.md. -->
 
-## Quick Start
+## About
 
-```bash
-npx create-lore my-project
-cd my-project
-claude
-```
+What this project does and what domain it's in.
 
-## Core Principles
+## Agent Behavior
 
-**Self-Learning** — Captures gotchas as reusable skills, maps your environment through docs. The agent adapts to your specific setup every session.
+How the agent should communicate and operate.
 
-**Delegation** — Orchestrator dispatches domain work to cheaper, focused agents. Less token spend, cleaner context windows.
+## Conventions
 
-**Work Continuity** — Roadmaps and plans persist across sessions. Active work surfaces every startup.
-
-## Navigation
-
-- [Skills Registry](../skills-registry.md) — current skill inventory
-- [Agent Registry](../agent-registry.md) — current agent inventory
+Coding patterns, tooling preferences, naming conventions.

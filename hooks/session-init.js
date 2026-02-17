@@ -77,6 +77,13 @@ CAPTURE: After substantive work → capture knowledge, create skills, validate c
 if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
 if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
 
+// Project context — operator customization surface (docs/index.md)
+try {
+  const raw = fs.readFileSync(path.join(root, 'docs', 'index.md'), 'utf8');
+  const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+  if (stripped) output += '\n\nPROJECT:\n' + stripped;
+} catch { /* file missing */ }
+
 // Knowledge map — show what exists for agent orientation
 const trees = [];
 const docsTree = buildTree(path.join(root, 'docs'));
