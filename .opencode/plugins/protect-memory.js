@@ -16,7 +16,8 @@ export const ProtectMemory = async ({ directory }) => {
       // OpenCode puts tool args in output.args (not input.args)
       const filePath = output?.args?.file_path || output?.args?.path || "";
       const result = checkMemoryAccess(tool, filePath, directory);
-      if (result?.blocked) throw new Error(result.reason);
+      // Non-null result = blocked (no separate flag needed)
+      if (result) throw new Error(result.reason);
     },
   };
 };

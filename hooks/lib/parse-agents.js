@@ -1,34 +1,13 @@
-// Shared utility: parse agent domains from agent-registry.md
-// Returns an array of unique domain names (e.g., ["Git", "Docker", "GitHub"])
-// Used by session-init and prompt-preamble hooks to show delegation options.
+// Thin wrapper — delegates to the shared lib/banner.js implementation.
+// Hooks call this with no args; it resolves the project root from __dirname.
+// The canonical implementation lives in lib/banner.js (parameterized by directory).
 
-const fs = require('fs');
 const path = require('path');
+const { getAgentDomains: _getAgentDomains } = require('../../lib/banner');
 
 function getAgentDomains() {
-  try {
-    const content = fs.readFileSync(path.join(__dirname, '..', '..', 'agent-registry.md'), 'utf8');
-    const domains = new Set();
-
-    for (const line of content.split(/\r?\n/)) {
-      // Only parse table rows (start with |), skip separator rows (|---)
-      if (!line.startsWith('|') || line.includes('|---')) continue;
-
-      const parts = line.split('|').map(p => p.trim());
-      const agent = (parts[1] || '').replace(/`/g, '').trim();
-      const domain = (parts[2] || '').trim();
-
-      // Skip header row and empty values
-      if (!agent || agent.toLowerCase() === 'agent') continue;
-      if (!domain || domain.toLowerCase() === 'domain') continue;
-
-      domains.add(domain);
-    }
-
-    return Array.from(domains);
-  } catch {
-    return []; // No registry file or parse error — no agents yet
-  }
+  // Hook scripts live in hooks/lib/, so project root is two levels up
+  return _getAgentDomains(path.join(__dirname, '..', '..'));
 }
 
 module.exports = { getAgentDomains };

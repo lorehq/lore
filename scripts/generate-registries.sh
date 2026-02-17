@@ -6,7 +6,7 @@
 #   .lore/skills/*/SKILL.md  →  skills-registry.md
 #   .lore/agents/*.md        →  agent-registry.md
 
-set -e
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
