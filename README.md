@@ -57,7 +57,10 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 | Platform | Integration | How it works |
 |----------|-------------|--------------|
 | **Claude Code** | `hooks/` + `CLAUDE.md` | Hooks fire on lifecycle events. CLAUDE.md loaded automatically. |
-| **OpenCode** | `.opencode/plugins/` + `opencode.json` | Plugins fire on lifecycle events. opencode.json points to CLAUDE.md. |
+| **Cursor** | `.cursorrules` | Rules file loaded automatically. |
+| **OpenCode** | `.opencode/plugins/` + `opencode.json` | Plugins fire on lifecycle events. opencode.json points to instructions. |
+
+`CLAUDE.md` and `.cursorrules` are generated from `.lore/instructions.md` via `scripts/sync-platform-skills.sh`.
 
 Both platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
 

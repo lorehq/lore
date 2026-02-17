@@ -6,7 +6,7 @@
 
 The file is **sticky** — if deleted, the session hook recreates it with a skeleton template on next startup. Customize the template sections (About, Agent Behavior, Conventions, Coding Rules) to match your project.
 
-This replaces what you'd normally put in `CLAUDE.md` or `agents.md` — but lives in docs where it's browsable and version-controlled.
+This replaces what you'd normally put in `CLAUDE.md` / `.cursorrules` or `agents.md` — but lives in docs where it's browsable and version-controlled.
 
 ## Context Folder Structure
 

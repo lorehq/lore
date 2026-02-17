@@ -2,7 +2,7 @@
 # Validates cross-reference consistency between skills, agents, and registries.
 # Run after any structural change to catch drift.
 #
-# Checks (8 total):
+# Checks (9 total):
 #   1. Every skill directory has a registry entry
 #   2. Every agent file has a registry entry
 #   3. Every registry skill has a directory on disk
@@ -11,6 +11,7 @@
 #   6. Agent frontmatter has required fields (name, domain, description, model)
 #   7. Agent skill references point to existing directories
 #   8. Platform copies (.claude/) match canonical source (.lore/)
+#   9. CLAUDE.md and .cursorrules match .lore/instructions.md
 #
 # Exit code: 0 = all passed, 1 = inconsistencies found
 
@@ -136,6 +137,20 @@ if [[ -d "$REPO_ROOT/.lore/agents" ]]; then
   else
     fail ".claude/agents/ missing — run: bash scripts/sync-platform-skills.sh"
   fi
+fi
+
+# -- 9. Instructions copies match canonical source --
+echo "--- Instructions Sync ---"
+if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
+  for copy in "CLAUDE.md" ".cursorrules"; do
+    if [[ -f "$REPO_ROOT/$copy" ]]; then
+      if ! diff -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/$copy" >/dev/null 2>&1; then
+        fail "$copy out of sync with .lore/instructions.md — run: bash scripts/sync-platform-skills.sh"
+      fi
+    else
+      fail "$copy missing — run: bash scripts/sync-platform-skills.sh"
+    fi
+  done
 fi
 
 # -- Results --

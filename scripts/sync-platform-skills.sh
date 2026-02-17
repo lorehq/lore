@@ -2,8 +2,8 @@
 # Copies canonical skills and agents from .lore/ to platform-specific directories.
 # Uses rsync --delete so removed items disappear from platform copies too.
 #
-# Currently supports: Claude Code (.claude/skills/, .claude/agents/)
-# Future: Cursor (.cursor/rules/skills/), Windsurf, etc.
+# Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursorrules)
+# Future: Windsurf, etc.
 
 set -euo pipefail
 
@@ -20,10 +20,10 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
   rsync -a --delete "$REPO_ROOT/.lore/agents/" "$REPO_ROOT/.claude/agents/"
 fi
 
-# -- Cursor (future) --
-# if [ -d "$REPO_ROOT/.lore/skills" ]; then
-#   mkdir -p "$REPO_ROOT/.cursor/rules/skills"
-#   rsync -a --delete "$REPO_ROOT/.lore/skills/" "$REPO_ROOT/.cursor/rules/skills/"
-# fi
+# -- Instructions --
+if [ -f "$REPO_ROOT/.lore/instructions.md" ]; then
+  cp "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md"
+  cp "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/.cursorrules"
+fi
 
 echo "Platform copies synced from .lore/"

@@ -38,7 +38,8 @@ The operator types `/update-lore` to sync their instance with the latest Lore re
 **Overwritten (framework-owned):**
 - `hooks/`, `lib/`, `scripts/`, `.opencode/`
 - `.claude/settings.json`, `.lore/skills/<built-in>/`
-- `CLAUDE.md`, `.gitignore`, `opencode.json`
+- `.lore/instructions.md`, `.gitignore`, `opencode.json`
+- Generated copies (`CLAUDE.md`, `.cursorrules`) are also regenerated via `sync-platform-skills.sh`
 
 **Never touched (operator-owned):**
 - `docs/`, `.lore/agents/`, `mkdocs.yml`
