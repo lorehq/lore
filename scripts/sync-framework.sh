@@ -6,10 +6,10 @@
 #
 # Framework-owned (synced):
 #   hooks/, lib/, scripts/, .opencode/, opencode.json,
-#   .claude/settings.json, .claude/skills/<built-in>/, CLAUDE.md, .gitignore
+#   .claude/settings.json, .lore/skills/<built-in>/, CLAUDE.md, .gitignore
 #
 # Operator-owned (never touched):
-#   docs/, .claude/agents/, mkdocs.yml, .lore-config, MEMORY.local.md, *-registry.md
+#   docs/, .lore/agents/, mkdocs.yml, .lore-config, MEMORY.local.md, *-registry.md
 
 set -euo pipefail
 
@@ -33,10 +33,11 @@ rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
 rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
 
 # Built-in skills — overwrite existing, don't delete operator skills
-if [ -d "$SOURCE/.claude/skills" ]; then
-  for skill_dir in "$SOURCE/.claude/skills"/*/; do
+if [ -d "$SOURCE/.lore/skills" ]; then
+  mkdir -p "$TARGET/.lore/skills"
+  for skill_dir in "$SOURCE/.lore/skills"/*/; do
     skill_name="$(basename "$skill_dir")"
-    rsync -a "$skill_dir" "$TARGET/.claude/skills/$skill_name/"
+    rsync -a "$skill_dir" "$TARGET/.lore/skills/$skill_name/"
   done
 fi
 
@@ -45,5 +46,8 @@ cp "$SOURCE/CLAUDE.md" "$TARGET/CLAUDE.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
+
+# Generate platform copies from canonical .lore/ source
+bash "$TARGET/scripts/sync-platform-skills.sh"
 
 echo "Framework synced from $SOURCE"

@@ -16,7 +16,7 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 | What | Where |
 |------|-------|
-| Gotchas (auth quirks, encoding, parameter tricks) | `.claude/skills/` via create-skill |
+| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via create-skill |
 | Context (URLs, repos, services, relationships) | `docs/context/` |
 | Procedures (multi-step operations) | `docs/context/runbooks/` |
 | Scratch notes (temporary) | `MEMORY.local.md` (gitignored) |
@@ -29,13 +29,13 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
-Naming: `<service>-<action>-<object>`. See `.claude/skills/create-skill/SKILL.md`.
+Naming: `<service>-<action>-<object>`. See `.lore/skills/create-skill/SKILL.md`.
 
 ## Agent Creation
 
 **Domain = Agent (1:1). No orphaned skills.** Create immediately when skill has clear domain, even with 1 skill.
 
-Naming: `<domain-slug>-agent`. See `.claude/skills/create-agent/SKILL.md`.
+Naming: `<domain-slug>-agent`. See `.lore/skills/create-agent/SKILL.md`.
 
 ## Delegation
 
@@ -67,8 +67,8 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 ## File Layout
 
-- Skills: `.claude/skills/<name>/SKILL.md`
-- Agents: `.claude/agents/<name>.md`
+- Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
+- Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
 - Registries: `agent-registry.md`, `skills-registry.md` (auto-generated via `scripts/generate-registries.sh`)
 - Knowledge: `docs/context/`, `docs/context/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`

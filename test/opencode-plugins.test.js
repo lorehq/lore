@@ -32,7 +32,7 @@ function setup(opts = {}) {
   // Minimal project structure
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.git'));
 
   if (opts.config) {
