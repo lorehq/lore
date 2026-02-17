@@ -126,6 +126,8 @@ emit_work_subsections() {
       scan_dir "$DOCS/$section" "      "
     fi
   done
+
+  echo "  - Docs: https://lorehq.github.io/lore-docs/"
 } > "$OUTPUT"
 
 # Clear the nav-dirty flag (set by post-edit-reminder.js when docs/ files change).
