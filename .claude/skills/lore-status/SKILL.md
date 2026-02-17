@@ -1,5 +1,5 @@
 ---
-name: status
+name: lore-status
 description: Show Lore instance health — version, hooks, skills, agents, active work
 domain: Orchestrator
 scope: internal
