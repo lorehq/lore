@@ -81,7 +81,7 @@ fi
 # its folder exists AND contains at least one .md file (not just .gitkeep).
 # To add a new top-level section, append its docs/ subfolder name here.
 # NOTE: "work" is handled separately below with hardcoded subsection order.
-NAV_SECTIONS=("guides" "work" "environment" "runbooks")
+NAV_SECTIONS=("work" "context" "guides")
 
 # Emit the Work section with hardcoded subsection order.
 # Work structure is framework-controlled — operators create items via

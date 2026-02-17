@@ -19,7 +19,7 @@
       },
       {
         "matcher": "Write",
-        "hooks": [{ "type": "command", "command": "node hooks/environment-path-guide.js" }]
+        "hooks": [{ "type": "command", "command": "node hooks/context-path-guide.js" }]
       }
     ],
     "PostToolUse": [

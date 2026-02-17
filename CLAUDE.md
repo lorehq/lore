@@ -17,15 +17,15 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 | What | Where |
 |------|-------|
 | Gotchas (auth quirks, encoding, parameter tricks) | `.claude/skills/` via create-skill |
-| Environmental (URLs, repos, services, relationships) | `docs/environment/` |
-| Procedures (multi-step operations) | `docs/runbooks/` |
+| Context (URLs, repos, services, relationships) | `docs/context/` |
+| Procedures (multi-step operations) | `docs/context/runbooks/` |
 | Scratch notes (temporary) | `MEMORY.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked. Use the routes above.
 
 ## Skill Creation
 
-**Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no environment data (usernames, URLs, account IDs go in `docs/environment/`).
+**Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/context/`).
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
@@ -47,9 +47,9 @@ Delegate by domain. Check `agent-registry.md` before work.
 ## Capture
 
 After substantive work:
-1. New environmental knowledge? → `docs/environment/`
+1. New context knowledge? → `docs/context/`
 2. Hit gotchas? → create skill
-3. Multi-step procedure? → `docs/runbooks/`
+3. Multi-step procedure? → `docs/context/runbooks/`
 4. Skills over 80 lines or mixing methods? → split
 5. Run `scripts/validate-consistency.sh`
 
@@ -70,7 +70,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Skills: `.claude/skills/<name>/SKILL.md`
 - Agents: `.claude/agents/<name>.md`
 - Registries: `agent-registry.md`, `skills-registry.md` (auto-generated via `scripts/generate-registries.sh`)
-- Knowledge: `docs/environment/`, `docs/runbooks/`
+- Knowledge: `docs/context/`, `docs/context/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
 - Hooks: `hooks/`
 - Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/serve-docs`)

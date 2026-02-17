@@ -36,8 +36,6 @@ plugins:
   - search
 nav:
   - Home: index.md
-  - Guides:
-      - Customizing Environment: guides/customizing-environment.md
   - Work:
       - Overview: work/index.md
       - Roadmaps:
@@ -46,12 +44,17 @@ nav:
           - Overview: work/plans/index.md
       - Brainstorms:
           - Overview: work/brainstorms/index.md
-  - Environment:
+  - Context:
+      - Overview: context/index.md
       - Conventions:
-          - Overview: environment/conventions/index.md
+          - Overview: context/conventions/index.md
       - Diagrams:
-          - Overview: environment/diagrams/index.md
+          - Overview: context/diagrams/index.md
       - Personal:
-          - Overview: environment/personal/index.md
+          - Overview: context/personal/index.md
+      - Runbooks:
+          - Overview: context/runbooks/index.md
       - Systems:
-          - Overview: environment/systems/index.md
+          - Overview: context/systems/index.md
+  - Guides:
+      - Customizing Context: guides/customizing-context.md

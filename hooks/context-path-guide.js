@@ -1,4 +1,4 @@
-// PreToolUse hook: Guide writes to docs/environment/ with current structure.
+// PreToolUse hook: Guide writes to docs/context/ with current structure.
 // Shows an ASCII tree of existing directories and files so the agent can
 // see what's already there and place new content in the right spot.
 //
@@ -21,8 +21,8 @@ try {
 
 const filePath = (input.tool_input || {}).file_path || '';
 
-// Only fire for writes targeting docs/environment/
-if (!filePath.includes('docs/environment/')) {
+// Only fire for writes targeting docs/context/
+if (!filePath.includes('docs/context/')) {
   process.exit(0);
 }
 
@@ -54,11 +54,11 @@ function tree(dir, prefix, depth) {
 }
 
 // -- Build guidance message --
-const envDir = path.join(process.cwd(), 'docs', 'environment');
-const structure = fs.existsSync(envDir) ? tree(envDir, '', 0) : '';
+const ctxDir = path.join(process.cwd(), 'docs', 'context');
+const structure = fs.existsSync(ctxDir) ? tree(ctxDir, '', 0) : '';
 
-let msg = 'Environment path guide:\n';
-msg += `docs/environment/\n${structure || '(empty)\n'}`;
+let msg = 'Context path guide:\n';
+msg += `docs/context/\n${structure || '(empty)\n'}`;
 msg += 'Organize subdirectories as needed (e.g. systems/, architecture/, procedures/)';
 
 console.log(JSON.stringify({ decision: 'proceed', additional_context: msg }));

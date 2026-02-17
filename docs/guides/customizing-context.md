@@ -1,17 +1,17 @@
-# Customizing the Environment Section
+# Customizing the Context Section
 
-The `docs/environment/` directory is yours to organize however fits your domain. The default structure (systems, conventions, diagrams) is a starting point — not a constraint.
+The `docs/context/` directory is yours to organize however fits your domain. The default structure (systems, conventions, diagrams) is a starting point — not a constraint.
 
 ## How It Works
 
-The nav is generated dynamically from whatever directories and files exist under `docs/environment/`. Add a folder, put markdown in it, run `bash scripts/generate-nav.sh`, and it appears in nav automatically.
+The nav is generated dynamically from whatever directories and files exist under `docs/context/`. Add a folder, put markdown in it, run `bash scripts/generate-nav.sh`, and it appears in nav automatically.
 
 ## Adding a Section
 
 Create a directory and an `index.md`:
 
 ```
-docs/environment/
+docs/context/
 └── my-new-section/
     └── index.md
 ```
@@ -23,7 +23,7 @@ Use kebab-case for directory names — the nav generator converts them to Title 
 Delete the directory. The nav generator skips missing directories.
 
 ```bash
-rm -rf docs/environment/diagrams
+rm -rf docs/context/diagrams
 bash scripts/generate-nav.sh
 ```
 
@@ -32,7 +32,7 @@ bash scripts/generate-nav.sh
 ### DevOps / Platform Engineering
 
 ```
-docs/environment/
+docs/context/
 ├── infrastructure/     # Cloud accounts, regions, clusters
 ├── ci-cd/              # Pipelines, runners, deploy targets
 ├── monitoring/         # Dashboards, alerts, SLOs
@@ -43,7 +43,7 @@ docs/environment/
 ### Full-Stack Development
 
 ```
-docs/environment/
+docs/context/
 ├── services/           # APIs, databases, message queues
 ├── frontend/           # Build tools, CDN, feature flags
 ├── testing/            # Test environments, fixtures, mocks
@@ -53,7 +53,7 @@ docs/environment/
 ### Homelab / Self-Hosted
 
 ```
-docs/environment/
+docs/context/
 ├── hosts/              # Servers, VMs, containers
 ├── networking/         # DNS, VLANs, reverse proxies
 ├── storage/            # NAS, backups, replication
@@ -62,9 +62,9 @@ docs/environment/
 
 ## Personal Notes
 
-The `personal/` directory inside `docs/environment/` is gitignored by default. Use it for local-only notes — credentials references, personal bookmarks, scratch thinking — anything you don't want committed.
+The `personal/` directory inside `docs/context/` is gitignored by default. Use it for local-only notes — credentials references, personal bookmarks, scratch thinking — anything you don't want committed.
 
-It appears in nav and the environment path guide like any other section, but git won't track it.
+It appears in nav and the context path guide like any other section, but git won't track it.
 
 ## Nav Generation
 

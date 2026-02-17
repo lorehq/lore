@@ -31,8 +31,8 @@ Run these checks and present a formatted summary to the operator:
 3. **Counts** — count and report:
    - Skills: number of directories in `.claude/skills/`
    - Agents: number of `.md` files in `.claude/agents/` (0 if dir missing)
-   - Environment docs: number of `.md` files under `docs/environment/`
-   - Runbooks: number of `.md` files under `docs/runbooks/`
+   - Context docs: number of `.md` files under `docs/context/`
+   - Runbooks: number of `.md` files under `docs/context/runbooks/`
 
 4. **Active work** — scan `docs/work/roadmaps/` and `docs/work/plans/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
 
@@ -46,7 +46,7 @@ Run these checks and present a formatted summary to the operator:
      PreToolUse        ✓
      PostToolUse       ✓
 
-   Skills: 12 | Agents: 2 | Env docs: 5 | Runbooks: 1
+   Skills: 12 | Agents: 2 | Context docs: 5 | Runbooks: 1
 
    Active roadmaps: V1 Go-Live
    Active plans: (none)

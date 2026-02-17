@@ -1,6 +1,6 @@
 // Hook: PreToolUse (matcher: Edit|Write|Read)
 // Blocks all access to MEMORY.md and redirects to the correct location.
-// Knowledge has three routes: skills, docs/environment, or MEMORY.local.md.
+// Knowledge has three routes: skills, docs/context, or MEMORY.local.md.
 
 const fs = require('fs');
 
@@ -39,6 +39,6 @@ console.log(JSON.stringify({
   decision: 'block',
   reason: 'Memory relocated to MEMORY.local.md. Route your knowledge:\n' +
     '  GOTCHA → /create-skill (no exceptions)\n' +
-    '  ENVIRONMENTAL → docs/environment/\n' +
+    '  CONTEXT → docs/context/\n' +
     '  TEMPORARY → MEMORY.local.md'
 }));

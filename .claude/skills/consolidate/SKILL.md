@@ -20,7 +20,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/capture` (session-
 | Active work items (`status: active`) | 14 days since `updated` |
 | Planned/on-hold work items | 30 days since `updated` |
 | Brainstorms | 21 days since `created` |
-| Environment docs | 30 days since last git commit |
+| Context docs | 30 days since last git commit |
 | MEMORY.local.md | >50 lines |
 
 ## Process
@@ -31,7 +31,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/capture` (session-
 
 2. **Aging brainstorms**: Glob `docs/work/brainstorms/*/index.md`. Exclude `archive/`. Flag if `created` older than 21 days. Suggest: promote or archive.
 
-3. **Environment doc staleness**: For `.md` files in `docs/environment/` (recursive), check last git commit date. Flag files >30 days stale. Skip `index.md` files.
+3. **Context doc staleness**: For `.md` files in `docs/context/` (recursive), check last git commit date. Flag files >30 days stale. Skip `index.md` files.
 
 4. **MEMORY.local.md hygiene**: Flag if >50 lines.
 
@@ -41,7 +41,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/capture` (session-
 
 6. **Brainstorm lifecycle**: Cross-reference active brainstorms against completed work. Flag as archive candidate, promote candidate, or stale.
 
-7. **Environment doc duplication**: Read all `docs/environment/` files. Flag content overlap, stale facts, orphaned inventory.
+7. **Context doc duplication**: Read all `docs/context/` files. Flag content overlap, stale facts, orphaned inventory.
 
 ## Report Format
 
@@ -54,7 +54,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/capture` (session-
 - [stale] roadmaps/foo — "Title" — active, last updated 23 days ago
 
 #### Environment Doc Staleness (N found)
-- docs/environment/inventory/services.md — last touched 45 days ago
+- docs/context/inventory/services.md — last touched 45 days ago
 
 ### Tier 2: Deep Analysis
 

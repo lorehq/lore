@@ -21,7 +21,7 @@ Walk through every item. Report findings to the operator before making changes.
 
 1. **Review session work** for uncaptured knowledge
 2. **Gotchas?** → create skill (mandatory — every gotcha becomes a skill)
-3. **New environmental knowledge?** (URLs, repos, services, relationships) → `docs/environment/`
+3. **New context knowledge?** (URLs, repos, services, relationships) → `docs/context/`
 4. **Generate agents**: `bash scripts/generate-agents.sh`
 5. **Update registries**: `bash scripts/generate-registries.sh`
 6. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
