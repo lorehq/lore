@@ -12,5 +12,7 @@
 | create-todo-with-capture | Orchestrator | Append a capture checkpoint to task lists |
 | serve-docs-docker | Documentation | Start the docs site via Docker. No Python required. Supports multiple instances with deterministic ports. |
 | serve-docs | Documentation | Start the local docs site with live reload. Installs Python and mkdocs-material if needed. |
+| status | Orchestrator | Show Lore instance health — version, hooks, skills, agents, active work |
 | stop-docs | Documentation | Stop the local docs site (started by /serve-docs or /serve-docs-docker). |
+| update-lore | Orchestrator | Update Lore framework files to the latest version |
 

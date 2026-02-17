@@ -67,8 +67,15 @@ const docsWork = path.join(root, 'docs', 'work');
 const roadmaps = scanWork(path.join(docsWork, 'roadmaps'), true);
 const plans = scanWork(path.join(docsWork, 'plans'), false);
 
+// Read version from .lore-config
+let version = '';
+try {
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, '.lore-config'), 'utf8'));
+  if (cfg.version) version = ` v${cfg.version}`;
+} catch { /* missing or malformed */ }
+
 // Session banner — the three core principles, reinforced every session
-let output = `=== LORE ===
+let output = `=== LORE${version} ===
 
 DELEGATION: Delegate by domain. Available agents: ${agents.length > 0 ? agents.join(', ') : '(none yet)'}
 SKILL CREATION: Every gotcha becomes a skill — no exceptions.
