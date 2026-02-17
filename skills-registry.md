@@ -3,6 +3,7 @@
 | Skill | Domain | Description |
 |-------|--------|-------------|
 | capture | Orchestrator | Session-scoped knowledge capture — review work, create skills, update registries |
+| claude-code-naming-collisions | Orchestrator | Avoid naming skills that collide with Claude Code built-in slash commands |
 | consolidate | Orchestrator | Deep repo-wide health check — stale items, overlap, duplication |
 | create-agent | Orchestrator | Create a domain agent when a skill has a clear domain |
 | create-brainstorm | Orchestrator | Create a brainstorm folder — always standalone, never nested |
