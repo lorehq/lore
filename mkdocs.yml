@@ -34,6 +34,5 @@ extra_css:
   - stylesheets/theme.css
 plugins:
   - search
-
 nav:
   - Home: index.md

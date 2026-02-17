@@ -47,9 +47,13 @@ scan_dir() {
   done
 }
 
-# -- Write static mkdocs config header --
-cat > "$OUTPUT" <<'EOF'
-site_name: Lore
+# -- Preserve everything above nav, regenerate nav only --
+if [[ -f "$OUTPUT" ]]; then
+  # Extract everything before the nav: line
+  HEADER=$(sed '/^nav:/,$d' "$OUTPUT")
+else
+  # No mkdocs.yml exists — write a minimal header
+  HEADER='site_name: Lore
 docs_dir: docs
 theme:
   name: material
@@ -64,12 +68,12 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 plugins:
   - search
+'
+fi
 
-EOF
-
-# -- Write dynamic nav section --
-# Only includes sections for directories that actually exist.
+# Write preserved header + fresh nav
 {
+  echo "$HEADER"
   echo "nav:"
   echo "  - Home: index.md"
 
@@ -87,6 +91,6 @@ EOF
     echo "  - Runbooks:"
     scan_dir "$DOCS/runbooks" "      "
   fi
-} >> "$OUTPUT"
+} > "$OUTPUT"
 
 echo "Generated $OUTPUT"
