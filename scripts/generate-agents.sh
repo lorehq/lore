@@ -11,8 +11,8 @@ set -eo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-[[ -d .claude/skills ]] || { echo "No skills directory"; exit 0; }
-mkdir -p .claude/agents
+[[ -d .lore/skills ]] || { echo "No skills directory"; exit 0; }
+mkdir -p .lore/agents
 
 # Extract a field from YAML frontmatter
 get_field() {
@@ -21,7 +21,7 @@ get_field() {
 
 # -- Map existing agents by domain --
 declare -A existing
-for f in .claude/agents/*.md; do
+for f in .lore/agents/*.md; do
   [[ -f "$f" ]] || continue
   d=$(get_field domain "$f")
   [[ -n "$d" ]] && existing["$d"]=1
@@ -29,7 +29,7 @@ done
 
 # -- Group skills by domain (skip Orchestrator) --
 declare -A domain_skills
-for skill_dir in .claude/skills/*/; do
+for skill_dir in .lore/skills/*/; do
   sf="$skill_dir/SKILL.md"
   [[ -f "$sf" ]] || continue
   domain=$(get_field domain "$sf")
@@ -57,7 +57,7 @@ for domain in "${!domain_skills[@]}"; do
   skills_yaml=""
   for s in $skills; do skills_yaml+="  - $s"$'\n'; done
 
-  cat > ".claude/agents/${agent_name}.md" <<EOF
+  cat > ".lore/agents/${agent_name}.md" <<EOF
 ---
 name: $agent_name
 description: ${domain} operations specialist. Generated from skills.
@@ -78,3 +78,4 @@ EOF
 done
 
 echo "Done. Run: bash scripts/generate-registries.sh"
+echo "Then run: bash scripts/sync-platform-skills.sh"

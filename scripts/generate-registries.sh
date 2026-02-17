@@ -3,8 +3,8 @@
 # Run after creating or modifying any skill or agent file.
 #
 # Reads YAML frontmatter (name, domain, description) from:
-#   .claude/skills/*/SKILL.md  →  skills-registry.md
-#   .claude/agents/*.md        →  agent-registry.md
+#   .lore/skills/*/SKILL.md  →  skills-registry.md
+#   .lore/agents/*.md        →  agent-registry.md
 
 set -e
 
@@ -27,7 +27,7 @@ extract_field() {
   echo "| Agent | Domain | Skills |"
   echo "|-------|--------|--------|"
 
-  for agent_file in "$REPO_ROOT"/.claude/agents/*.md; do
+  for agent_file in "$REPO_ROOT"/.lore/agents/*.md; do
     [ -f "$agent_file" ] || continue
     name=$(extract_field name "$agent_file")
     [ -z "$name" ] && continue
@@ -46,7 +46,7 @@ extract_field() {
   echo "| Skill | Domain | Description |"
   echo "|-------|--------|-------------|"
 
-  for skill_file in "$REPO_ROOT"/.claude/skills/*/SKILL.md; do
+  for skill_file in "$REPO_ROOT"/.lore/skills/*/SKILL.md; do
     [ -f "$skill_file" ] || continue
     name=$(extract_field name "$skill_file")
     [ -z "$name" ] && continue
