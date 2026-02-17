@@ -17,6 +17,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.indexes
     - toc.follow
     - search.highlight
 markdown_extensions:
@@ -39,24 +40,24 @@ plugins:
   - search
 nav:
   - Home:
-      - Overview: index.md
+      - index.md
       - Roadmaps:
-          - Overview: work/roadmaps/index.md
+          - work/roadmaps/index.md
       - Plans:
-          - Overview: work/plans/index.md
+          - work/plans/index.md
       - Brainstorms:
-          - Overview: work/brainstorms/index.md
+          - work/brainstorms/index.md
   - Context:
-      - Overview: context/index.md
+      - context/index.md
       - Agent Rules: context/agent-rules.md
       - Conventions:
-          - Overview: context/conventions/index.md
+          - context/conventions/index.md
       - Diagrams:
-          - Overview: context/diagrams/index.md
+          - context/diagrams/index.md
       - Runbooks:
-          - Overview: context/runbooks/index.md
+          - context/runbooks/index.md
       - Systems:
-          - Overview: context/systems/index.md
+          - context/systems/index.md
   - Guides:
       - Commands: guides/commands.md
       - Customization: guides/customization.md
