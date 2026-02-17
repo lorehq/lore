@@ -91,6 +91,13 @@ try {
   if (stripped) output += '\n\nPROJECT:\n' + stripped;
 } catch { /* file missing */ }
 
+// Conventions — coding rules, docs formatting, naming standards (docs/context/conventions.md)
+try {
+  const raw = fs.readFileSync(path.join(root, 'docs', 'context', 'conventions.md'), 'utf8');
+  const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+  if (stripped) output += '\n\nCONVENTIONS:\n' + stripped;
+} catch { /* file missing */ }
+
 // Knowledge map — show what exists for agent orientation
 const trees = [];
 const docsTree = buildTree(path.join(root, 'docs'));
@@ -125,7 +132,8 @@ if (!fs.existsSync(agentRulesPath)) {
   fs.writeFileSync(agentRulesPath, `# Agent Rules
 
 <!-- Injected into every agent session as PROJECT context. -->
-<!-- Customize with your project identity, behavior rules, and coding standards. -->
+<!-- Customize with your project identity and behavior rules. -->
+<!-- Coding conventions belong in docs/context/conventions.md — also injected. -->
 
 ## About
 
@@ -134,10 +142,6 @@ Describe your project — what it is, what repos are involved, key constraints.
 ## Agent Behavior
 
 Rules for how the agent should operate in this instance.
-
-## Conventions
-
-Coding patterns, naming standards, tooling preferences.
 `);
 }
 
