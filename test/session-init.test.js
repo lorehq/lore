@@ -43,6 +43,13 @@ function setup(opts = {}) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), opts.conventions);
   }
+  if (opts.conventionsDir) {
+    const convDir = path.join(dir, 'docs', 'context', 'conventions');
+    fs.mkdirSync(convDir, { recursive: true });
+    for (const [name, content] of Object.entries(opts.conventionsDir)) {
+      fs.writeFileSync(path.join(convDir, name), content);
+    }
+  }
   if (opts.memory) {
     fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
   }
@@ -163,30 +170,46 @@ test('creates sticky docs/context/agent-rules.md when missing', () => {
   assert.ok(!content.includes('Coding Rules'), 'template should not contain coding rules');
 });
 
-test('injects conventions.md as CONVENTIONS section', () => {
+test('injects conventions directory as CONVENTIONS section', () => {
   const dir = setup({
-    conventions: '# Conventions\n\n## Coding Rules\n\nSimplicity first.',
+    conventionsDir: {
+      'index.md': '# Conventions\n\nOverview here.',
+      'coding.md': '# Coding\n\nSimplicity first.',
+      'docs.md': '# Docs\n\nUse checkboxes.',
+    },
   });
   const out = runHook(dir);
   assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('Overview here.'));
   assert.ok(out.includes('Simplicity first.'));
+  assert.ok(out.includes('Use checkboxes.'));
 });
 
-test('omits CONVENTIONS section when conventions.md missing', () => {
+test('injects flat conventions.md as fallback', () => {
+  const dir = setup({
+    conventions: '# Conventions\n\nFlat file rules.',
+  });
+  const out = runHook(dir);
+  assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('Flat file rules.'));
+});
+
+test('omits CONVENTIONS section when neither path exists', () => {
   const dir = setup();
   const out = runHook(dir);
   assert.ok(!out.includes('CONVENTIONS:'));
 });
 
-test('creates sticky conventions scaffold when neither path exists', () => {
+test('creates sticky conventions directory scaffold when neither path exists', () => {
   const dir = setup();
-  const convIndex = path.join(dir, 'docs', 'context', 'conventions', 'index.md');
-  assert.ok(!fs.existsSync(convIndex), 'should not exist before hook runs');
+  const convDir = path.join(dir, 'docs', 'context', 'conventions');
+  assert.ok(!fs.existsSync(convDir), 'should not exist before hook runs');
   runHook(dir);
-  assert.ok(fs.existsSync(convIndex), 'conventions/index.md should be created');
-  const content = fs.readFileSync(convIndex, 'utf8');
-  assert.ok(content.includes('Docs Formatting'));
-  assert.ok(content.includes('Checkboxes'));
+  assert.ok(fs.existsSync(path.join(convDir, 'index.md')), 'index.md should be created');
+  assert.ok(fs.existsSync(path.join(convDir, 'docs.md')), 'docs.md should be created');
+  assert.ok(fs.existsSync(path.join(convDir, 'coding.md')), 'coding.md should be created');
+  const docsContent = fs.readFileSync(path.join(convDir, 'docs.md'), 'utf8');
+  assert.ok(docsContent.includes('Checkboxes'));
 });
 
 test('does not overwrite existing conventions.md with scaffold', () => {
@@ -198,4 +221,15 @@ test('does not overwrite existing conventions.md with scaffold', () => {
   assert.ok(content.includes('My Custom Conventions'), 'should preserve operator content');
   assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')),
     'should not create scaffold when flat file exists');
+});
+
+test('does not overwrite existing conventions directory with scaffold', () => {
+  const dir = setup({
+    conventionsDir: { 'index.md': '# My Conventions\n\nCustom.' },
+  });
+  runHook(dir);
+  const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md'), 'utf8');
+  assert.ok(content.includes('My Conventions'), 'should preserve operator content');
+  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')),
+    'should not create extra scaffold files');
 });

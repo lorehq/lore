@@ -52,6 +52,8 @@ nav:
       - Agent Rules: context/agent-rules.md
       - Conventions:
           - context/conventions/index.md
+          - Coding: context/conventions/coding.md
+          - Docs: context/conventions/docs.md
       - Diagrams:
           - context/diagrams/index.md
       - Runbooks:
