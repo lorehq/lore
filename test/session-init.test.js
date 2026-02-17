@@ -39,6 +39,10 @@ function setup(opts = {}) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), opts.agentRules);
   }
+  if (opts.conventions) {
+    fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), opts.conventions);
+  }
   if (opts.memory) {
     fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
   }
@@ -156,4 +160,20 @@ test('creates sticky docs/context/agent-rules.md when missing', () => {
   const content = fs.readFileSync(rulesPath, 'utf8');
   assert.ok(content.includes('# Agent Rules'));
   assert.ok(content.includes('PROJECT context'));
+  assert.ok(!content.includes('Coding Rules'), 'template should not contain coding rules');
+});
+
+test('injects conventions.md as CONVENTIONS section', () => {
+  const dir = setup({
+    conventions: '# Conventions\n\n## Coding Rules\n\nSimplicity first.',
+  });
+  const out = runHook(dir);
+  assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('Simplicity first.'));
+});
+
+test('omits CONVENTIONS section when conventions.md missing', () => {
+  const dir = setup();
+  const out = runHook(dir);
+  assert.ok(!out.includes('CONVENTIONS:'));
 });
