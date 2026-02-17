@@ -13,9 +13,11 @@ Brainstorms capture conversation artifacts for future reference. **Operator-init
 
 ## Process
 
-1. **Create folder**: `docs/work/brainstorms/<slug>/`
+1. **Read conventions**: Check `docs/context/conventions.md` or `docs/context/conventions/index.md` for docs formatting rules. Apply these when writing content.
 
-2. **Create index.md** with minimal frontmatter:
+2. **Create folder**: `docs/work/brainstorms/<slug>/`
+
+3. **Create index.md** with minimal frontmatter:
 
 ```yaml
 ---
@@ -24,7 +26,7 @@ created: [today's date]
 ---
 ```
 
-3. **Validate**: `bash scripts/generate-nav.sh`
+4. **Validate**: `bash scripts/generate-nav.sh`
 
 ## Gotchas
 

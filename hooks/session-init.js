@@ -91,9 +91,13 @@ try {
   if (stripped) output += '\n\nPROJECT:\n' + stripped;
 } catch { /* file missing */ }
 
-// Conventions — coding rules, docs formatting, naming standards (docs/context/conventions.md)
+// Conventions — coding rules, docs formatting, naming standards
+// Check both flat file and directory forms
 try {
-  const raw = fs.readFileSync(path.join(root, 'docs', 'context', 'conventions.md'), 'utf8');
+  const convPath = fs.existsSync(path.join(root, 'docs', 'context', 'conventions.md'))
+    ? path.join(root, 'docs', 'context', 'conventions.md')
+    : path.join(root, 'docs', 'context', 'conventions', 'index.md');
+  const raw = fs.readFileSync(convPath, 'utf8');
   const stripped = raw.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
   if (stripped) output += '\n\nCONVENTIONS:\n' + stripped;
 } catch { /* file missing */ }
@@ -142,6 +146,32 @@ Describe your project — what it is, what repos are involved, key constraints.
 ## Agent Behavior
 
 Rules for how the agent should operate in this instance.
+`);
+}
+
+// Ensure docs/context/conventions exists (sticky — scaffolded if neither path exists)
+const convFile = path.join(root, 'docs', 'context', 'conventions.md');
+const convIndex = path.join(root, 'docs', 'context', 'conventions', 'index.md');
+if (!fs.existsSync(convFile) && !fs.existsSync(convIndex)) {
+  fs.mkdirSync(path.join(root, 'docs', 'context', 'conventions'), { recursive: true });
+  fs.writeFileSync(convIndex, `# Conventions
+
+<!-- Injected into every agent session as CONVENTIONS context. -->
+
+Naming standards, formatting rules, and patterns for this environment.
+
+## Docs Formatting
+
+- **Checkboxes** (\`- [x]\`/\`- [ ]\`) for all actionable items: scope, deliverables, success criteria
+- **Strikethrough** (\`~~text~~\`) on completed item text: \`- [x] ~~Done item~~\`
+- **No emoji icons** — no checkmarks, no colored circles, no decorative symbols
+- **Blank line before lists** — required for MkDocs to render lists correctly
+
+## Commit Messages
+
+- Imperative mood: "Add feature" not "Added feature"
+- Focus on the "why" rather than the "what"
+- Include \`Co-Authored-By\` trailer when agent-assisted
 `);
 }
 

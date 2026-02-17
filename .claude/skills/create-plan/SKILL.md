@@ -13,15 +13,17 @@ Plans are **operator-initiated**. Never create one unprompted.
 
 ## Process
 
-1. **Determine location**:
+1. **Read conventions**: Check `docs/context/conventions.md` or `docs/context/conventions/index.md` for docs formatting rules. Apply these when writing content.
+
+2. **Determine location**:
    - Standalone: `docs/work/plans/<slug>/index.md`
    - Under roadmap: `docs/work/roadmaps/<roadmap>/plans/<slug>/index.md`
 
    If the operator is working within an existing roadmap, nest the plan there. Otherwise standalone.
 
-2. **Create folder**: `<location>/<slug>/`
+3. **Create folder**: `<location>/<slug>/`
 
-3. **Create index.md** with frontmatter:
+4. **Create index.md** with frontmatter:
 
 ```yaml
 ---
@@ -34,7 +36,7 @@ summary: [one-liner]     # optional — shown in session banner
 ---
 ```
 
-4. **Validate**:
+5. **Validate**:
 
 ```bash
 bash scripts/generate-nav.sh && bash scripts/validate-consistency.sh

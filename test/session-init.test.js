@@ -177,3 +177,25 @@ test('omits CONVENTIONS section when conventions.md missing', () => {
   const out = runHook(dir);
   assert.ok(!out.includes('CONVENTIONS:'));
 });
+
+test('creates sticky conventions scaffold when neither path exists', () => {
+  const dir = setup();
+  const convIndex = path.join(dir, 'docs', 'context', 'conventions', 'index.md');
+  assert.ok(!fs.existsSync(convIndex), 'should not exist before hook runs');
+  runHook(dir);
+  assert.ok(fs.existsSync(convIndex), 'conventions/index.md should be created');
+  const content = fs.readFileSync(convIndex, 'utf8');
+  assert.ok(content.includes('Docs Formatting'));
+  assert.ok(content.includes('Checkboxes'));
+});
+
+test('does not overwrite existing conventions.md with scaffold', () => {
+  const dir = setup({
+    conventions: '# My Custom Conventions\n\nOperator rules here.',
+  });
+  runHook(dir);
+  const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), 'utf8');
+  assert.ok(content.includes('My Custom Conventions'), 'should preserve operator content');
+  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')),
+    'should not create scaffold when flat file exists');
+});
