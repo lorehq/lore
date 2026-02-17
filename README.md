@@ -47,8 +47,8 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 |-----------|----------|--------------|
 | **Hooks** | `hooks/` | Claude Code hooks — fire on session start, tool use, and edits. |
 | **Plugins** | `.opencode/plugins/` | OpenCode plugins — same behavior, different platform. |
-| **Skills** | `.claude/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. |
-| **Agents** | `.claude/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. |
+| **Skills** | `.lore/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. |
+| **Agents** | `.lore/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. |
 | **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
 | **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent. |
 
