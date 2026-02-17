@@ -36,6 +36,11 @@
   opacity: 0.6;
 }
 
+/* Hide right-hand TOC sidebar */
+.md-sidebar--secondary {
+  display: none;
+}
+
 /* Parchment — warm ivory background, ink-brown text */
 [data-md-color-scheme="default"] {
   --md-default-bg-color: #FAF6F0;

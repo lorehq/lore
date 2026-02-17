@@ -17,7 +17,6 @@ theme:
   features:
     - navigation.tabs
     - navigation.indexes
-    - toc.follow
     - search.highlight
 markdown_extensions:
   - admonition
