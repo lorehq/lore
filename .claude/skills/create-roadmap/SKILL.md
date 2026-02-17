@@ -13,12 +13,14 @@ Roadmaps are **operator-initiated**. Never create one unprompted.
 
 ## Process
 
-1. **Create folder**: `docs/work/roadmaps/<slug>/`
+1. **Read conventions**: Check `docs/context/conventions.md` or `docs/context/conventions/index.md` for docs formatting rules. Apply these when writing content.
+
+2. **Create folder**: `docs/work/roadmaps/<slug>/`
 
    Also create a `plans/` subfolder with a placeholder:
    `docs/work/roadmaps/<slug>/plans/README.md`
 
-2. **Create index.md** with frontmatter:
+3. **Create index.md** with frontmatter:
 
 ```yaml
 ---
@@ -30,7 +32,7 @@ summary: [one-liner]    # optional — shown in session banner
 ---
 ```
 
-3. **Validate**:
+4. **Validate**:
 
 ```bash
 bash scripts/generate-nav.sh && bash scripts/validate-consistency.sh
