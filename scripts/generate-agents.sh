@@ -6,7 +6,7 @@
 # This is a catch-up tool. Normally, create-skill handles agent creation
 # one at a time. Use this when skills were added manually without agents.
 
-set -eo pipefail
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

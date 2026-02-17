@@ -5,14 +5,21 @@ const path = require('path');
 const os = require('os');
 
 // Set up temp structure so __dirname resolves correctly for parse-agents.js
-// parse-agents.js does: path.join(__dirname, '..', '..', 'agent-registry.md')
-// So: tmp/hooks/lib/parse-agents.js → tmp/agent-registry.md
+// parse-agents.js delegates to ../../lib/banner.js, which reads agent-registry.md
+// So: tmp/hooks/lib/parse-agents.js → tmp/lib/banner.js → tmp/agent-registry.md
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-parse-agents-'));
 const libDir = path.join(tmpDir, 'hooks', 'lib');
 fs.mkdirSync(libDir, { recursive: true });
 fs.copyFileSync(
   path.join(__dirname, '..', 'hooks', 'lib', 'parse-agents.js'),
   path.join(libDir, 'parse-agents.js')
+);
+// Shared lib — parse-agents.js requires ../../lib/banner.js
+const sharedLib = path.join(tmpDir, 'lib');
+fs.mkdirSync(sharedLib, { recursive: true });
+fs.copyFileSync(
+  path.join(__dirname, '..', 'lib', 'banner.js'),
+  path.join(sharedLib, 'banner.js')
 );
 
 const { getAgentDomains } = require(path.join(libDir, 'parse-agents.js'));
