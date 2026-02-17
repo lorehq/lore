@@ -9,6 +9,34 @@ const { getAgentDomains } = require('./lib/parse-agents');
 const root = path.join(__dirname, '..');
 const agents = getAgentDomains();
 
+// Skip directories that aren't knowledge (theme assets, build artifacts)
+const SKIP_DIRS = new Set(['assets', 'stylesheets', 'node_modules', '__pycache__', 'site']);
+
+// Build ASCII tree of a directory (folders and filenames only)
+function buildTree(dir, prefix = '') {
+  const lines = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(e => !e.name.startsWith('.') && !SKIP_DIRS.has(e.name))
+      .sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1;
+        if (!a.isDirectory() && b.isDirectory()) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const last = i === entries.length - 1;
+      const connector = last ? '└── ' : '├── ';
+      const isDir = entry.isDirectory();
+      lines.push(prefix + connector + (isDir ? entry.name + '/' : entry.name));
+      if (isDir && entry.name !== 'archive') {
+        lines.push(...buildTree(path.join(dir, entry.name), prefix + (last ? '    ' : '│   ')));
+      }
+    }
+  } catch { /* directory missing */ }
+  return lines;
+}
+
 // Scan work items (roadmaps or plans) and return active labels
 function scanWork(dir, hasPhase) {
   const active = [];
@@ -48,6 +76,16 @@ CAPTURE: After substantive work → capture knowledge, create skills, validate c
 
 if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
 if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
+
+// Knowledge map — show what exists for agent orientation
+const trees = [];
+const docsTree = buildTree(path.join(root, 'docs'));
+if (docsTree.length > 0) trees.push('docs/\n' + docsTree.join('\n'));
+const skillsTree = buildTree(path.join(root, '.claude', 'skills'));
+if (skillsTree.length > 0) trees.push('.claude/skills/\n' + skillsTree.join('\n'));
+const agentsTree = buildTree(path.join(root, '.claude', 'agents'));
+if (agentsTree.length > 0) trees.push('.claude/agents/\n' + agentsTree.join('\n'));
+if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
 
 // Append local memory if it has content beyond the default header
 const memPath = path.join(root, 'MEMORY.local.md');
