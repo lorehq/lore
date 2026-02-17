@@ -31,7 +31,7 @@ Lore is a directory of markdown files, hooks that shape agent behavior, and scri
 | **Hooks** | `hooks/` | Fire on session start, tool use, and edits. Reinforce capture habits and route knowledge to the right place. |
 | **Skills** | `.claude/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. Loaded by agents when relevant. |
 | **Agents** | `.claude/agents/` | Domain-specific workers. One agent per domain, created automatically as skills accumulate. Run on cheaper models. |
-| **Docs** | `docs/` | Environmental knowledge, runbooks, and work tracking. Your agent's long-term memory. |
+| **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
 | **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent as it grows. |
 
 ## Commands

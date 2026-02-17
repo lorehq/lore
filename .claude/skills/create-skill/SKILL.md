@@ -23,7 +23,7 @@ allowed-tools: Write, Edit, Read, Glob
 
 **Location**: `.claude/skills/<skill-name>/SKILL.md`
 
-Keep it **30-80 lines**. Only document what's non-obvious. Skills must be generic — no usernames, URLs, account IDs (that goes in `docs/environment/`).
+Keep it **30-80 lines**. Only document what's non-obvious. Skills must be generic — no usernames, URLs, account IDs (that goes in `docs/context/`).
 
 ```markdown
 ---

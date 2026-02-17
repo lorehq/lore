@@ -75,15 +75,15 @@ test('no empty sections when only archive content exists', () => {
   assert.ok(!nav.includes('- Roadmaps:'), 'Roadmaps subsection should not appear when only archive content exists');
 });
 
-test('includes Environment section when content exists', () => {
+test('includes Context section when content exists', () => {
   const dir = setup();
-  const env = path.join(dir, 'docs', 'environment');
-  fs.mkdirSync(env, { recursive: true });
-  fs.writeFileSync(path.join(env, 'conventions.md'), '# Conventions\n');
+  const ctx = path.join(dir, 'docs', 'context');
+  fs.mkdirSync(ctx, { recursive: true });
+  fs.writeFileSync(path.join(ctx, 'conventions.md'), '# Conventions\n');
 
   const { nav } = runScript(dir);
-  assert.ok(nav.includes('- Environment:'));
-  assert.ok(nav.includes('- Conventions: environment/conventions.md'));
+  assert.ok(nav.includes('- Context:'));
+  assert.ok(nav.includes('- Conventions: context/conventions.md'));
 });
 
 test('preserves existing mkdocs.yml header when regenerating', () => {
