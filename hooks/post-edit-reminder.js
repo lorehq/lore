@@ -48,6 +48,29 @@ const filePath = (input.tool_input || {}).file_path || '';
 const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
 
+// -- Nav-dirty flag --
+// When docs/ files change, set a flag so we can remind the agent to
+// regenerate nav. The flag is cleared by scripts/generate-nav.sh.
+// Must run BEFORE the isCapture early-exit below, because docs/ writes
+// hit that path and would skip any logic placed after it.
+const NAV_FLAG = path.join(
+  fs.existsSync(gitDir) ? gitDir : require('os').tmpdir(),
+  'lore-nav-dirty'
+);
+const isDocsWrite = ['write', 'edit'].includes(tool) && filePath.includes('/docs/');
+if (isDocsWrite && !fs.existsSync(NAV_FLAG)) {
+  try { fs.writeFileSync(NAV_FLAG, Date.now().toString()); } catch {}
+}
+
+// Helper: append nav reminder to output if the flag is set
+function navReminder(msg) {
+  if (fs.existsSync(NAV_FLAG)) {
+    const nav = 'docs/ changed \u2014 run `bash scripts/generate-nav.sh` in background';
+    return msg ? `${msg} | ${nav}` : nav;
+  }
+  return msg;
+}
+
 // -- Silent exit for read-only tools and knowledge captures --
 const isReadOnly = ['read', 'grep', 'glob'].includes(tool);
 const isCapture = ['write', 'edit'].includes(tool)
@@ -57,7 +80,10 @@ if (isReadOnly || isCapture) {
   const st = readState();
   st.bash = 0; // Reset consecutive bash counter
   writeState(st);
-  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: event } }));
+  const extra = navReminder(null);
+  const output = { hookEventName: event };
+  if (extra) output.additionalContext = extra;
+  console.log(JSON.stringify({ hookSpecificOutput: output }));
   process.exit(0);
 }
 
@@ -82,4 +108,4 @@ else if (['write', 'edit'].includes(tool) && filePath.includes('MEMORY.local.md'
 else
   msg = 'Gotcha? → skill | New knowledge? → docs';
 
-console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: msg } }));
+console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(msg) } }));

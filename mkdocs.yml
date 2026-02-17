@@ -36,3 +36,19 @@ plugins:
   - search
 nav:
   - Home: index.md
+  - Guides:
+      - Customizing Environment: guides/customizing-environment.md
+  - Work:
+      - Brainstorms:
+          - Overview: work/brainstorms/index.md
+      - Plans:
+          - Overview: work/plans/index.md
+      - Roadmaps:
+          - Overview: work/roadmaps/index.md
+  - Environment:
+      - Conventions:
+          - Overview: environment/conventions/index.md
+      - Diagrams:
+          - Overview: environment/diagrams/index.md
+      - Systems:
+          - Overview: environment/systems/index.md

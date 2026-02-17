@@ -15,7 +15,7 @@ OUTPUT="$REPO_ROOT/mkdocs.yml"
 # Processes subdirectories first (alphabetically), then loose .md files.
 # If a subdir contains index.md, it becomes the "Overview" link.
 scan_dir() {
-  local dir="$1" indent="$2"
+  local dir="${1%/}" indent="$2"  # Strip trailing slash to avoid double-slash in paths
   [[ -d "$dir" ]] || return
 
   # Subdirectories first
@@ -71,26 +71,31 @@ plugins:
 '
 fi
 
+# -- Curated nav sections in display order --
+# Only sections listed here appear in nav. Each is included only when
+# its folder exists AND contains at least one .md file (not just .gitkeep).
+# To add a new top-level section, append its docs/ subfolder name here.
+NAV_SECTIONS=("guides" "work" "environment" "runbooks")
+
 # Write preserved header + fresh nav
 {
   echo "$HEADER"
   echo "nav:"
   echo "  - Home: index.md"
 
-  if [[ -d "$DOCS/work" ]]; then
-    echo "  - Work:"
-    scan_dir "$DOCS/work" "      "
-  fi
-
-  if [[ -d "$DOCS/environment" ]]; then
-    echo "  - Environment:"
-    scan_dir "$DOCS/environment" "      "
-  fi
-
-  if [[ -d "$DOCS/runbooks" ]]; then
-    echo "  - Runbooks:"
-    scan_dir "$DOCS/runbooks" "      "
-  fi
+  for section in "${NAV_SECTIONS[@]}"; do
+    # Skip sections with no .md content (empty dirs or .gitkeep-only)
+    if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
+      # Convert kebab-case folder name to Title Case for nav label
+      title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+      echo "  - ${title}:"
+      scan_dir "$DOCS/$section" "      "
+    fi
+  done
 } > "$OUTPUT"
+
+# Clear the nav-dirty flag (set by post-edit-reminder.js when docs/ files change).
+# This signals that nav is now in sync with the docs/ directory structure.
+rm -f "$REPO_ROOT/.git/lore-nav-dirty"
 
 echo "Generated $OUTPUT"

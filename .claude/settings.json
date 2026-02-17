@@ -16,6 +16,10 @@
       {
         "matcher": "Edit|Write|Read",
         "hooks": [{ "type": "command", "command": "node hooks/protect-memory.js" }]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [{ "type": "command", "command": "node hooks/environment-path-guide.js" }]
       }
     ],
     "PostToolUse": [
