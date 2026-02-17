@@ -18,8 +18,12 @@ try {
 const toolName = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
 
-// Only intercept access to MEMORY.md
-if (!filePath.endsWith('MEMORY.md')) process.exit(0);
+// Only intercept MEMORY.md at the project root — not Claude Code's built-in
+// auto-memory at ~/.claude/projects/.../memory/MEMORY.md
+const path = require('path');
+const basename = path.basename(filePath);
+const inProjectRoot = path.dirname(path.resolve(filePath)) === process.cwd();
+if (basename !== 'MEMORY.md' || !inProjectRoot) process.exit(0);
 
 // Block reads — point to the replacement file
 if (toolName === 'read') {
