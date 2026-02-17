@@ -89,14 +89,14 @@ NAV_SECTIONS=("guides" "work" "environment" "runbooks")
 # the folder structure itself.
 emit_work_nav() {
   local work="$DOCS/work"
-  [[ -d "$work" ]] && find "$work" -name '*.md' | grep -q . || return
+  [[ -d "$work" ]] && find "$work" -path '*/archive' -prune -o -name '*.md' -print | grep -q . || return
 
   echo "  - Work:"
   # Overview if it exists
   [[ -f "$work/index.md" ]] && echo "      - Overview: work/index.md"
   # Fixed order: Roadmaps > Plans > Brainstorms
   for subsection in roadmaps plans brainstorms; do
-    if [[ -d "$work/$subsection" ]] && find "$work/$subsection" -name '*.md' | grep -q .; then
+    if [[ -d "$work/$subsection" ]] && find "$work/$subsection" -path '*/archive' -prune -o -name '*.md' -print | grep -q .; then
       title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
       echo "      - ${title}:"
       # Show subsection overview
