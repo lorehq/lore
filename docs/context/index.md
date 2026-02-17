@@ -8,6 +8,6 @@ Operational knowledge about the systems, services, and conventions you work with
 - **Conventions** — naming standards, workflows, team norms
 - **Diagrams** — architecture, topology, data flow
 - **Runbooks** — multi-step operational procedures
-- **`personal/`** — local-only notes, gitignored (never committed)
+- **`local/`** — local-only notes, gitignored (never committed)
 
-See the [Customizing Context](../guides/customizing-context.md) guide for advanced configuration.
+See the [Customization](../guides/customization.md) guide for advanced configuration.

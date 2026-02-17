@@ -28,14 +28,15 @@ function runScript(dir) {
   return { stdout: out, nav: fs.readFileSync(path.join(dir, 'mkdocs.yml'), 'utf8') };
 }
 
-test('generates nav with Home entry for minimal repo', () => {
+test('generates nav with Home section containing Overview for minimal repo', () => {
   const dir = setup();
   const { nav } = runScript(dir);
   assert.ok(nav.includes('nav:'));
-  assert.ok(nav.includes('- Home: index.md'));
+  assert.ok(nav.includes('- Home:'));
+  assert.ok(nav.includes('- Overview: index.md'));
 });
 
-test('includes Work section with active roadmap', () => {
+test('includes work subsections under Home with active roadmap', () => {
   const dir = setup();
   const roadmap = path.join(dir, 'docs', 'work', 'roadmaps', 'v1-launch');
   fs.mkdirSync(roadmap, { recursive: true });
@@ -43,7 +44,8 @@ test('includes Work section with active roadmap', () => {
   fs.writeFileSync(path.join(roadmap, 'index.md'), '# V1 Launch\n');
 
   const { nav } = runScript(dir);
-  assert.ok(nav.includes('- Work:'));
+  assert.ok(!nav.includes('- Work:'), 'Work should not appear as a standalone tab');
+  assert.ok(nav.includes('- Home:'));
   assert.ok(nav.includes('- Roadmaps:'));
   assert.ok(nav.includes('V1 Launch'));
 });
@@ -71,7 +73,6 @@ test('no empty sections when only archive content exists', () => {
   fs.writeFileSync(path.join(archive, 'index.md'), '# Old\n');
 
   const { nav } = runScript(dir);
-  assert.ok(!nav.includes('- Work:'), 'Work section should not appear when only archive content exists');
   assert.ok(!nav.includes('- Roadmaps:'), 'Roadmaps subsection should not appear when only archive content exists');
 });
 
@@ -107,4 +108,39 @@ test('preserves existing mkdocs.yml header when regenerating', () => {
   assert.ok(nav.includes('primary: deep purple'), 'should preserve theme config');
   assert.ok(nav.includes('- tags'), 'should preserve plugins');
   assert.ok(nav.includes('nav:'), 'should still have nav section');
+});
+
+test('auto-scaffold creates index.md when dir has .md files but no index.md', () => {
+  const dir = setup();
+  const ctx = path.join(dir, 'docs', 'context');
+  const sub = path.join(ctx, 'inventory');
+  fs.mkdirSync(sub, { recursive: true });
+  fs.writeFileSync(path.join(sub, 'repos.md'), '# Repos\n');
+  // No index.md in inventory/
+
+  const { nav } = runScript(dir);
+  // Should have auto-created index.md
+  assert.ok(fs.existsSync(path.join(sub, 'index.md')), 'index.md should be auto-scaffolded');
+  assert.ok(nav.includes('- Overview: context/inventory/index.md'));
+  assert.ok(nav.includes('- Inventory:'));
+});
+
+test('agent-rules.md appears after Context overview before other content', () => {
+  const dir = setup();
+  const ctx = path.join(dir, 'docs', 'context');
+  fs.mkdirSync(ctx, { recursive: true });
+  fs.writeFileSync(path.join(ctx, 'index.md'), '# Context\n');
+  fs.writeFileSync(path.join(ctx, 'agent-rules.md'), '# Agent Rules\n');
+  fs.writeFileSync(path.join(ctx, 'conventions.md'), '# Conventions\n');
+
+  const { nav } = runScript(dir);
+  assert.ok(nav.includes('- Agent Rules: context/agent-rules.md'));
+  // Agent rules should come before conventions
+  const agentPos = nav.indexOf('Agent Rules: context/agent-rules.md');
+  const convPos = nav.indexOf('Conventions: context/conventions.md');
+  assert.ok(agentPos < convPos, 'agent-rules should appear before conventions');
+  // Agent rules should not appear twice (scan_dir skips it)
+  const firstIdx = nav.indexOf('Agent Rules');
+  const lastIdx = nav.lastIndexOf('Agent Rules');
+  assert.equal(firstIdx, lastIdx, 'agent-rules should appear exactly once');
 });

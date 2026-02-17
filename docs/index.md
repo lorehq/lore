@@ -1,20 +1,12 @@
 ---
 title: Home
 ---
+# Home
 
-# Project Name
+Operator-initiated roadmaps, plans, and brainstorms.
 
-<!-- This file is your operator context — injected into every agent session. -->
-<!-- Customize it to replace what you'd normally put in CLAUDE.md or agents.md. -->
+- **Roadmaps** — strategic initiatives (weeks to months)
+- **Plans** — tactical work (days to weeks), standalone or nested under a roadmap
+- **Brainstorms** — conversation artifacts for future reference
 
-## About
-
-What this project does and what domain it's in.
-
-## Agent Behavior
-
-How the agent should communicate and operate.
-
-## Conventions
-
-Coding patterns, tooling preferences, naming conventions.
+Use `/create-roadmap`, `/create-plan`, or `/create-brainstorm` to get started.

@@ -35,8 +35,9 @@ function setup(opts = {}) {
   if (opts.registry) {
     fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
   }
-  if (opts.docsIndex) {
-    fs.writeFileSync(path.join(dir, 'docs', 'index.md'), opts.docsIndex);
+  if (opts.agentRules) {
+    fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), opts.agentRules);
   }
   if (opts.memory) {
     fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
@@ -95,15 +96,15 @@ test('shows on-hold label', () => {
   assert.ok(out.includes('Paused Roadmap [ON HOLD]'));
 });
 
-test('strips YAML frontmatter from docs/index.md', () => {
+test('reads PROJECT from docs/context/agent-rules.md', () => {
   const dir = setup({
-    docsIndex: '---\ntitle: My Project\nhide: true\n---\n\n# Project Docs\n\nSome content here.',
+    agentRules: '---\ntitle: Agent Rules\n---\n\n# My Project\n\nCustom agent rules here.',
   });
   const out = runHook(dir);
   assert.ok(out.includes('PROJECT:'));
-  assert.ok(out.includes('# Project Docs'));
-  assert.ok(out.includes('Some content here.'));
-  assert.ok(!out.includes('hide: true'), 'frontmatter should be stripped');
+  assert.ok(out.includes('# My Project'));
+  assert.ok(out.includes('Custom agent rules here.'));
+  assert.ok(!out.includes('title: Agent Rules'), 'frontmatter should be stripped');
 });
 
 test('creates MEMORY.local.md if missing', () => {
@@ -133,4 +134,26 @@ test('skips archive directories in tree', () => {
   const out = runHook(dir);
   // archive/ should appear as a node but not be expanded
   assert.ok(!out.includes('old-item'), 'archive contents should not be expanded');
+});
+
+test('creates sticky docs/context/local/ when missing', () => {
+  const dir = setup();
+  const localIndex = path.join(dir, 'docs', 'context', 'local', 'index.md');
+  assert.ok(!fs.existsSync(localIndex), 'should not exist before hook runs');
+  runHook(dir);
+  assert.ok(fs.existsSync(localIndex), 'local/index.md should be created');
+  const content = fs.readFileSync(localIndex, 'utf8');
+  assert.ok(content.includes('Local Notes'));
+  assert.ok(content.includes('gitignored'));
+});
+
+test('creates sticky docs/context/agent-rules.md when missing', () => {
+  const dir = setup();
+  const rulesPath = path.join(dir, 'docs', 'context', 'agent-rules.md');
+  assert.ok(!fs.existsSync(rulesPath), 'should not exist before hook runs');
+  runHook(dir);
+  assert.ok(fs.existsSync(rulesPath), 'agent-rules.md should be created');
+  const content = fs.readFileSync(rulesPath, 'utf8');
+  assert.ok(content.includes('# Agent Rules'));
+  assert.ok(content.includes('PROJECT context'));
 });
