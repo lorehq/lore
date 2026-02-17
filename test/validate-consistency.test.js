@@ -190,6 +190,38 @@ test('fails: .cursorrules out of sync with .lore/instructions.md', () => {
   assert.ok(stdout.includes('.cursorrules out of sync'));
 });
 
+test('fails: Cursor hooks.json references missing script', () => {
+  const dir = setup();
+  fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.cursor', 'hooks.json'), JSON.stringify({
+    hooks: {
+      beforeSubmitPrompt: [
+        { command: 'node .cursor/hooks/banner-inject.js' },
+      ],
+    },
+  }));
+  // Don't create the actual hook script
+  const { code, stdout } = runScript(dir);
+  assert.equal(code, 1);
+  assert.ok(stdout.includes('missing script'));
+});
+
+test('passes: Cursor hooks.json with existing scripts', () => {
+  const dir = setup();
+  fs.mkdirSync(path.join(dir, '.cursor', 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.cursor', 'hooks.json'), JSON.stringify({
+    hooks: {
+      beforeSubmitPrompt: [
+        { command: 'node .cursor/hooks/banner-inject.js' },
+      ],
+    },
+  }));
+  fs.writeFileSync(path.join(dir, '.cursor', 'hooks', 'banner-inject.js'), '// stub');
+  const { code, stdout } = runScript(dir);
+  assert.equal(code, 0);
+  assert.ok(stdout.includes('PASSED'));
+});
+
 test('fails: platform copy out of sync with canonical source', () => {
   const dir = setup();
 

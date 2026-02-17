@@ -5,7 +5,7 @@
 const fs = require('fs');
 const { checkMemoryAccess } = require('../lib/memory-guard');
 
-// Parse hook input from stdin (Claude Code pipes JSON context)
+// Parse hook input from stdin (hook receives JSON context via stdin)
 let input = {};
 try {
   if (!process.stdin.isTTY) {

@@ -2,7 +2,7 @@
 # Validates cross-reference consistency between skills, agents, and registries.
 # Run after any structural change to catch drift.
 #
-# Checks (9 total):
+# Checks (10 total):
 #   1. Every skill directory has a registry entry
 #   2. Every agent file has a registry entry
 #   3. Every registry skill has a directory on disk
@@ -12,6 +12,7 @@
 #   7. Agent skill references point to existing directories
 #   8. Platform copies (.claude/) match canonical source (.lore/)
 #   9. CLAUDE.md and .cursorrules match .lore/instructions.md
+#  10. Cursor hooks configuration references existing scripts
 #
 # Exit code: 0 = all passed, 1 = inconsistencies found
 
@@ -151,6 +152,20 @@ if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
       fail "$copy missing — run: bash scripts/sync-platform-skills.sh"
     fi
   done
+fi
+
+# -- 10. Cursor hooks configuration --
+echo "--- Cursor Hooks ---"
+if [[ -f "$REPO_ROOT/.cursor/hooks.json" ]]; then
+  # Extract command values and verify referenced scripts exist
+  while IFS= read -r cmd; do
+    cmd=$(echo "$cmd" | xargs)
+    # Strip "node " prefix to get the script path
+    script="${cmd#node }"
+    if [[ "$script" != "$cmd" && ! -f "$REPO_ROOT/$script" ]]; then
+      fail "Cursor hooks.json references missing script: $script"
+    fi
+  done < <(grep -oP '"command"\s*:\s*"\K[^"]+' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
 fi
 
 # -- Results --

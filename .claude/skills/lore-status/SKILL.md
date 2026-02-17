@@ -21,12 +21,25 @@ Run these checks and present a formatted summary to the operator:
 
 1. **Version** — read `version` from `.lore-config`. If missing, report "no version (pre-update-lore)".
 
-2. **Hooks** — read `.claude/settings.json` and verify these hooks are configured:
+2. **Hooks** — check each platform that has config present:
+
+   **Claude Code** (`.claude/settings.json`):
    - `SessionStart` → `session-init.js`
    - `UserPromptSubmit` → `prompt-preamble.js`
    - `PreToolUse` → `protect-memory.js`
    - `PostToolUse` → `knowledge-tracker.js`
-   - Report each as OK or MISSING.
+
+   **Cursor** (`.cursor/hooks.json`):
+   - `beforeSubmitPrompt` → `banner-inject.js`
+   - `beforeReadFile` → `protect-memory.js`
+   - `afterFileEdit` → `knowledge-tracker.js`
+
+   **OpenCode** (`.opencode/plugins/`):
+   - `session-init.js`
+   - `protect-memory.js`
+   - `knowledge-tracker.js`
+
+   Report each platform as OK, PARTIAL, or MISSING.
 
 3. **Counts** — count and report:
    - Skills: number of directories in `.lore/skills/`
@@ -38,13 +51,12 @@ Run these checks and present a formatted summary to the operator:
 
 5. **Format** — present as a clean block the operator can read at a glance:
    ```
-   Lore v0.1.0
+   Lore v0.3.0
 
    Hooks:
-     SessionStart     ✓
-     UserPromptSubmit  ✓
-     PreToolUse        ✓
-     PostToolUse       ✓
+     Claude Code   OK
+     Cursor        OK
+     OpenCode      OK
 
    Skills: 12 | Agents: 2 | Context docs: 5 | Runbooks: 1
 

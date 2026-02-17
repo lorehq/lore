@@ -17,13 +17,17 @@ cd my-project
 claude
 ```
 
+**Cursor:**
+
+Open the project in Cursor. Hooks activate automatically via `.cursor/hooks.json`.
+
 **OpenCode:**
 
 ```bash
 opencode
 ```
 
-No configuration needed. Hooks and plugins activate automatically on both platforms.
+No configuration needed. Hooks and plugins activate automatically on all platforms.
 
 ## Before / After
 
@@ -45,8 +49,7 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 
 | Component | Location | What it does |
 |-----------|----------|--------------|
-| **Hooks** | `hooks/` | Claude Code hooks — fire on session start, tool use, and edits. |
-| **Plugins** | `.opencode/plugins/` | OpenCode plugins — same behavior, different platform. |
+| **Platform hooks** | `hooks/`, `.cursor/hooks/`, `.opencode/plugins/` | Fire on session start, tool use, and edits. Each platform has thin adapters over shared `lib/`. |
 | **Skills** | `.lore/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. |
 | **Agents** | `.lore/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. |
 | **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
@@ -57,12 +60,12 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 | Platform | Integration | How it works |
 |----------|-------------|--------------|
 | **Claude Code** | `hooks/` + `CLAUDE.md` | Hooks fire on lifecycle events. CLAUDE.md loaded automatically. |
-| **Cursor** | `.cursorrules` | Rules file loaded automatically. |
+| **Cursor** | `.cursor/hooks/` + `.cursorrules` | Hooks fire on prompt, read, and edit events. .cursorrules loaded automatically. |
 | **OpenCode** | `.opencode/plugins/` + `opencode.json` | Plugins fire on lifecycle events. opencode.json points to instructions. |
 
 `CLAUDE.md` and `.cursorrules` are generated from `.lore/instructions.md` via `scripts/sync-platform-skills.sh`.
 
-Both platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
+All platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
 
 ## Commands
 

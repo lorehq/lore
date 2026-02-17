@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "beforeSubmitPrompt": [
+      { "command": "node .cursor/hooks/banner-inject.js" }
+    ],
+    "beforeReadFile": [
+      { "command": "node .cursor/hooks/protect-memory.js" }
+    ],
+    "afterFileEdit": [
+      { "command": "node .cursor/hooks/knowledge-tracker.js" }
+    ]
+  }
+}

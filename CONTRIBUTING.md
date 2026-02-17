@@ -21,7 +21,7 @@ Thanks for your interest in contributing. Lore is early-stage and we welcome bug
 - Keep changes focused — one concern per PR
 - Match existing code style
 - Run `bash scripts/validate-consistency.sh` before submitting
-- Skills and agents use YAML frontmatter — see `.claude/skills/create-skill/SKILL.md` for the format
+- Skills and agents use YAML frontmatter — see `.lore/skills/create-skill/SKILL.md` for the format
 
 ## Reporting Issues
 
