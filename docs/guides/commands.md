@@ -23,5 +23,3 @@ These aren't in the slash menu but the agent recognizes them. Just ask naturally
 | `create-roadmap` | Create a strategic roadmap |
 | `create-plan` | Create a tactical plan |
 | `create-brainstorm` | Save a brainstorm for future reference |
-| `create-skill` | Create a skill from a gotcha or non-obvious knowledge |
-| `create-agent` | Create a domain agent for a skill's domain |
