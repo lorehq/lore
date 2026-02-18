@@ -67,6 +67,18 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 
 All platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
 
+## Working Across Repos
+
+Lore is a central hub. Launch your agent here and work on any repo by referencing its path — knowledge captures back to Lore, work repos stay clean.
+
+For IDEs where you need the work repo's file tree, git, and search:
+
+```bash
+bash scripts/lore-link.sh ~/projects/my-app
+```
+
+This links the work repo so hooks fire from the hub even when you open the work repo directly. See the [full guide](https://lorehq.github.io/lore-docs/guides/cross-repo-workflow/).
+
 ## Commands
 
 | Command | What it does |

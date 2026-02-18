@@ -46,6 +46,21 @@ None of this pollutes your work repos.
 
 **Always launch your agent from the Lore project directory.** That's what loads the operating principles, hooks, and accumulated knowledge. If you launch from a work repo instead, the agent starts without context.
 
+## IDE Workflow: lore link
+
+The One Rule works for CLI tools. For IDEs, opening the Lore project means losing the work repo's file tree, git, and search. `lore link` resolves this — run it once from the hub and hooks follow you into the work repo.
+
+```bash
+bash scripts/lore-link.sh ~/projects/my-app          # Link a work repo
+bash scripts/lore-link.sh --unlink ~/projects/my-app  # Remove the link
+bash scripts/lore-link.sh --list                       # Show linked repos
+bash scripts/lore-link.sh --refresh                    # Regenerate all configs
+```
+
+The script generates lightweight configs in the target repo that delegate to the hub's hooks via `LORE_HUB`. All generated files are auto-gitignored. Knowledge still captures to the hub.
+
+Run `--refresh` after `/lore-update` to regenerate configs with the latest hooks.
+
 ## Framework Updates
 
 The Lore framework (hooks, scripts, built-in skills) updates separately from your knowledge. Run `/lore-update` to pull the latest framework files. Your docs, agents, and work items are never touched.
