@@ -1,5 +1,5 @@
 // Session Init Plugin
-// Injects session banner at startup and after compaction.
+// Injects session banner into the system prompt and after compaction.
 // Thin ESM adapter — core logic lives in lib/banner.js.
 
 // OpenCode plugins are ESM but shared lib is CJS. createRequire bridges the gap.
@@ -17,13 +17,10 @@ export const SessionInit = async ({ directory, client }) => {
   });
 
   return {
-    'session.created': async (_input, output = {}) => {
+    // Inject banner into the system prompt on every LLM call.
+    'experimental.chat.system.transform': async (_input, output) => {
       ensureStickyFiles(hub);
-      const banner = buildBanner(hub);
-      await client.app.log({
-        body: { service: 'session-init', level: 'info', message: banner },
-      });
-      if (Array.isArray(output?.context)) output.context.push(banner);
+      output.system.push(buildBanner(hub));
     },
     // Re-inject after compaction so the banner survives context window trimming.
     'experimental.session.compacting': async (_input, output) => {
