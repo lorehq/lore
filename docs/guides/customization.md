@@ -2,11 +2,13 @@
 
 ## Agent Rules
 
-`docs/context/agent-rules.md` is injected into every agent session as the PROJECT context. Put your project identity, behavior rules, and coding standards here.
+`docs/context/agent-rules.md` is injected into every agent session as the PROJECT context. Put your project identity and behavior rules here.
 
-The file is **sticky** — if deleted, the session hook recreates it with a skeleton template on next startup. Customize the template sections (About, Agent Behavior, Conventions, Coding Rules) to match your project.
+The file is **sticky** — if deleted, the session hook recreates it with a skeleton template (About, Agent Behavior sections) on next startup.
 
-This replaces what you'd normally put in `CLAUDE.md` / `.cursorrules` or `agents.md` — but lives in docs where it's browsable and version-controlled.
+Coding standards go in `docs/context/conventions/` — a directory with per-domain pages (`coding.md`, `docs.md`). Conventions are also injected every session. Both are sticky and recreated if deleted.
+
+This replaces what you'd normally put in `CLAUDE.md` / `.cursorrules` — but lives in docs where it's browsable and version-controlled.
 
 ## Context vs Knowledge
 
