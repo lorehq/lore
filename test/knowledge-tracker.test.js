@@ -84,7 +84,11 @@ test('knowledge capture resets counter', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   // Write to docs/ = capture → resets counter
-  runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/docs/env.md' }, hook_event_name: 'PostToolUse' });
+  runHook(dir, {
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(dir, 'docs', 'env.md') },
+    hook_event_name: 'PostToolUse',
+  });
   // Next bash should be count=1
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset after capture');
@@ -95,7 +99,7 @@ test('MEMORY.local.md write: scratch notes warning', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, {
     tool_name: 'Write',
-    tool_input: { file_path: '/proj/MEMORY.local.md' },
+    tool_input: { file_path: path.join(dir, 'MEMORY.local.md') },
     hook_event_name: 'PostToolUse',
   });
   assert.ok(out.additionalContext.includes('scratch notes'));
@@ -106,7 +110,11 @@ test('nav-dirty flag set on docs/ write', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
   assert.ok(!fs.existsSync(navFlag), 'flag should not exist before');
-  runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/docs/foo.md' }, hook_event_name: 'PostToolUse' });
+  runHook(dir, {
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(dir, 'docs', 'foo.md') },
+    hook_event_name: 'PostToolUse',
+  });
   assert.ok(fs.existsSync(navFlag), 'flag should be set after docs/ write');
 });
 
@@ -117,7 +125,11 @@ test('non-bash tool resets bash counter', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   // Non-bash, non-read-only, non-capture tool resets counter
-  runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/src/app.js' }, hook_event_name: 'PostToolUse' });
+  runHook(dir, {
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(dir, 'src', 'app.js') },
+    hook_event_name: 'PostToolUse',
+  });
   // Next bash should be count=1
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset after non-bash tool');

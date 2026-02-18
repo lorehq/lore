@@ -31,7 +31,7 @@ export const KnowledgeTracker = async ({ directory, client }) => {
 
       // Nav-dirty must fire before the silent-exit paths below,
       // because docs/ writes hit the knowledge-capture path and would skip it.
-      if (isDocsWrite(tool, filePath)) setNavDirty(navFlag);
+      if (isDocsWrite(tool, filePath, hub)) setNavDirty(navFlag);
 
       const result = processToolUse({
         tool,
@@ -39,6 +39,7 @@ export const KnowledgeTracker = async ({ directory, client }) => {
         isFailure,
         bashCount: consecutiveBash,
         thresholds,
+        rootDir: hub,
       });
       consecutiveBash = result.bashCount;
 
