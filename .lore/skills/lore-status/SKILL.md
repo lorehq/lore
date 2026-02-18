@@ -27,10 +27,13 @@ Run these checks and present a formatted summary to the operator:
    - `SessionStart` → `session-init.js`
    - `UserPromptSubmit` → `prompt-preamble.js`
    - `PreToolUse` → `protect-memory.js`
+   - `PreToolUse` → `context-path-guide.js`
    - `PostToolUse` → `knowledge-tracker.js`
+   - `PostToolUseFailure` → `knowledge-tracker.js`
 
    **Cursor** (`.cursor/hooks.json`):
    - `sessionStart` → `session-init.js`
+   - `beforeSubmitPrompt` → `prompt-preamble.js`
    - `beforeReadFile` → `protect-memory.js`
    - `afterFileEdit` → `knowledge-tracker.js`
    - `afterShellExecution` → `knowledge-tracker.js`
