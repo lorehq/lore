@@ -91,18 +91,14 @@ test('buildTree: skips SKIP_DIRS entries', (t) => {
   );
 });
 
-test('buildTree: recurses into subdirectories including archive', (t) => {
+test('buildTree: skips archive directories by default', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, 'archive', 'old-plan'), { recursive: true });
   const lines = buildTree(dir);
   assert.ok(
-    lines.some((l) => l.includes('archive/')),
-    'archive/ should appear',
-  );
-  assert.ok(
-    lines.some((l) => l.includes('old-plan/')),
-    'archive subdirs should appear',
+    !lines.some((l) => l.includes('archive/')),
+    'archive/ should be skipped',
   );
 });
 
