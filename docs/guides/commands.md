@@ -6,11 +6,11 @@ These appear in the TUI menu. Type the command name to invoke.
 
 | Command | Description |
 |---------|-------------|
-| `/capture` | Review session work, capture skills, update registries |
-| `/consolidate` | Deep health check — stale items, overlaps, knowledge drift |
-| `/serve-docs` | Local docs site with live reload |
-| `/serve-docs-docker` | Docs via Docker (no Python needed) |
-| `/stop-docs` | Stop the docs server |
+| `/lore-capture` | Review session work, capture skills, update registries |
+| `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
+| `/lore-serve-docs` | Local docs site with live reload |
+| `/lore-serve-docs-docker` | Docs via Docker (no Python needed) |
+| `/lore-stop-docs` | Stop the docs server |
 | `/lore-update` | Pull latest framework files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 
@@ -20,9 +20,9 @@ These aren't in the slash menu but the agent recognizes them. Just ask naturally
 
 | Keyword | Description |
 |---------|-------------|
-| `create-roadmap` | Create a strategic roadmap |
-| `create-plan` | Create a tactical plan |
-| `create-brainstorm` | Save a brainstorm for future reference |
+| `lore-create-roadmap` | Create a strategic roadmap |
+| `lore-create-plan` | Create a tactical plan |
+| `lore-create-brainstorm` | Save a brainstorm for future reference |
 
 ## Scripts
 

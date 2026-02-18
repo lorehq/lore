@@ -4,9 +4,9 @@ description: Documentation operations specialist. Generated from skills.
 domain: Documentation
 model: sonnet
 skills:
-  - serve-docs
-  - serve-docs-docker
-  - stop-docs
+  - lore-serve-docs
+  - lore-serve-docs-docker
+  - lore-stop-docs
 ---
 
 # Documentation Agent
@@ -14,6 +14,6 @@ skills:
 Handles all Documentation operations. Create new skills as needed.
 
 ## Available Skills
-- `serve-docs`
-- `serve-docs-docker`
-- `stop-docs`
+- `lore-serve-docs`
+- `lore-serve-docs-docker`
+- `lore-stop-docs`
