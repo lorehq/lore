@@ -334,6 +334,68 @@ test('protect-memory: allows nested MEMORY.md', async (t) => {
   );
 });
 
+// ── Context Path Guide ──
+
+test('context-path-guide: logs tree for docs/knowledge/ writes', async (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'docs', 'knowledge', 'environment'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'knowledge', 'environment', 'test.md'), '# Test');
+  const client = mockClient();
+  const { ContextPathGuide } = await import(pluginUrl(dir, 'context-path-guide.js'));
+  const hooks = await ContextPathGuide({ directory: dir, client });
+  await hooks['tool.execute.before'](
+    { tool: 'Write' },
+    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'environment', 'new.md') } }
+  );
+  assert.equal(client.logs.length, 1);
+  assert.ok(client.logs[0].message.includes('docs/knowledge/'));
+  assert.ok(client.logs[0].message.includes('environment/'));
+});
+
+test('context-path-guide: logs tree for docs/context/ writes', async (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), '# Rules');
+  const client = mockClient();
+  const { ContextPathGuide } = await import(pluginUrl(dir, 'context-path-guide.js'));
+  const hooks = await ContextPathGuide({ directory: dir, client });
+  await hooks['tool.execute.before'](
+    { tool: 'Write' },
+    { args: { file_path: path.join(dir, 'docs', 'context', 'test.md') } }
+  );
+  assert.equal(client.logs.length, 1);
+  assert.ok(client.logs[0].message.includes('docs/context/'));
+  assert.ok(client.logs[0].message.includes('environment data goes in docs/knowledge/'));
+});
+
+test('context-path-guide: silent for non-docs writes', async (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const client = mockClient();
+  const { ContextPathGuide } = await import(pluginUrl(dir, 'context-path-guide.js'));
+  const hooks = await ContextPathGuide({ directory: dir, client });
+  await hooks['tool.execute.before'](
+    { tool: 'Write' },
+    { args: { file_path: path.join(dir, 'src', 'main.js') } }
+  );
+  assert.equal(client.logs.length, 0);
+});
+
+test('context-path-guide: silent for read tools', async (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const client = mockClient();
+  const { ContextPathGuide } = await import(pluginUrl(dir, 'context-path-guide.js'));
+  const hooks = await ContextPathGuide({ directory: dir, client });
+  await hooks['tool.execute.before'](
+    { tool: 'Read' },
+    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'test.md') } }
+  );
+  assert.equal(client.logs.length, 0);
+});
+
 test('protect-memory: ignores non-file tools', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
