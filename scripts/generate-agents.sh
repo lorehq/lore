@@ -19,12 +19,12 @@ get_field() {
   awk -v f="$1" '/^---$/{if(fm)exit;fm=1;next} fm&&$1==f":"{sub("^"f": *","");print;exit}' "$2"
 }
 
-# -- Map existing agents by domain --
+# -- Map existing agents by domain (lowercase keys for case-insensitive match) --
 declare -A existing
 for f in .lore/agents/*.md; do
   [[ -f "$f" ]] || continue
   d=$(get_field domain "$f")
-  [[ -n "$d" ]] && existing["$d"]=1
+  [[ -n "$d" ]] && existing["${d,,}"]=1
 done
 
 # -- Group skills by domain (skip Orchestrator) --
@@ -46,7 +46,7 @@ echo "Found ${#domain_skills[@]} domains"
 
 # -- Create missing agents --
 for domain in "${!domain_skills[@]}"; do
-  [[ -v existing["$domain"] ]] && { echo "Skip $domain — agent exists"; continue; }
+  [[ -v existing["${domain,,}"] ]] && { echo "Skip $domain — agent exists"; continue; }
 
   # Convert domain name to kebab-case slug for the filename
   slug=$(echo "$domain" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
