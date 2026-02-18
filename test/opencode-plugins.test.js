@@ -62,23 +62,25 @@ function pluginUrl(dir, name) {
 
 // ── Session Init ──
 
-test('session-init: shows version in banner', async () => {
+test('session-init: shows version in banner', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
   assert.ok(client.logs[0].message.includes('=== LORE v2.0.0 ==='));
 });
 
-test('session-init: shows "(none yet)" when no agents', async () => {
+test('session-init: shows "(none yet)" when no agents', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
   assert.ok(client.logs[0].message.includes('(none yet)'));
 });
 
-test('session-init: shows agent domains', async () => {
+test('session-init: shows agent domains', async (t) => {
   const dir = setup({
     registry: [
       '| Agent | Domain | Description |',
@@ -86,14 +88,16 @@ test('session-init: shows agent domains', async () => {
       '| `doc-agent` | Documentation | Docs |',
     ].join('\n'),
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
   assert.ok(client.logs[0].message.includes('Documentation'));
 });
 
-test('session-init: shows active roadmaps', async () => {
+test('session-init: shows active roadmaps', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'test-rm');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(path.join(rmDir, 'index.md'),
@@ -105,10 +109,11 @@ test('session-init: shows active roadmaps', async () => {
   assert.ok(client.logs[0].message.includes('Test RM (Phase 1)'));
 });
 
-test('session-init: injects project context', async () => {
+test('session-init: injects project context', async (t) => {
   const dir = setup({
     agentRules: '---\ntitle: Rules\n---\n\n# My Project\n\nCustom rules.',
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
@@ -116,8 +121,9 @@ test('session-init: injects project context', async () => {
   assert.ok(client.logs[0].message.includes('Custom rules.'));
 });
 
-test('session-init: creates sticky files', async () => {
+test('session-init: creates sticky files', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
@@ -126,8 +132,9 @@ test('session-init: creates sticky files', async () => {
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
 
-test('session-init: compaction pushes banner to context', async () => {
+test('session-init: compaction pushes banner to context', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   const hooks = await SessionInit({ directory: dir, client });
@@ -136,8 +143,9 @@ test('session-init: compaction pushes banner to context', async () => {
   assert.ok(output.context[0].includes('=== LORE v2.0.0 ==='));
 });
 
-test('session-init: session.created re-emits banner', async () => {
+test('session-init: session.created re-emits banner', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   const hooks = await SessionInit({ directory: dir, client });
@@ -149,8 +157,9 @@ test('session-init: session.created re-emits banner', async () => {
 
 // ── Knowledge Tracker ──
 
-test('knowledge-tracker: silent on read-only tools', async () => {
+test('knowledge-tracker: silent on read-only tools', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -160,8 +169,9 @@ test('knowledge-tracker: silent on read-only tools', async () => {
   assert.equal(client.logs.length, 0, 'no logs for read-only tools');
 });
 
-test('knowledge-tracker: gentle reminder on first bash', async () => {
+test('knowledge-tracker: gentle reminder on first bash', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -170,8 +180,9 @@ test('knowledge-tracker: gentle reminder on first bash', async () => {
   assert.ok(client.logs[0].message.includes('Gotcha?'));
 });
 
-test('knowledge-tracker: escalates at 3 consecutive bash', async () => {
+test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -182,8 +193,9 @@ test('knowledge-tracker: escalates at 3 consecutive bash', async () => {
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
-test('knowledge-tracker: strong warning at 5 consecutive bash', async () => {
+test('knowledge-tracker: strong warning at 5 consecutive bash', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -194,8 +206,9 @@ test('knowledge-tracker: strong warning at 5 consecutive bash', async () => {
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
-test('knowledge-tracker: resets counter on knowledge capture', async () => {
+test('knowledge-tracker: resets counter on knowledge capture', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -209,8 +222,9 @@ test('knowledge-tracker: resets counter on knowledge capture', async () => {
   assert.ok(!client.logs[0].message.includes('in a row'));
 });
 
-test('knowledge-tracker: MEMORY.local.md scratch notes warning', async () => {
+test('knowledge-tracker: MEMORY.local.md scratch notes warning', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -218,8 +232,9 @@ test('knowledge-tracker: MEMORY.local.md scratch notes warning', async () => {
   assert.ok(client.logs.at(-1).message.includes('scratch notes'));
 });
 
-test('knowledge-tracker: error pattern message on bash failure', async () => {
+test('knowledge-tracker: error pattern message on bash failure', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -227,8 +242,9 @@ test('knowledge-tracker: error pattern message on bash failure', async () => {
   assert.ok(client.logs[0].message.includes('Error pattern'));
 });
 
-test('knowledge-tracker: respects custom thresholds from .lore-config', async () => {
+test('knowledge-tracker: respects custom thresholds from .lore-config', async (t) => {
   const dir = setup({ config: { version: '1.0.0', nudgeThreshold: 2, warnThreshold: 4 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -240,8 +256,9 @@ test('knowledge-tracker: respects custom thresholds from .lore-config', async ()
 
 // ── Protect Memory ──
 
-test('protect-memory: blocks writes to MEMORY.md at project root', async () => {
+test('protect-memory: blocks writes to MEMORY.md at project root', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
@@ -253,8 +270,9 @@ test('protect-memory: blocks writes to MEMORY.md at project root', async () => {
   );
 });
 
-test('protect-memory: blocks reads to MEMORY.md at project root', async () => {
+test('protect-memory: blocks reads to MEMORY.md at project root', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
@@ -266,8 +284,9 @@ test('protect-memory: blocks reads to MEMORY.md at project root', async () => {
   );
 });
 
-test('protect-memory: read error mentions MEMORY.local.md', async () => {
+test('protect-memory: read error mentions MEMORY.local.md', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
@@ -279,8 +298,9 @@ test('protect-memory: read error mentions MEMORY.local.md', async () => {
   );
 });
 
-test('protect-memory: write error shows routing table', async () => {
+test('protect-memory: write error shows routing table', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
@@ -292,8 +312,9 @@ test('protect-memory: write error shows routing table', async () => {
   );
 });
 
-test('protect-memory: allows MEMORY.local.md', async () => {
+test('protect-memory: allows MEMORY.local.md', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await hooks['tool.execute.before'](
@@ -302,8 +323,9 @@ test('protect-memory: allows MEMORY.local.md', async () => {
   );
 });
 
-test('protect-memory: allows nested MEMORY.md', async () => {
+test('protect-memory: allows nested MEMORY.md', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await hooks['tool.execute.before'](
@@ -312,8 +334,9 @@ test('protect-memory: allows nested MEMORY.md', async () => {
   );
 });
 
-test('protect-memory: ignores non-file tools', async () => {
+test('protect-memory: ignores non-file tools', async (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await hooks['tool.execute.before'](

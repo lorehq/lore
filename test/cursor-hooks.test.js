@@ -61,8 +61,9 @@ function runHook(dir, hookName, stdinData) {
 
 // ── Session Init ──
 
-test('session-init: emits full banner with additional_context', () => {
+test('session-init: emits full banner with additional_context', (t) => {
   const dir = setup({ config: { version: '1.0.0' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runHook(dir, 'session-init.js');
   assert.equal(code, 0);
   const parsed = JSON.parse(stdout);
@@ -71,14 +72,15 @@ test('session-init: emits full banner with additional_context', () => {
   assert.equal(parsed.continue, true);
 });
 
-test('session-init: creates sticky files', () => {
+test('session-init: creates sticky files', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir, 'session-init.js');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
 
-test('session-init: includes agent domains in banner', () => {
+test('session-init: includes agent domains in banner', (t) => {
   const dir = setup({
     registry: [
       '| Agent | Domain | Skills |',
@@ -86,6 +88,7 @@ test('session-init: includes agent domains in banner', () => {
       '| `doc-agent` | Documentation | 2 |',
     ].join('\n'),
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'session-init.js');
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.additional_context.includes('Documentation'));
@@ -93,8 +96,9 @@ test('session-init: includes agent domains in banner', () => {
 
 // ── Protect Memory ──
 
-test('protect-memory: blocks MEMORY.md reads with deny permission', () => {
+test('protect-memory: blocks MEMORY.md reads with deny permission', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'MEMORY.md'),
   });
@@ -103,8 +107,9 @@ test('protect-memory: blocks MEMORY.md reads with deny permission', () => {
   assert.ok(parsed.user_message.includes('MEMORY.local.md'));
 });
 
-test('protect-memory: allows MEMORY.local.md', () => {
+test('protect-memory: allows MEMORY.local.md', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'MEMORY.local.md'),
   });
@@ -112,16 +117,18 @@ test('protect-memory: allows MEMORY.local.md', () => {
   assert.equal(stdout, '');
 });
 
-test('protect-memory: allows nested MEMORY.md', () => {
+test('protect-memory: allows nested MEMORY.md', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'subdir', 'MEMORY.md'),
   });
   assert.equal(stdout, '');
 });
 
-test('protect-memory: allows non-MEMORY files', () => {
+test('protect-memory: allows non-MEMORY files', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'docs', 'context', 'foo.md'),
   });
@@ -130,8 +137,9 @@ test('protect-memory: allows non-MEMORY files', () => {
 
 // ── Knowledge Tracker ──
 
-test('knowledge-tracker: detects docs/ write and sets nav-dirty', () => {
+test('knowledge-tracker: detects docs/ write and sets nav-dirty', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
   assert.ok(!fs.existsSync(navFlag));
   runHook(dir, 'knowledge-tracker.js', {
@@ -140,8 +148,9 @@ test('knowledge-tracker: detects docs/ write and sets nav-dirty', () => {
   assert.ok(fs.existsSync(navFlag));
 });
 
-test('knowledge-tracker: silent on knowledge path writes', () => {
+test('knowledge-tracker: silent on knowledge path writes', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'knowledge-tracker.js', {
     filePath: path.join(dir, 'docs', 'context', 'something.md'),
   });
@@ -149,8 +158,9 @@ test('knowledge-tracker: silent on knowledge path writes', () => {
   assert.equal(stdout, '');
 });
 
-test('knowledge-tracker: emits reminder on non-knowledge writes', () => {
+test('knowledge-tracker: emits reminder on non-knowledge writes', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'knowledge-tracker.js', {
     filePath: path.join(dir, 'MEMORY.local.md'),
   });
@@ -159,8 +169,9 @@ test('knowledge-tracker: emits reminder on non-knowledge writes', () => {
   assert.ok(parsed.message.includes('scratch notes'));
 });
 
-test('knowledge-tracker: no nav-dirty on non-docs writes', () => {
+test('knowledge-tracker: no nav-dirty on non-docs writes', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
   runHook(dir, 'knowledge-tracker.js', {
     filePath: path.join(dir, 'README.md'),
@@ -168,8 +179,9 @@ test('knowledge-tracker: no nav-dirty on non-docs writes', () => {
   assert.ok(!fs.existsSync(navFlag));
 });
 
-test('knowledge-tracker: tracks consecutive bash commands via afterShellExecution', () => {
+test('knowledge-tracker: tracks consecutive bash commands via afterShellExecution', (t) => {
   const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // First shell execution — count goes to 1, below nudge threshold
   runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
   // Second shell execution — count goes to 2, hits nudge threshold
@@ -183,8 +195,9 @@ test('knowledge-tracker: tracks consecutive bash commands via afterShellExecutio
   assert.equal(state.bash, 2);
 });
 
-test('knowledge-tracker: file edit resets bash counter', () => {
+test('knowledge-tracker: file edit resets bash counter', (t) => {
   const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const crypto = require('crypto');
   const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
   const stateFile = path.join(dir, '.git', `lore-tracker-${hash}.json`);

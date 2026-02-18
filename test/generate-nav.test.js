@@ -28,8 +28,9 @@ function runScript(dir) {
   return { stdout: out, nav: fs.readFileSync(path.join(dir, 'mkdocs.yml'), 'utf8') };
 }
 
-test('generates nav with Home section and index page for minimal repo', () => {
+test('generates nav with Home section and index page for minimal repo', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { nav } = runScript(dir);
   assert.ok(nav.includes('nav:'));
   assert.ok(nav.includes('- Home:'));
@@ -37,8 +38,9 @@ test('generates nav with Home section and index page for minimal repo', () => {
   assert.ok(!nav.includes('- Overview:'), 'should not have separate Overview entries');
 });
 
-test('includes work subsections under Home with active roadmap', () => {
+test('includes work subsections under Home with active roadmap', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const roadmap = path.join(dir, 'docs', 'work', 'roadmaps', 'v1-launch');
   fs.mkdirSync(roadmap, { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'work', 'index.md'), '# Work\n');
@@ -51,8 +53,9 @@ test('includes work subsections under Home with active roadmap', () => {
   assert.ok(nav.includes('V1 Launch'));
 });
 
-test('excludes archive directories from nav output', () => {
+test('excludes archive directories from nav output', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const roadmap = path.join(dir, 'docs', 'work', 'roadmaps', 'active-roadmap');
   const archive = path.join(dir, 'docs', 'work', 'roadmaps', 'active-roadmap', 'archive', 'old-plan');
   fs.mkdirSync(roadmap, { recursive: true });
@@ -66,8 +69,9 @@ test('excludes archive directories from nav output', () => {
   assert.ok(!nav.includes('Old Plan'), 'archived content should not appear in nav');
 });
 
-test('work subsections always appear even with only archive content', () => {
+test('work subsections always appear even with only archive content', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const archive = path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-roadmap');
   fs.mkdirSync(archive, { recursive: true });
   fs.writeFileSync(path.join(archive, 'index.md'), '# Old\n');
@@ -77,8 +81,9 @@ test('work subsections always appear even with only archive content', () => {
   assert.ok(!nav.includes('Old Roadmap'), 'archived content should not appear in nav');
 });
 
-test('includes Context section when content exists', () => {
+test('includes Context section when content exists', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const ctx = path.join(dir, 'docs', 'context');
   fs.mkdirSync(ctx, { recursive: true });
   fs.writeFileSync(path.join(ctx, 'conventions.md'), '# Conventions\n');
@@ -88,8 +93,9 @@ test('includes Context section when content exists', () => {
   assert.ok(nav.includes('- Conventions: context/conventions.md'));
 });
 
-test('preserves existing mkdocs.yml header when regenerating', () => {
+test('preserves existing mkdocs.yml header when regenerating', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Write a custom mkdocs.yml before running the script
   const customHeader = [
     'site_name: My Custom Site',
@@ -111,8 +117,9 @@ test('preserves existing mkdocs.yml header when regenerating', () => {
   assert.ok(nav.includes('nav:'), 'should still have nav section');
 });
 
-test('auto-scaffold creates index.md when dir has .md files but no index.md', () => {
+test('auto-scaffold creates index.md when dir has .md files but no index.md', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const ctx = path.join(dir, 'docs', 'context');
   const sub = path.join(ctx, 'inventory');
   fs.mkdirSync(sub, { recursive: true });
@@ -126,8 +133,9 @@ test('auto-scaffold creates index.md when dir has .md files but no index.md', ()
   assert.ok(nav.includes('- Inventory:'));
 });
 
-test('agent-rules.md appears after Context overview before other content', () => {
+test('agent-rules.md appears after Context overview before other content', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const ctx = path.join(dir, 'docs', 'context');
   fs.mkdirSync(ctx, { recursive: true });
   fs.writeFileSync(path.join(ctx, 'index.md'), '# Context\n');
