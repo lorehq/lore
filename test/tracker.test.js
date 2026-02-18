@@ -1,0 +1,297 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const {
+  processToolUse,
+  getThresholds,
+  isDocsWrite,
+  isKnowledgePath,
+  isWriteTool,
+  isBashTool,
+  isReadOnly,
+  getNavFlagPath,
+  setNavDirty,
+  navReminder,
+} = require('../lib/tracker');
+
+function setup() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tracker-'));
+  fs.mkdirSync(path.join(dir, '.git'));
+  return dir;
+}
+
+const defaultThresholds = { nudge: 3, warn: 5 };
+
+// ── Tool classification ──
+
+test('isWriteTool: recognizes write and edit', () => {
+  assert.ok(isWriteTool('Write'));
+  assert.ok(isWriteTool('edit'));
+  assert.ok(isWriteTool('EDIT'));
+  assert.ok(!isWriteTool('Bash'));
+  assert.ok(!isWriteTool('Read'));
+  assert.ok(!isWriteTool(''));
+  assert.ok(!isWriteTool(null));
+});
+
+test('isBashTool: recognizes bash, shell, terminal', () => {
+  assert.ok(isBashTool('Bash'));
+  assert.ok(isBashTool('shell'));
+  assert.ok(isBashTool('Terminal'));
+  assert.ok(!isBashTool('Write'));
+  assert.ok(!isBashTool(''));
+  assert.ok(!isBashTool(null));
+});
+
+test('isReadOnly: recognizes read, grep, glob', () => {
+  assert.ok(isReadOnly('Read'));
+  assert.ok(isReadOnly('grep'));
+  assert.ok(isReadOnly('GLOB'));
+  assert.ok(!isReadOnly('Write'));
+  assert.ok(!isReadOnly('Bash'));
+});
+
+// ── Path matching ──
+
+test('isKnowledgePath: matches docs/ under rootDir', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.ok(isKnowledgePath(path.join(dir, 'docs', 'env.md'), dir));
+  assert.ok(isKnowledgePath(path.join(dir, '.lore', 'skills', 'foo', 'SKILL.md'), dir));
+  assert.ok(isKnowledgePath(path.join(dir, '.claude', 'skills', 'bar', 'SKILL.md'), dir));
+});
+
+test('isKnowledgePath: rejects paths outside rootDir', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.ok(!isKnowledgePath('/other/docs/env.md', dir));
+  assert.ok(!isKnowledgePath(path.join(dir, 'src', 'app.js'), dir));
+});
+
+test('isDocsWrite: matches write tool + docs/ path', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.ok(isDocsWrite('Write', path.join(dir, 'docs', 'foo.md'), dir));
+  assert.ok(isDocsWrite('edit', path.join(dir, 'docs', 'context', 'bar.md'), dir));
+  assert.ok(!isDocsWrite('Bash', path.join(dir, 'docs', 'foo.md'), dir));
+  assert.ok(!isDocsWrite('Write', path.join(dir, 'src', 'foo.js'), dir));
+  assert.ok(!isDocsWrite('Write', '/other/docs/foo.md', dir));
+});
+
+// ── Thresholds ──
+
+test('getThresholds: reads from .lore-config', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify({ nudgeThreshold: 2, warnThreshold: 4 }));
+  const t2 = getThresholds(dir);
+  assert.equal(t2.nudge, 2);
+  assert.equal(t2.warn, 4);
+});
+
+test('getThresholds: returns defaults when file missing', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const t2 = getThresholds(dir);
+  assert.equal(t2.nudge, 3);
+  assert.equal(t2.warn, 5);
+});
+
+// ── processToolUse ──
+
+test('processToolUse: read-only tools are silent and reset counter', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Read',
+    filePath: '',
+    isFailure: false,
+    bashCount: 5,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.silent);
+  assert.equal(result.bashCount, 0);
+});
+
+test('processToolUse: knowledge write is silent and resets counter', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Write',
+    filePath: path.join(dir, 'docs', 'env.md'),
+    isFailure: false,
+    bashCount: 3,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.silent);
+  assert.equal(result.bashCount, 0);
+});
+
+test('processToolUse: bash increments counter', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: false,
+    bashCount: 0,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.equal(result.bashCount, 1);
+  assert.ok(!result.silent);
+});
+
+test('processToolUse: nudge at threshold', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: false,
+    bashCount: 2,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.equal(result.bashCount, 3);
+  assert.ok(result.message.includes('3 commands in a row'));
+});
+
+test('processToolUse: warn at threshold', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: false,
+    bashCount: 4,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.equal(result.bashCount, 5);
+  assert.ok(result.message.includes('5 consecutive commands'));
+  assert.equal(result.level, 'warn');
+});
+
+test('processToolUse: failure on first bash shows error pattern', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: true,
+    bashCount: 0,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.message.includes('Error pattern'));
+});
+
+test('processToolUse: warn threshold wins over failure', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: true,
+    bashCount: 4,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.message.includes('consecutive commands'), 'warn should win over failure');
+});
+
+test('processToolUse: non-bash write resets counter', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Write',
+    filePath: path.join(dir, 'src', 'app.js'),
+    isFailure: false,
+    bashCount: 3,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.equal(result.bashCount, 0);
+  assert.ok(!result.silent);
+});
+
+test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Write',
+    filePath: path.join(dir, 'MEMORY.local.md'),
+    isFailure: false,
+    bashCount: 0,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.message.includes('scratch notes'));
+});
+
+// ── Nav helpers ──
+
+test('getNavFlagPath: uses .git dir when present', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = getNavFlagPath(dir);
+  assert.ok(flagPath.includes('.git'));
+  assert.ok(flagPath.includes('lore-nav-dirty'));
+});
+
+test('getNavFlagPath: falls back to tmpdir when no .git', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tracker-nogit-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = getNavFlagPath(dir);
+  assert.ok(flagPath.includes(os.tmpdir()));
+});
+
+test('setNavDirty: creates flag file', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
+  assert.ok(!fs.existsSync(flagPath));
+  setNavDirty(flagPath);
+  assert.ok(fs.existsSync(flagPath));
+});
+
+test('setNavDirty: does not overwrite existing flag', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
+  fs.writeFileSync(flagPath, 'original');
+  setNavDirty(flagPath);
+  assert.equal(fs.readFileSync(flagPath, 'utf8'), 'original');
+});
+
+test('navReminder: appends nav message when flag exists', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
+  fs.writeFileSync(flagPath, '1');
+  const msg = navReminder(flagPath, 'base message');
+  assert.ok(msg.includes('base message'));
+  assert.ok(msg.includes('generate-nav.sh'));
+});
+
+test('navReminder: returns base message when no flag', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
+  const msg = navReminder(flagPath, 'base message');
+  assert.equal(msg, 'base message');
+});
+
+test('navReminder: returns nav only when flag exists and no base', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
+  fs.writeFileSync(flagPath, '1');
+  const msg = navReminder(flagPath, null);
+  assert.ok(msg.includes('generate-nav.sh'));
+});

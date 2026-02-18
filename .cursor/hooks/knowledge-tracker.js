@@ -56,7 +56,7 @@ function writeState(s) {
 
 // Nav-dirty flag
 const navFlag = getNavFlagPath(hubDir);
-if (!isShellEvent && isDocsWrite('write', filePath)) setNavDirty(navFlag);
+if (!isShellEvent && isDocsWrite('write', filePath, hubDir)) setNavDirty(navFlag);
 
 // Process event
 const state = readState();
@@ -67,6 +67,7 @@ const result = processToolUse({
   isFailure: false,
   bashCount: state.bash,
   thresholds: getThresholds(hubDir),
+  rootDir: hubDir,
 });
 state.bash = result.bashCount;
 writeState(state);

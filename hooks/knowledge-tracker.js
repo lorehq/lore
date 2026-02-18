@@ -60,7 +60,7 @@ debug('knowledge-tracker: tool=%s file=%s event=%s', tool, filePath, event);
 
 // -- Nav-dirty flag --
 const navFlag = getNavFlagPath(hubDir);
-if (isDocsWrite(tool, filePath)) setNavDirty(navFlag);
+if (isDocsWrite(tool, filePath, hubDir)) setNavDirty(navFlag);
 
 // -- Process tool use --
 const state = readState();
@@ -70,6 +70,7 @@ const result = processToolUse({
   isFailure,
   bashCount: state.bash,
   thresholds: getThresholds(hubDir),
+  rootDir: hubDir,
 });
 state.bash = result.bashCount;
 writeState(state);
