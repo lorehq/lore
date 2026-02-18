@@ -98,17 +98,15 @@ test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', () => 
   assert.equal(allowed.stdout, '');
 });
 
-test('cursor banner-inject with LORE_HUB: reads from hub, flag in work repo', () => {
+test('cursor session-init with LORE_HUB: reads from hub', () => {
   const hub = setupHub({ config: { version: '1.0.0' } });
   const work = setupWorkRepo();
 
-  const { stdout } = runCursorHook('banner-inject.js', work, null, { LORE_HUB: hub });
+  const { stdout } = runCursorHook('session-init.js', work, null, { LORE_HUB: hub });
   const parsed = JSON.parse(stdout);
   // Banner comes from hub
-  assert.ok(parsed.systemMessage.includes('=== LORE v1.0.0 ==='));
-  // Flag file written to work repo's .git/, not hub's
-  assert.ok(fs.existsSync(path.join(work, '.git', 'lore-cursor-session')));
-  assert.ok(!fs.existsSync(path.join(hub, '.git', 'lore-cursor-session')));
+  assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
+  assert.equal(parsed.continue, true);
 });
 
 test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', () => {
@@ -175,7 +173,7 @@ test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', () => 
   runScript(`"${work}"`);
 
   const hooks = JSON.parse(fs.readFileSync(path.join(work, '.cursor', 'hooks.json'), 'utf8'));
-  const cmd = hooks.hooks.beforeSubmitPrompt[0].command;
+  const cmd = hooks.hooks.sessionStart[0].command;
   assert.ok(cmd.includes('LORE_HUB='));
   assert.ok(cmd.includes(repoRoot));
 

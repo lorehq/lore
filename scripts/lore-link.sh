@@ -108,14 +108,18 @@ SETTINGS
   # Cursor hooks
   cat > "$target/.cursor/hooks.json" << CURSOR
 {
+  "version": 1,
   "hooks": {
-    "beforeSubmitPrompt": [
-      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/banner-inject.js" }
+    "sessionStart": [
+      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/session-init.js" }
     ],
     "beforeReadFile": [
       { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/protect-memory.js" }
     ],
     "afterFileEdit": [
+      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/knowledge-tracker.js" }
+    ],
+    "afterShellExecution": [
       { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/knowledge-tracker.js" }
     ]
   }
