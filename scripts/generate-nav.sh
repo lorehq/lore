@@ -11,6 +11,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOCS="$REPO_ROOT/docs"
 OUTPUT="$REPO_ROOT/mkdocs.yml"
 
+# Convert kebab-case to Title Case (e.g., "my-section" → "My Section")
+to_title() { echo "$1" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1'; }
+
 # Recursively scan a directory and emit mkdocs nav entries.
 # Processes subdirectories first (alphabetically), then loose .md files.
 # If a subdir contains index.md, it becomes the section index page.
@@ -21,9 +24,10 @@ scan_dir() {
   # Subdirectories first (archive/ sorted last)
   local subdirs=()
   local archive_dir=""
+  local name
   for subdir in "$dir"/*/; do
     [[ -d "$subdir" ]] || continue
-    local name=$(basename "$subdir")
+    name=$(basename "$subdir")
     [[ "$name" == .* ]] && continue   # Skip hidden dirs
     if [[ "$name" == "archive" ]]; then
       archive_dir="$subdir"
@@ -33,32 +37,34 @@ scan_dir() {
   done
   [[ -n "$archive_dir" ]] && subdirs+=("$archive_dir")
 
+  local title rel scaffold_title
   for subdir in "${subdirs[@]}"; do
-    local name=$(basename "$subdir")
+    name=$(basename "$subdir")
     # Auto-scaffold: if dir has no index.md, create one from the dir name
     if [[ ! -f "${subdir%/}/index.md" ]]; then
-      local scaffold_title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+      scaffold_title=$(to_title "$name")
       echo "# ${scaffold_title}" > "${subdir%/}/index.md"
     fi
 
     # Convert kebab-case dir name to Title Case for nav label
-    local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    title=$(to_title "$name")
     echo "${indent}- ${title}:"
 
     # Use index.md as the section index page (navigation.indexes makes heading clickable)
-    local rel="${subdir#$DOCS/}"
+    rel="${subdir#"$DOCS"/}"
     [[ -f "${subdir}index.md" ]] && echo "${indent}    - ${rel}index.md"
 
     scan_dir "$subdir" "${indent}    "
   done
 
   # Then standalone .md files (skip index.md and README — handled above)
+  local relative
   for file in "$dir"/*.md; do
     [[ -f "$file" ]] || continue
-    local name=$(basename "$file" .md)
+    name=$(basename "$file" .md)
     [[ "$name" == "index" || "$name" == "README" || "$name" == "agent-rules" ]] && continue
-    local relative="${file#$DOCS/}"
-    local title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    relative="${file#"$DOCS"/}"
+    title=$(to_title "$name")
     echo "${indent}- ${title}: ${relative}"
   done
 }
@@ -103,10 +109,11 @@ emit_work_subsections() {
   local work="$DOCS/work"
   [[ -d "$work" ]] || return 0
 
+  local title
   # Always show all three — structure is framework-controlled, never skipped
   for subsection in roadmaps plans brainstorms; do
     [[ -d "$work/$subsection" ]] || continue
-    title=$(echo "$subsection" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    title=$(to_title "$subsection")
     echo "${indent}- ${title}:"
     [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - work/$subsection/index.md"
     scan_dir "$work/$subsection" "${indent}    "
@@ -123,8 +130,8 @@ emit_work_subsections() {
 
   for section in "${NAV_SECTIONS[@]}"; do
     # All sections: include if folder has .md content, scan dynamically
-    if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' | grep -q .; then
-      title=$(echo "$section" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    if [[ -d "$DOCS/$section" ]] && find "$DOCS/$section" -name '*.md' -print -quit | grep -q .; then
+      title=$(to_title "$section")
       echo "  - ${title}:"
       [[ -f "$DOCS/$section/index.md" ]] && echo "      - $section/index.md"
       # Agent rules pinned after overview in context section

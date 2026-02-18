@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh scripts/lib/*.sh
       - run: npm test
       - run: bash scripts/validate-consistency.sh
       - run: bash scripts/check-version-sync.sh
@@ -27,3 +29,5 @@ jobs:
           # Without this, generate-nav.sh output differs from committed mkdocs.yml.
           node -e "require('./lib/banner').ensureStickyFiles('.')"
           bash scripts/generate-nav.sh && git diff --exit-code mkdocs.yml
+      - name: Fresh-clone smoke test
+        run: bash scripts/smoke-test.sh
