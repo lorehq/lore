@@ -156,10 +156,10 @@ test('skips archive directories in tree', (t) => {
   assert.ok(!out.includes('old-item'), 'archive contents should not be expanded');
 });
 
-test('creates sticky docs/context/local/ when missing', (t) => {
+test('creates sticky docs/knowledge/local/ when missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const localIndex = path.join(dir, 'docs', 'context', 'local', 'index.md');
+  const localIndex = path.join(dir, 'docs', 'knowledge', 'local', 'index.md');
   assert.ok(!fs.existsSync(localIndex), 'should not exist before hook runs');
   runHook(dir);
   assert.ok(fs.existsSync(localIndex), 'local/index.md should be created');

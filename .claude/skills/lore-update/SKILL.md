@@ -13,7 +13,7 @@ Pull the latest Lore framework files without touching operator content.
 
 ## When to Use
 
-The operator types `/update-lore` to sync their instance with the latest Lore release.
+The operator types `/lore-update` to sync their instance with the latest Lore release.
 
 ## Process
 

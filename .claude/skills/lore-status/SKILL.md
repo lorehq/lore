@@ -13,7 +13,7 @@ Operator-facing diagnostic. Shows whether Lore is loaded and healthy.
 
 ## When to Use
 
-The operator types `/status` to verify their Lore instance.
+The operator types `/lore-status` to verify their Lore instance.
 
 ## Process
 
@@ -45,8 +45,8 @@ Run these checks and present a formatted summary to the operator:
 3. **Counts** — count and report:
    - Skills: number of directories in `.lore/skills/`
    - Agents: number of `.md` files in `.lore/agents/` (0 if dir missing)
-   - Context docs: number of `.md` files under `docs/context/`
-   - Runbooks: number of `.md` files under `docs/context/runbooks/`
+   - Knowledge docs: number of `.md` files under `docs/knowledge/`
+   - Runbooks: number of `.md` files under `docs/knowledge/runbooks/`
 
 4. **Linked repos** — if `.lore-links` exists, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale.
 
@@ -61,7 +61,7 @@ Run these checks and present a formatted summary to the operator:
      Cursor        OK
      OpenCode      OK
 
-   Skills: 12 | Agents: 2 | Context docs: 5 | Runbooks: 1
+   Skills: 12 | Agents: 2 | Knowledge docs: 5 | Runbooks: 1
 
    Linked repos: 2 (1 stale)
 

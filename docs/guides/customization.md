@@ -8,9 +8,11 @@ The file is **sticky** — if deleted, the session hook recreates it with a skel
 
 This replaces what you'd normally put in `CLAUDE.md` / `.cursorrules` or `agents.md` — but lives in docs where it's browsable and version-controlled.
 
-## Context Folder Structure
+## Context vs Knowledge
 
-The `docs/context/` directory is yours to organize. The default structure (conventions, runbooks, diagrams) is a starting point — not a constraint.
+`docs/context/` holds rules and conventions injected every session (agent-rules, coding standards). `docs/knowledge/` holds reference material loaded on-demand (environment details, runbooks, scratch notes).
+
+Both directories are yours to organize — the default structures are starting points, not constraints.
 
 **Adding a section:** Create a directory with markdown files. Run `bash scripts/generate-nav.sh` and it appears in nav automatically. Use kebab-case for directory names — the nav generator converts them to Title Case.
 
@@ -20,7 +22,7 @@ The `docs/context/` directory is yours to organize. The default structure (conve
 
 ## Local Notes
 
-The `docs/context/local/` directory is gitignored. Use it for scratch notes, credentials references, or anything you don't want committed. It's sticky — recreated on session start if deleted.
+The `docs/knowledge/local/` directory is gitignored. Use it for scratch notes, credentials references, or anything you don't want committed. It's sticky — recreated on session start if deleted.
 
 ## Nav Generation
 

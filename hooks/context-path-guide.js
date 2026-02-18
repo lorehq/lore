@@ -1,4 +1,4 @@
-// PreToolUse hook: Guide writes to docs/context/ with current structure.
+// PreToolUse hook: Guide writes to docs/context/ or docs/knowledge/ with current structure.
 // Shows an ASCII tree of existing directories and files so the agent can
 // see what's already there and place new content in the right spot.
 //
@@ -23,8 +23,8 @@ try {
 
 const filePath = (input.tool_input || {}).file_path || '';
 
-// Only fire for writes targeting docs/context/
-if (!filePath.includes('docs/context/')) {
+// Only fire for writes targeting docs/context/ or docs/knowledge/
+if (!filePath.includes('docs/context/') && !filePath.includes('docs/knowledge/')) {
   process.exit(0);
 }
 
@@ -33,14 +33,22 @@ const hubDir = process.env.LORE_HUB || process.cwd();
 debug('context-path-guide: file=%s hub=%s', filePath, hubDir);
 const cfg = getConfig(hubDir);
 const treeDepth = cfg.treeDepth ?? 5;
-const ctxDir = path.join(hubDir, 'docs', 'context');
-const treeLines = fs.existsSync(ctxDir)
-  ? buildTree(ctxDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
+
+// Show tree of whichever directory the write targets
+const isKnowledge = filePath.includes('docs/knowledge/');
+const targetDir = isKnowledge
+  ? path.join(hubDir, 'docs', 'knowledge')
+  : path.join(hubDir, 'docs', 'context');
+const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
+const treeLines = fs.existsSync(targetDir)
+  ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
   : [];
 const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 
-let msg = 'Context path guide:\n';
-msg += `docs/context/\n${structure || '(empty)\n'}`;
-msg += 'Organize subdirectories as needed (e.g. systems/, architecture/, procedures/)';
+let msg = 'Knowledge path guide:\n';
+msg += `${treeLabel}\n${structure || '(empty)\n'}`;
+msg += isKnowledge
+  ? 'Organize under environment/ subdirs (systems/, architecture/, accounts/, integrations/, operations/)'
+  : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
 console.log(JSON.stringify({ decision: 'proceed', additional_context: msg }));

@@ -127,7 +127,7 @@ test('session-init: creates sticky files', async (t) => {
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'local', 'index.md')));
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
