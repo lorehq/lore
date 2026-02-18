@@ -28,17 +28,17 @@ function runScript(dir) {
   return { stdout: out, nav: fs.readFileSync(path.join(dir, 'mkdocs.yml'), 'utf8') };
 }
 
-test('generates nav with Home section and index page for minimal repo', (t) => {
+test('generates nav with Work section and index page for minimal repo', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { nav } = runScript(dir);
   assert.ok(nav.includes('nav:'));
-  assert.ok(nav.includes('- Home:'));
+  assert.ok(nav.includes('- Work:'));
   assert.ok(nav.includes('- index.md'));
   assert.ok(!nav.includes('- Overview:'), 'should not have separate Overview entries');
 });
 
-test('includes work subsections under Home with active roadmap', (t) => {
+test('includes work subsections under Work with active roadmap', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const roadmap = path.join(dir, 'docs', 'work', 'roadmaps', 'v1-launch');
@@ -47,8 +47,7 @@ test('includes work subsections under Home with active roadmap', (t) => {
   fs.writeFileSync(path.join(roadmap, 'index.md'), '# V1 Launch\n');
 
   const { nav } = runScript(dir);
-  assert.ok(!nav.includes('- Work:'), 'Work should not appear as a standalone tab');
-  assert.ok(nav.includes('- Home:'));
+  assert.ok(nav.includes('- Work:'));
   assert.ok(nav.includes('- Roadmaps:'));
   assert.ok(nav.includes('V1 Launch'));
 });
