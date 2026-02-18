@@ -18,7 +18,8 @@ try {
 
 const toolName = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
-const result = checkMemoryAccess(toolName, filePath, process.cwd());
+const hubDir = process.env.LORE_HUB || process.cwd();
+const result = checkMemoryAccess(toolName, filePath, hubDir);
 if (!result) process.exit(0);
 
 console.log(JSON.stringify({ decision: 'block', reason: result.reason }));

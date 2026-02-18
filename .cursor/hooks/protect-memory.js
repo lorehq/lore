@@ -17,7 +17,8 @@ try {
 }
 
 const filePath = input.filePath || input.file_path || '';
-const result = checkMemoryAccess('read', filePath, process.cwd());
+const hubDir = process.env.LORE_HUB || process.cwd();
+const result = checkMemoryAccess('read', filePath, hubDir);
 if (!result) process.exit(0);
 
 console.log(JSON.stringify({ continue: false, message: result.reason }));

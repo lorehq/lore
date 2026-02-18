@@ -2,7 +2,7 @@
 # Validates cross-reference consistency between skills, agents, and registries.
 # Run after any structural change to catch drift.
 #
-# Checks (10 total):
+# Checks (11 total):
 #   1. Every skill directory has a registry entry
 #   2. Every agent file has a registry entry
 #   3. Every registry skill has a directory on disk
@@ -13,6 +13,7 @@
 #   8. Platform copies (.claude/) match canonical source (.lore/)
 #   9. CLAUDE.md and .cursorrules match .lore/instructions.md
 #  10. Cursor hooks configuration references existing scripts
+#  11. Linked repos (.lore-links) still exist on disk
 #
 # Exit code: 0 = all passed, 1 = inconsistencies found
 
@@ -166,6 +167,14 @@ if [[ -f "$REPO_ROOT/.cursor/hooks.json" ]]; then
       fail "Cursor hooks.json references missing script: $script"
     fi
   done < <(grep -oP '"command"\s*:\s*"\K[^"]+' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
+fi
+
+# -- 11. Linked repos --
+echo "--- Linked Repos ---"
+if [[ -f "$REPO_ROOT/.lore-links" ]]; then
+  while IFS= read -r lpath; do
+    [[ -d "$lpath" ]] || fail "Linked repo no longer exists: $lpath"
+  done < <(node -e "JSON.parse(require('fs').readFileSync('$REPO_ROOT/.lore-links','utf8')).forEach(l=>console.log(l.path))")
 fi
 
 # -- Results --

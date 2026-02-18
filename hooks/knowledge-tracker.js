@@ -9,6 +9,7 @@ const { processToolUse, getThresholds, isDocsWrite, getNavFlagPath, setNavDirty,
 
 // -- State file location --
 const cwd = process.cwd();
+const hubDir = process.env.LORE_HUB || cwd;
 const hash = crypto.createHash('md5').update(cwd).digest('hex').slice(0, 8);
 const gitDir = path.join(cwd, '.git');
 const STATE_FILE = fs.existsSync(gitDir)
@@ -40,7 +41,7 @@ const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
 
 // -- Nav-dirty flag --
-const navFlag = getNavFlagPath(cwd);
+const navFlag = getNavFlagPath(hubDir);
 if (isDocsWrite(tool, filePath)) setNavDirty(navFlag);
 
 // -- Process tool use --
@@ -48,7 +49,7 @@ const state = readState();
 const result = processToolUse({
   tool, filePath, isFailure,
   bashCount: state.bash,
-  thresholds: getThresholds(cwd),
+  thresholds: getThresholds(hubDir),
 });
 state.bash = result.bashCount;
 writeState(state);

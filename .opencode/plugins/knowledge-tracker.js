@@ -11,9 +11,10 @@ const require = createRequire(import.meta.url);
 const { processToolUse, getThresholds, isDocsWrite, getNavFlagPath, setNavDirty, navReminder } = require("../../lib/tracker");
 
 export const KnowledgeTracker = async ({ directory, client }) => {
+  const hub = process.env.LORE_HUB || directory;
   let consecutiveBash = 0;
-  const thresholds = getThresholds(directory);
-  const navFlag = getNavFlagPath(directory);
+  const thresholds = getThresholds(hub);
+  const navFlag = getNavFlagPath(hub);
 
   return {
     "tool.execute.after": async (input) => {

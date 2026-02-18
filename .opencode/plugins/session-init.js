@@ -8,24 +8,25 @@ const require = createRequire(import.meta.url);
 const { buildBanner, ensureStickyFiles } = require("../../lib/banner");
 
 export const SessionInit = async ({ directory, client }) => {
+  const hub = process.env.LORE_HUB || directory;
   // Scaffold missing files before first banner build so PROJECT section
   // picks up the agent-rules.md template on first run.
-  ensureStickyFiles(directory);
+  ensureStickyFiles(hub);
   await client.app.log({
-    body: { service: "session-init", level: "info", message: buildBanner(directory) },
+    body: { service: "session-init", level: "info", message: buildBanner(hub) },
   });
 
   return {
     "session.created": async () => {
-      ensureStickyFiles(directory);
+      ensureStickyFiles(hub);
       await client.app.log({
-        body: { service: "session-init", level: "info", message: buildBanner(directory) },
+        body: { service: "session-init", level: "info", message: buildBanner(hub) },
       });
     },
     // Re-inject after compaction so the banner survives context window trimming.
     "experimental.session.compacting": async (_input, output) => {
-      ensureStickyFiles(directory);
-      output.context.push(buildBanner(directory));
+      ensureStickyFiles(hub);
+      output.context.push(buildBanner(hub));
     },
   };
 };
