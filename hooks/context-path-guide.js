@@ -7,6 +7,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const { buildTree } = require('../lib/banner');
+const { debug } = require('../lib/debug');
 
 // -- Parse hook input from stdin --
 let input = {};
@@ -26,37 +28,14 @@ if (!filePath.includes('docs/context/')) {
   process.exit(0);
 }
 
-// -- Generate ASCII tree of a directory --
-// Shows directories first (sorted), then files (sorted).
-// Depth 0 = root dir; stops recursing when depth exceeds 3 (4 levels total).
-function tree(dir, prefix, depth) {
-  if (depth > 3 || !fs.existsSync(dir)) return '';
-  const entries = fs.readdirSync(dir, { withFileTypes: true })
-    .filter(e => !e.name.startsWith('.'))
-    .sort((a, b) => {
-      // Directories before files, then alphabetical
-      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-
-  let out = '';
-  entries.forEach((entry, i) => {
-    const last = i === entries.length - 1;
-    const connector = last ? '\u2514\u2500\u2500 ' : '\u251c\u2500\u2500 ';
-    const suffix = entry.isDirectory() ? '/' : '';
-    out += `${prefix}${connector}${entry.name}${suffix}\n`;
-    if (entry.isDirectory()) {
-      const next = prefix + (last ? '    ' : '\u2502   ');
-      out += tree(path.join(dir, entry.name), next, depth + 1);
-    }
-  });
-  return out;
-}
-
 // -- Build guidance message --
 const hubDir = process.env.LORE_HUB || process.cwd();
+debug('context-path-guide: file=%s hub=%s', filePath, hubDir);
 const ctxDir = path.join(hubDir, 'docs', 'context');
-const structure = fs.existsSync(ctxDir) ? tree(ctxDir, '', 0) : '';
+const treeLines = fs.existsSync(ctxDir)
+  ? buildTree(ctxDir, '', { maxDepth: 4, skipDirs: new Set(), skipArchive: false })
+  : [];
+const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 
 let msg = 'Context path guide:\n';
 msg += `docs/context/\n${structure || '(empty)\n'}`;
