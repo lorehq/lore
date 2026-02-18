@@ -151,9 +151,10 @@ PLUGIN
 OPENCODE
 
   # Add generated files to target .gitignore
-  local marker="# Lore link (auto-generated)"
-  if ! grep -qF "$marker" "$target/.gitignore" 2>/dev/null; then
-    { echo ""; echo "$marker"; for f in "${GENERATED_FILES[@]}"; do echo "$f"; done; } >> "$target/.gitignore"
+  local begin="# Lore link (auto-generated) BEGIN"
+  local end="# Lore link (auto-generated) END"
+  if ! grep -qF "$begin" "$target/.gitignore" 2>/dev/null; then
+    { echo ""; echo "$begin"; for f in "${GENERATED_FILES[@]}"; do echo "$f"; done; echo "$end"; } >> "$target/.gitignore"
   fi
 
   # Register in hub
@@ -186,15 +187,22 @@ do_unlink() {
   rmdir "$target/.cursor/rules" "$target/.cursor" 2>/dev/null || true
   rmdir "$target/.claude" 2>/dev/null || true
 
-  # Remove gitignore block
+  # Remove gitignore block (only the Lore-managed BEGIN/END section)
   if [[ -f "$target/.gitignore" ]]; then
-    local marker="# Lore link (auto-generated)"
+    local begin="# Lore link (auto-generated) BEGIN"
+    local end="# Lore link (auto-generated) END"
     node -e "
       const fs = require('fs');
-      const gi = fs.readFileSync(process.argv[1], 'utf8');
-      const idx = gi.indexOf(process.argv[2]);
-      if (idx >= 0) fs.writeFileSync(process.argv[1], gi.slice(0, idx).trimEnd() + '\n');
-    " "$target/.gitignore" "$marker"
+      const p = process.argv[1], b = process.argv[2], e = process.argv[3];
+      const lines = fs.readFileSync(p, 'utf8').split(/\r?\n/);
+      let out = [], skip = false;
+      for (const line of lines) {
+        if (line === b) { skip = true; continue; }
+        if (line === e) { skip = false; continue; }
+        if (!skip) out.push(line);
+      }
+      fs.writeFileSync(p, out.join('\n').replace(/\n+$/, '') + '\n');
+    " "$target/.gitignore" "$begin" "$end"
   fi
 
   # Deregister from hub

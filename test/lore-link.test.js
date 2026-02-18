@@ -258,6 +258,35 @@ test('refuses to link a Lore instance', (t) => {
   assert.ok((stderr || '').includes('Lore instance') || true);
 });
 
+test('unlink preserves user .gitignore entries after Lore block', (t) => {
+  const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
+
+  // Write a .gitignore with user content before and after where Lore will insert
+  fs.writeFileSync(path.join(work, '.gitignore'), 'node_modules/\n.env\n');
+
+  runScript(`"${work}"`);
+
+  // Append user content after the Lore block
+  fs.appendFileSync(path.join(work, '.gitignore'), '\n# My stuff\nbuild/\ndist/\n');
+
+  const before = fs.readFileSync(path.join(work, '.gitignore'), 'utf8');
+  assert.ok(before.includes('# Lore link (auto-generated) BEGIN'));
+  assert.ok(before.includes('build/'));
+
+  runScript(`--unlink "${work}"`);
+
+  const after = fs.readFileSync(path.join(work, '.gitignore'), 'utf8');
+  // Lore block removed
+  assert.ok(!after.includes('Lore link'));
+  assert.ok(!after.includes('.lore'));
+  // User content preserved
+  assert.ok(after.includes('node_modules/'));
+  assert.ok(after.includes('.env'));
+  assert.ok(after.includes('build/'));
+  assert.ok(after.includes('dist/'));
+});
+
 test('existing config gets backed up', (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));

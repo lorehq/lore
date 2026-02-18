@@ -19,12 +19,12 @@ const STATE_FILE = fs.existsSync(gitDir)
 
 function readState() {
   try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
-  catch { return { bash: 0 }; }
+  catch (e) { debug('readState: %s', e.message); return { bash: 0 }; }
 }
 
 function writeState(s) {
   try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); }
-  catch {} // Non-critical — worst case we lose the counter
+  catch (e) { debug('writeState: %s', e.message); } // Non-critical — worst case we lose the counter
 }
 
 // -- Parse hook input from stdin --
@@ -34,7 +34,7 @@ try {
     const s = fs.readFileSync(0, 'utf8');
     if (s) input = JSON.parse(s);
   }
-} catch {}
+} catch (e) { debug('stdin parse: %s', e.message); }
 
 const tool = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';

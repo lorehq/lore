@@ -39,7 +39,7 @@ extra_javascript:
 plugins:
   - search
 nav:
-  - Home:
+  - Work:
       - index.md
       - Roadmaps:
           - work/roadmaps/index.md
@@ -47,6 +47,22 @@ nav:
           - work/plans/index.md
       - Brainstorms:
           - work/brainstorms/index.md
+  - Knowledge:
+      - knowledge/index.md
+      - Environment:
+          - knowledge/environment/index.md
+          - Decisions:
+              - knowledge/environment/decisions/index.md
+          - Diagrams:
+              - knowledge/environment/diagrams/index.md
+          - Inventory:
+              - knowledge/environment/inventory/index.md
+          - Reference:
+              - knowledge/environment/reference/index.md
+      - Local:
+          - knowledge/local/index.md
+      - Runbooks:
+          - knowledge/runbooks/index.md
   - Context:
       - context/index.md
       - Agent Rules: context/agent-rules.md
@@ -54,12 +70,6 @@ nav:
           - context/conventions/index.md
           - Coding: context/conventions/coding.md
           - Docs: context/conventions/docs.md
-      - Diagrams:
-          - context/diagrams/index.md
-      - Runbooks:
-          - context/runbooks/index.md
-      - Systems:
-          - context/systems/index.md
   - Guides:
       - Commands: guides/commands.md
       - Customization: guides/customization.md
