@@ -22,20 +22,26 @@ try {
 }
 
 const filePath = (input.tool_input || {}).file_path || '';
+const hubDir = process.env.LORE_HUB || process.cwd();
+
+// Resolve to absolute so we match against the actual project root,
+// not just any path that happens to contain "docs/context/".
+const resolved = path.resolve(filePath);
+const contextPrefix = path.resolve(hubDir, 'docs', 'context') + path.sep;
+const knowledgePrefix = path.resolve(hubDir, 'docs', 'knowledge') + path.sep;
 
 // Only fire for writes targeting docs/context/ or docs/knowledge/
-if (!filePath.includes('docs/context/') && !filePath.includes('docs/knowledge/')) {
+if (!resolved.startsWith(contextPrefix) && !resolved.startsWith(knowledgePrefix)) {
   process.exit(0);
 }
 
 // -- Build guidance message --
-const hubDir = process.env.LORE_HUB || process.cwd();
 debug('context-path-guide: file=%s hub=%s', filePath, hubDir);
 const cfg = getConfig(hubDir);
 const treeDepth = cfg.treeDepth ?? 5;
 
 // Show tree of whichever directory the write targets
-const isKnowledge = filePath.includes('docs/knowledge/');
+const isKnowledge = resolved.startsWith(knowledgePrefix);
 const targetDir = isKnowledge
   ? path.join(hubDir, 'docs', 'knowledge')
   : path.join(hubDir, 'docs', 'context');

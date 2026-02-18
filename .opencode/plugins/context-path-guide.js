@@ -21,8 +21,11 @@ export const ContextPathGuide = async ({ directory, client }) => {
       if (tool !== "write" && tool !== "edit") return;
 
       const filePath = output?.args?.file_path || output?.args?.path || "";
-      const isKnowledge = filePath.includes("docs/knowledge/");
-      const isContext = filePath.includes("docs/context/");
+      const resolved = path.resolve(filePath);
+      const knowledgePrefix = path.resolve(hub, "docs", "knowledge") + path.sep;
+      const contextPrefix = path.resolve(hub, "docs", "context") + path.sep;
+      const isKnowledge = resolved.startsWith(knowledgePrefix);
+      const isContext = resolved.startsWith(contextPrefix);
       if (!isKnowledge && !isContext) return;
 
       const targetDir = isKnowledge

@@ -171,7 +171,7 @@ echo "--- Linked Repos ---"
 if [[ -f "$REPO_ROOT/.lore-links" ]]; then
   while IFS= read -r lpath; do
     [[ -d "$lpath" ]] || fail "Linked repo no longer exists: $lpath"
-  done < <(node -e "JSON.parse(require('fs').readFileSync('$REPO_ROOT/.lore-links','utf8')).forEach(l=>console.log(l.path))")
+  done < <(node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).forEach(l=>console.log(l.path))" "$REPO_ROOT/.lore-links")
 fi
 
 # -- Results --
