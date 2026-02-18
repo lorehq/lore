@@ -134,14 +134,15 @@ test('builds knowledge map tree', (t) => {
   assert.ok(out.includes('my-skill/'));
 });
 
-test('skips archive directories in tree', (t) => {
+test('dirs-only tree shows archive subdirs but not files', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item', 'index.md'), '# Old');
   const out = runHook(dir);
-  // archive/ should appear as a node but not be expanded
-  assert.ok(!out.includes('old-item'), 'archive contents should not be expanded');
+  assert.ok(out.includes('archive/'), 'archive/ should appear');
+  assert.ok(out.includes('old-item/'), 'archive subdirs should appear');
+  assert.ok(!out.includes('index.md'), 'files should not appear in dirs-only tree');
 });
 
 test('creates sticky docs/knowledge/local/ when missing', (t) => {

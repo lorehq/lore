@@ -31,7 +31,7 @@ export const ContextPathGuide = async ({ directory, client }) => {
       const targetDir = isKnowledge ? path.join(hub, 'docs', 'knowledge') : path.join(hub, 'docs', 'context');
       const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
       const treeLines = fs.existsSync(targetDir)
-        ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
+        ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), dirsOnly: false })
         : [];
       const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 

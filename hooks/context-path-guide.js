@@ -45,7 +45,7 @@ const isKnowledge = resolved.startsWith(knowledgePrefix);
 const targetDir = isKnowledge ? path.join(hubDir, 'docs', 'knowledge') : path.join(hubDir, 'docs', 'context');
 const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
 const treeLines = fs.existsSync(targetDir)
-  ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
+  ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), dirsOnly: false })
   : [];
 const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 
