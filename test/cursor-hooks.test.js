@@ -41,9 +41,6 @@ function setup(opts = {}) {
   if (opts.registry) {
     fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
   }
-  if (opts.sessionFlag) {
-    fs.writeFileSync(path.join(dir, '.git', 'lore-cursor-session'), Date.now().toString());
-  }
   return dir;
 }
 
@@ -62,65 +59,48 @@ function runHook(dir, hookName, stdinData) {
   }
 }
 
-// ── Banner Inject ──
+// ── Session Init ──
 
-test('banner-inject: first prompt emits full banner', () => {
+test('session-init: emits full banner with additional_context', () => {
   const dir = setup({ config: { version: '1.0.0' } });
-  const { code, stdout } = runHook(dir, 'banner-inject.js');
+  const { code, stdout } = runHook(dir, 'session-init.js');
   assert.equal(code, 0);
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.systemMessage.includes('=== LORE v1.0.0 ==='));
-  assert.ok(parsed.systemMessage.includes('DELEGATION:'));
+  assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
+  assert.ok(parsed.additional_context.includes('DELEGATION:'));
+  assert.equal(parsed.continue, true);
 });
 
-test('banner-inject: subsequent prompt emits reminder only', () => {
-  const dir = setup({ config: { version: '1.0.0' }, sessionFlag: true });
-  const { code, stdout } = runHook(dir, 'banner-inject.js');
-  assert.equal(code, 0);
-  const parsed = JSON.parse(stdout);
-  assert.ok(!parsed.systemMessage.includes('=== LORE'));
-  assert.ok(parsed.systemMessage.includes('Multi-step?'));
-});
-
-test('banner-inject: first prompt creates session flag', () => {
+test('session-init: creates sticky files', () => {
   const dir = setup();
-  const flagPath = path.join(dir, '.git', 'lore-cursor-session');
-  assert.ok(!fs.existsSync(flagPath));
-  runHook(dir, 'banner-inject.js');
-  assert.ok(fs.existsSync(flagPath));
-});
-
-test('banner-inject: first prompt creates sticky files', () => {
-  const dir = setup();
-  runHook(dir, 'banner-inject.js');
+  runHook(dir, 'session-init.js');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
 
-test('banner-inject: shows agent domains in reminder', () => {
+test('session-init: includes agent domains in banner', () => {
   const dir = setup({
-    sessionFlag: true,
     registry: [
       '| Agent | Domain | Skills |',
       '|---|---|---|',
       '| `doc-agent` | Documentation | 2 |',
     ].join('\n'),
   });
-  const { stdout } = runHook(dir, 'banner-inject.js');
+  const { stdout } = runHook(dir, 'session-init.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.systemMessage.includes('Delegate: Documentation'));
+  assert.ok(parsed.additional_context.includes('Documentation'));
 });
 
 // ── Protect Memory ──
 
-test('protect-memory: blocks MEMORY.md reads', () => {
+test('protect-memory: blocks MEMORY.md reads with deny permission', () => {
   const dir = setup();
   const { stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'MEMORY.md'),
   });
   const parsed = JSON.parse(stdout);
-  assert.equal(parsed.continue, false);
-  assert.ok(parsed.message.includes('MEMORY.local.md'));
+  assert.equal(parsed.permission, 'deny');
+  assert.ok(parsed.user_message.includes('MEMORY.local.md'));
 });
 
 test('protect-memory: allows MEMORY.local.md', () => {
@@ -186,4 +166,38 @@ test('knowledge-tracker: no nav-dirty on non-docs writes', () => {
     filePath: path.join(dir, 'README.md'),
   });
   assert.ok(!fs.existsSync(navFlag));
+});
+
+test('knowledge-tracker: tracks consecutive bash commands via afterShellExecution', () => {
+  const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
+  // First shell execution — count goes to 1, below nudge threshold
+  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
+  // Second shell execution — count goes to 2, hits nudge threshold
+  const { stdout } = runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
+  // Verify state file was created and bash count persisted
+  const crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
+  const stateFile = path.join(dir, '.git', `lore-tracker-${hash}.json`);
+  assert.ok(fs.existsSync(stateFile));
+  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  assert.equal(state.bash, 2);
+});
+
+test('knowledge-tracker: file edit resets bash counter', () => {
+  const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
+  const crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
+  const stateFile = path.join(dir, '.git', `lore-tracker-${hash}.json`);
+
+  // Two shell executions
+  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
+  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
+  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash, 2);
+
+  // File edit resets counter
+  runHook(dir, 'knowledge-tracker.js', {
+    hook_event_name: 'afterFileEdit',
+    filePath: path.join(dir, 'README.md'),
+  });
+  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash, 0);
 });

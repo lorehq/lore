@@ -21,4 +21,4 @@ const hubDir = process.env.LORE_HUB || process.cwd();
 const result = checkMemoryAccess('read', filePath, hubDir);
 if (!result) process.exit(0);
 
-console.log(JSON.stringify({ continue: false, message: result.reason }));
+console.log(JSON.stringify({ permission: 'deny', user_message: result.reason }));

@@ -30,9 +30,10 @@ Run these checks and present a formatted summary to the operator:
    - `PostToolUse` → `knowledge-tracker.js`
 
    **Cursor** (`.cursor/hooks.json`):
-   - `beforeSubmitPrompt` → `banner-inject.js`
+   - `sessionStart` → `session-init.js`
    - `beforeReadFile` → `protect-memory.js`
    - `afterFileEdit` → `knowledge-tracker.js`
+   - `afterShellExecution` → `knowledge-tracker.js`
 
    **OpenCode** (`.opencode/plugins/`):
    - `session-init.js`
