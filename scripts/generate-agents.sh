@@ -78,8 +78,9 @@ for i in "${!domain_names[@]}"; do
   agent_name="${slug}-agent"
   skills="${domain_skills[$i]}"
 
-  # Build YAML skills list
+  # Build YAML skills list (word splitting on $skills is intentional)
   skills_yaml=""
+  # shellcheck disable=SC2086
   for s in $skills; do skills_yaml+="  - $s"$'\n'; done
 
   cat > ".lore/agents/${agent_name}.md" <<EOF
@@ -96,7 +97,8 @@ $skills_yaml---
 Handles all ${domain} operations. Create new skills as needed.
 
 ## Available Skills
-$(for s in $skills; do echo "- \`$s\`"; done)
+$(# shellcheck disable=SC2086
+for s in $skills; do echo "- \`$s\`"; done)
 EOF
 
   echo "Created $agent_name"
