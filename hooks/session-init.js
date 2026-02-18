@@ -4,7 +4,9 @@
 
 const path = require('path');
 const { buildBanner, ensureStickyFiles } = require('../lib/banner');
+const { debug } = require('../lib/debug');
 
 const root = path.join(__dirname, '..');
+debug('session-init: root=%s', root);
 ensureStickyFiles(root);
 console.log(buildBanner(root));
