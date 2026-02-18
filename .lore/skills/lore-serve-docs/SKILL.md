@@ -1,6 +1,6 @@
 ---
 name: lore-serve-docs
-description: Start the local docs site with live reload. Installs Python and mkdocs-material if needed.
+description: Start the local docs site with live reload. Installs Python and MkDocs deps if needed.
 domain: Documentation
 user-invocable: true
 allowed-tools: Bash
@@ -18,7 +18,7 @@ Start `mkdocs serve` with live reload. Installs dependencies if missing.
      - **Linux (Fedora)**: `sudo dnf install python3 python3-pip`
    - If the user doesn't want to install Python, suggest `/lore-serve-docs-docker` instead
 2. Check if mkdocs is installed (`command -v mkdocs`)
-   - If not installed, install via `pip install mkdocs-material` (includes mkdocs, pymdownx, etc.)
+   - If not installed, install via `pip install mkdocs-material mkdocs-panzoom-plugin` (includes mkdocs, pymdownx, etc.)
    - If `pip` not found, try `pip3`
 3. Check if already running (`pgrep -f 'mkdocs serve'`)
    - If `pgrep` finds a PID, **always verify** it's actually serving: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8000`

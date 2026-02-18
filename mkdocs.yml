@@ -1,4 +1,5 @@
 site_name: Lore
+site_url: https://lorehq.github.io/lore-docs/
 docs_dir: docs
 theme:
   name: material
@@ -38,6 +39,9 @@ extra_javascript:
   - javascripts/external-links.js
 plugins:
   - search
+  - panzoom:
+      include_selectors:
+        - img
 nav:
   - Work:
       - index.md
