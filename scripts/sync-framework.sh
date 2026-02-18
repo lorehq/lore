@@ -6,10 +6,12 @@
 #
 # Framework-owned (synced):
 #   hooks/, lib/, scripts/, .opencode/, .cursor/, opencode.json,
-#   .claude/settings.json, .lore/skills/<built-in>/, .lore/instructions.md, .gitignore
+#   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
+#   .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
-#   docs/, .lore/agents/, mkdocs.yml, .lore-config, MEMORY.local.md, *-registry.md
+#   docs/, non-lore-* skills/agents, mkdocs.yml, .lore-config,
+#   MEMORY.local.md, *-registry.md
 
 set -euo pipefail
 
@@ -33,12 +35,22 @@ rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
 rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
 rsync -a "$SOURCE/.cursor/" "$TARGET/.cursor/"
 
-# Built-in skills — overwrite existing, don't delete operator skills
+# Framework skills (lore-* only) — overwrite existing, skip operator skills
 if [ -d "$SOURCE/.lore/skills" ]; then
   mkdir -p "$TARGET/.lore/skills"
-  for skill_dir in "$SOURCE/.lore/skills"/*/; do
+  for skill_dir in "$SOURCE/.lore/skills"/lore-*/; do
+    [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
     rsync -a "$skill_dir" "$TARGET/.lore/skills/$skill_name/"
+  done
+fi
+
+# Framework agents (lore-* only) — overwrite existing, skip operator agents
+if [ -d "$SOURCE/.lore/agents" ]; then
+  mkdir -p "$TARGET/.lore/agents"
+  for agent_file in "$SOURCE/.lore/agents"/lore-*.md; do
+    [ -f "$agent_file" ] || continue
+    cp "$agent_file" "$TARGET/.lore/agents/$(basename "$agent_file")"
   done
 fi
 
