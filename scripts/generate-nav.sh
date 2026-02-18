@@ -92,9 +92,9 @@ fi
 # its folder exists AND contains at least one .md file (not just .gitkeep).
 # To add a new top-level section, append its docs/ subfolder name here.
 # NOTE: "work" is handled separately below with hardcoded subsection order.
-NAV_SECTIONS=("context" "knowledge" "guides")
+NAV_SECTIONS=("knowledge" "context" "guides")
 
-# Emit work subsections (roadmaps, plans, brainstorms) under Home.
+# Emit work subsections (roadmaps, plans, brainstorms) under Work.
 # Work structure is framework-controlled — operators create items via
 # /lore-create-roadmap, /lore-create-plan, /lore-create-brainstorm but don't modify
 # the folder structure itself.
@@ -117,7 +117,7 @@ emit_work_subsections() {
 {
   echo "$HEADER"
   echo "nav:"
-  echo "  - Home:"
+  echo "  - Work:"
   echo "      - index.md"
   emit_work_subsections "      "
 
