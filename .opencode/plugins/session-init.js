@@ -17,11 +17,13 @@ export const SessionInit = async ({ directory, client }) => {
   });
 
   return {
-    "session.created": async () => {
+    "session.created": async (_input, output = {}) => {
       ensureStickyFiles(hub);
+      const banner = buildBanner(hub);
       await client.app.log({
-        body: { service: "session-init", level: "info", message: buildBanner(hub) },
+        body: { service: "session-init", level: "info", message: banner },
       });
+      if (Array.isArray(output?.context)) output.context.push(banner);
     },
     // Re-inject after compaction so the banner survives context window trimming.
     "experimental.session.compacting": async (_input, output) => {
