@@ -2,7 +2,6 @@
 name: lore-update
 description: Update Lore framework files to the latest version
 domain: Orchestrator
-scope: internal
 user-invocable: true
 allowed-tools: Bash, Read, Edit
 ---

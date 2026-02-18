@@ -2,7 +2,6 @@
 name: lore-serve-docs
 description: Start the local docs site with live reload. Installs Python and mkdocs-material if needed.
 domain: Documentation
-scope: internal
 user-invocable: true
 allowed-tools: Bash
 ---

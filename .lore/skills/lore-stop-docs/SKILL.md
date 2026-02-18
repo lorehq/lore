@@ -2,7 +2,6 @@
 name: lore-stop-docs
 description: Stop the local docs site (started by /lore-serve-docs or /lore-serve-docs-docker).
 domain: Documentation
-scope: internal
 user-invocable: true
 allowed-tools: Bash
 ---

@@ -2,7 +2,6 @@
 name: lore-consolidate
 description: Deep repo-wide health check — stale items, overlap, duplication
 domain: Orchestrator
-scope: internal
 user-invocable: true
 allowed-tools: Read, Bash, Grep, Glob
 ---

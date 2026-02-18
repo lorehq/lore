@@ -2,7 +2,6 @@
 name: lore-create-todo-with-capture
 description: Append a capture checkpoint to task lists
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: TaskCreate, TaskUpdate
 ---

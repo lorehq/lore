@@ -2,7 +2,6 @@
 name: lore-create-skill
 description: Create a new skill when an operation required non-obvious knowledge
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
 ---

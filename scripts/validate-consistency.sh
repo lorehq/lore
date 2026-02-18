@@ -8,7 +8,7 @@
 #   3. Every registry skill has a directory on disk
 #   4. Every registry agent has a file on disk
 #   5. Skill frontmatter has required fields (name, domain, description)
-#   6. Agent frontmatter has required fields (name, domain, description, model)
+#   6. Agent frontmatter has required fields (name, domain, description, model or per-platform model)
 #   7. Agent skill references point to existing directories
 #   8. Platform copies (.claude/) match canonical source (.lore/)
 #   9. CLAUDE.md and .cursorrules match .lore/instructions.md
@@ -87,10 +87,17 @@ done
 echo "--- Agent Frontmatter ---"
 for f in "$REPO_ROOT"/.lore/agents/*.md; do
   name=$(basename "$f" .md)
-  for field in name domain description model; do
+  for field in name domain description; do
     val=$(extract_field "$field" "$f")
     [[ -z "$val" ]] && fail "Agent '$name' missing '$field'"
   done
+  # Model: accept per-platform fields (claude-model, opencode-model) or legacy 'model'
+  cm=$(extract_field "claude-model" "$f")
+  om=$(extract_field "opencode-model" "$f")
+  lm=$(extract_field "model" "$f")
+  if [[ -z "$cm" && -z "$om" && -z "$lm" ]]; then
+    fail "Agent '$name' missing model field (claude-model, opencode-model, or model)"
+  fi
 done
 
 # -- 7. Agent skill references → existing directories --

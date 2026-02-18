@@ -2,7 +2,6 @@
 name: lore-create-brainstorm
 description: Create a brainstorm folder — always standalone, never nested
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: Write, Read, Bash, Glob
 ---

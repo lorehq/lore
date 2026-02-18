@@ -2,5 +2,5 @@
 
 | Agent | Domain | Skills |
 |-------|--------|--------|
-| documentation-agent | Documentation | 3 |
+| lore-documentation-agent | Documentation | 3 |
 

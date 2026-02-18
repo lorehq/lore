@@ -2,7 +2,6 @@
 name: platform-command-collisions
 description: Avoid naming skills that collide with platform built-in slash commands
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: Read
 ---

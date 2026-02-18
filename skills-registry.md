@@ -16,5 +16,5 @@
 | lore-stop-docs | Documentation | Stop the local docs site (started by /lore-serve-docs or /lore-serve-docs-docker). |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
 | platform-command-collisions | Orchestrator | Avoid naming skills that collide with platform built-in slash commands |
-| pymdownx-extension-order | documentation | pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes |
+| pymdownx-extension-order | Documentation | pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes |
 

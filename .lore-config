@@ -1,5 +1,10 @@
 {
   "name": "lore",
   "version": "0.7.0",
-  "created": "2026-02-14"
+  "created": "2026-02-14",
+  "subagentDefaults": {
+    "claude-model": "sonnet",
+    "opencode-model": "openai/gpt-4o",
+    "cursor-model": null
+  }
 }
