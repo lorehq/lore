@@ -11,7 +11,7 @@
 | lore-create-skill | Orchestrator | Create a new skill when an operation required non-obvious knowledge |
 | lore-create-todo-with-capture | Orchestrator | Append a capture checkpoint to task lists |
 | lore-serve-docs-docker | Documentation | Start the docs site via Docker. No Python required. Supports multiple instances with deterministic ports. |
-| lore-serve-docs | Documentation | Start the local docs site with live reload. Installs Python and mkdocs-material if needed. |
+| lore-serve-docs | Documentation | Start the local docs site with live reload. Installs Python and MkDocs deps if needed. |
 | lore-status | Orchestrator | Show Lore instance health — version, hooks, skills, agents, active work |
 | lore-stop-docs | Documentation | Stop the local docs site (started by /lore-serve-docs or /lore-serve-docs-docker). |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
