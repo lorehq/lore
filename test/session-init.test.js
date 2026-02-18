@@ -14,10 +14,7 @@ const os = require('os');
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-'));
   fs.mkdirSync(path.join(dir, 'hooks'), { recursive: true });
-  fs.copyFileSync(
-    path.join(__dirname, '..', 'hooks', 'session-init.js'),
-    path.join(dir, 'hooks', 'session-init.js')
-  );
+  fs.copyFileSync(path.join(__dirname, '..', 'hooks', 'session-init.js'), path.join(dir, 'hooks', 'session-init.js'));
   // Shared lib — hook resolves ../lib/ relative to hooks/
   const libDir = path.join(dir, 'lib');
   fs.mkdirSync(libDir, { recursive: true });
@@ -84,14 +81,10 @@ test('shows active roadmap title and summary', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
   fs.mkdirSync(rmDir, { recursive: true });
-  fs.writeFileSync(path.join(rmDir, 'index.md'), [
-    '---',
-    'title: My Roadmap',
-    'status: active',
-    'summary: Phase 1 in progress',
-    '---',
-    '# My Roadmap',
-  ].join('\n'));
+  fs.writeFileSync(
+    path.join(rmDir, 'index.md'),
+    ['---', 'title: My Roadmap', 'status: active', 'summary: Phase 1 in progress', '---', '# My Roadmap'].join('\n'),
+  );
   const out = runHook(dir);
   assert.ok(out.includes('ACTIVE ROADMAPS:'));
   assert.ok(out.includes('My Roadmap (Phase 1 in progress)'));
@@ -102,12 +95,7 @@ test('shows on-hold label', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'paused');
   fs.mkdirSync(rmDir, { recursive: true });
-  fs.writeFileSync(path.join(rmDir, 'index.md'), [
-    '---',
-    'title: Paused Roadmap',
-    'status: on-hold',
-    '---',
-  ].join('\n'));
+  fs.writeFileSync(path.join(rmDir, 'index.md'), ['---', 'title: Paused Roadmap', 'status: on-hold', '---'].join('\n'));
   const out = runHook(dir);
   assert.ok(out.includes('Paused Roadmap [ON HOLD]'));
 });
@@ -238,8 +226,10 @@ test('does not overwrite existing conventions.md with scaffold', (t) => {
   runHook(dir);
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), 'utf8');
   assert.ok(content.includes('My Custom Conventions'), 'should preserve operator content');
-  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')),
-    'should not create scaffold when flat file exists');
+  assert.ok(
+    !fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')),
+    'should not create scaffold when flat file exists',
+  );
 });
 
 test('does not overwrite existing conventions directory with scaffold', (t) => {
@@ -250,8 +240,10 @@ test('does not overwrite existing conventions directory with scaffold', (t) => {
   runHook(dir);
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md'), 'utf8');
   assert.ok(content.includes('My Conventions'), 'should preserve operator content');
-  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')),
-    'should not create extra scaffold files');
+  assert.ok(
+    !fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')),
+    'should not create extra scaffold files',
+  );
 });
 
 test('treeDepth config limits knowledge map depth', (t) => {

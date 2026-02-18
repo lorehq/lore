@@ -5,7 +5,7 @@ services:
   docs:
     build: .
     ports:
-      - "${LORE_DOCS_PORT:-8000}:8000"
+      - '${LORE_DOCS_PORT:-8000}:8000'
     volumes:
       - ./docs:/docs/docs
       - ./mkdocs.yml:/docs/mkdocs.yml

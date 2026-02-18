@@ -1,4 +1,5 @@
 MEMORY.local.md
 site/
+node_modules/
 docs/knowledge/local/
 .lore-links

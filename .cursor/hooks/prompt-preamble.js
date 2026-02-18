@@ -35,7 +35,9 @@ const stateFile = fs.existsSync(gitDir)
   : path.join(require('os').tmpdir(), `lore-tracker-${hash}.json`);
 
 let bashCount = 0;
-try { bashCount = JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash || 0; } catch {}
+try {
+  bashCount = JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash || 0;
+} catch {}
 
 const { nudge, warn } = getThresholds(hubDir);
 

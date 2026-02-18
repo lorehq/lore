@@ -82,11 +82,7 @@ test('session-init: creates sticky files', (t) => {
 
 test('session-init: includes agent domains in banner', (t) => {
   const dir = setup({
-    registry: [
-      '| Agent | Domain | Skills |',
-      '|---|---|---|',
-      '| `doc-agent` | Documentation | 2 |',
-    ].join('\n'),
+    registry: ['| Agent | Domain | Skills |', '|---|---|---|', '| `doc-agent` | Documentation | 2 |'].join('\n'),
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'session-init.js');
@@ -110,7 +106,7 @@ test('protect-memory: blocks MEMORY.md reads with deny permission', (t) => {
 test('protect-memory: allows MEMORY.local.md', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const { code, stdout } = runHook(dir, 'protect-memory.js', {
+  const { stdout } = runHook(dir, 'protect-memory.js', {
     filePath: path.join(dir, 'MEMORY.local.md'),
   });
   // Should exit cleanly with no output (allowed)
@@ -185,7 +181,7 @@ test('knowledge-tracker: tracks consecutive bash commands via afterShellExecutio
   // First shell execution — count goes to 1, below nudge threshold
   runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
   // Second shell execution — count goes to 2, hits nudge threshold
-  const { stdout } = runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
+  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
   // Verify state file was created and bash count persisted
   const crypto = require('crypto');
   const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);

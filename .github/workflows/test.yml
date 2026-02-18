@@ -18,8 +18,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      - run: npm install
       - name: ShellCheck
         run: shellcheck scripts/*.sh scripts/lib/*.sh
+      - name: Lint & format
+        run: npx eslint . && npx prettier --check .
       - run: npm test
       - run: bash scripts/validate-consistency.sh
       - run: bash scripts/check-version-sync.sh

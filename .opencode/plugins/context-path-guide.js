@@ -4,11 +4,11 @@
 //
 // Non-blocking — logs guidance but never throws.
 
-import { createRequire } from "node:module";
+import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const path = require("path");
-const fs = require("fs");
-const { buildTree, getConfig } = require("../../lib/banner");
+const path = require('path');
+const fs = require('fs');
+const { buildTree, getConfig } = require('../../lib/banner');
 
 export const ContextPathGuide = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
@@ -16,35 +16,33 @@ export const ContextPathGuide = async ({ directory, client }) => {
   const treeDepth = cfg.treeDepth ?? 5;
 
   return {
-    "tool.execute.before": async (input, output) => {
-      const tool = (input?.tool || "").toLowerCase();
-      if (tool !== "write" && tool !== "edit") return;
+    'tool.execute.before': async (input, output) => {
+      const tool = (input?.tool || '').toLowerCase();
+      if (tool !== 'write' && tool !== 'edit') return;
 
-      const filePath = output?.args?.file_path || output?.args?.path || "";
+      const filePath = output?.args?.file_path || output?.args?.path || '';
       const resolved = path.resolve(filePath);
-      const knowledgePrefix = path.resolve(hub, "docs", "knowledge") + path.sep;
-      const contextPrefix = path.resolve(hub, "docs", "context") + path.sep;
+      const knowledgePrefix = path.resolve(hub, 'docs', 'knowledge') + path.sep;
+      const contextPrefix = path.resolve(hub, 'docs', 'context') + path.sep;
       const isKnowledge = resolved.startsWith(knowledgePrefix);
       const isContext = resolved.startsWith(contextPrefix);
       if (!isKnowledge && !isContext) return;
 
-      const targetDir = isKnowledge
-        ? path.join(hub, "docs", "knowledge")
-        : path.join(hub, "docs", "context");
-      const treeLabel = isKnowledge ? "docs/knowledge/" : "docs/context/";
+      const targetDir = isKnowledge ? path.join(hub, 'docs', 'knowledge') : path.join(hub, 'docs', 'context');
+      const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
       const treeLines = fs.existsSync(targetDir)
-        ? buildTree(targetDir, "", { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
+        ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
         : [];
-      const structure = treeLines.length > 0 ? treeLines.join("\n") + "\n" : "";
+      const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 
-      let msg = "Knowledge path guide:\n";
-      msg += `${treeLabel}\n${structure || "(empty)\n"}`;
+      let msg = 'Knowledge path guide:\n';
+      msg += `${treeLabel}\n${structure || '(empty)\n'}`;
       msg += isKnowledge
-        ? "Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)"
-        : "Context holds rules and conventions — environment data goes in docs/knowledge/";
+        ? 'Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)'
+        : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
       await client.app.log({
-        body: { service: "context-path-guide", level: "info", message: msg },
+        body: { service: 'context-path-guide', level: 'info', message: msg },
       });
     },
   };

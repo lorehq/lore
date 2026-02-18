@@ -16,11 +16,11 @@ function setup(opts = {}) {
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.copyFileSync(
     path.join(__dirname, '..', 'hooks', 'prompt-preamble.js'),
-    path.join(dir, 'hooks', 'prompt-preamble.js')
+    path.join(dir, 'hooks', 'prompt-preamble.js'),
   );
   fs.copyFileSync(
     path.join(__dirname, '..', 'hooks', 'lib', 'parse-agents.js'),
-    path.join(dir, 'hooks', 'lib', 'parse-agents.js')
+    path.join(dir, 'hooks', 'lib', 'parse-agents.js'),
   );
   // Shared lib
   const libDir = path.join(dir, 'lib');
@@ -48,7 +48,9 @@ test('prompt-preamble: outputs bracketed line', () => {
     const out = run(dir);
     assert.ok(out.startsWith('['), 'should start with [');
     assert.ok(out.endsWith(']'), 'should end with ]');
-  } finally { cleanup(dir); }
+  } finally {
+    cleanup(dir);
+  }
 });
 
 test('prompt-preamble: always includes task list reminder', () => {
@@ -56,7 +58,9 @@ test('prompt-preamble: always includes task list reminder', () => {
   try {
     const out = run(dir);
     assert.ok(out.includes('Multi-step?'), 'should include multi-step reminder');
-  } finally { cleanup(dir); }
+  } finally {
+    cleanup(dir);
+  }
 });
 
 test('prompt-preamble: no agents — no Delegate prefix', () => {
@@ -65,7 +69,9 @@ test('prompt-preamble: no agents — no Delegate prefix', () => {
     const out = run(dir);
     assert.ok(!out.includes('Delegate:'), 'should not include Delegate without agents');
     assert.equal(out, '[Multi-step? → use task list]');
-  } finally { cleanup(dir); }
+  } finally {
+    cleanup(dir);
+  }
 });
 
 test('prompt-preamble: with agents — includes Delegate', () => {
@@ -81,5 +87,7 @@ test('prompt-preamble: with agents — includes Delegate', () => {
     const out = run(dir);
     assert.ok(out.includes('Delegate: Documentation, Infrastructure'), 'should list agent domains');
     assert.ok(out.includes('Multi-step?'), 'should still include task reminder');
-  } finally { cleanup(dir); }
+  } finally {
+    cleanup(dir);
+  }
 });
