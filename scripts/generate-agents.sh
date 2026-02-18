@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Batch-generates agent files for domains that have skills but no agent.
+# Batch-generates agent files for domains that have lore-* skills but no agent.
+# Only processes framework skills (lore-* prefix). Operator skills are ignored.
 # Skips Orchestrator domain (internal skills don't get their own agent).
 # Run generate-registries.sh after this to update the registry tables.
 #
@@ -32,12 +33,12 @@ for f in .lore/agents/*.md; do
   [[ -n "$d" ]] && existing_domains="${existing_domains}$(to_lower "$d")|"
 done
 
-# -- Group skills by domain (skip Orchestrator) --
+# -- Group lore-* skills by domain (skip Orchestrator, skip operator skills) --
 # Store as parallel arrays: domain_names[i] and domain_skills[i]
 domain_names=()
 domain_skills=()
 
-for skill_dir in .lore/skills/*/; do
+for skill_dir in .lore/skills/lore-*/; do
   sf="$skill_dir/SKILL.md"
   [[ -f "$sf" ]] || continue
   domain=$(get_field domain "$sf")
@@ -75,7 +76,7 @@ for i in "${!domain_names[@]}"; do
 
   # Convert domain name to kebab-case slug for the filename
   slug=$(echo "$domain" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-  agent_name="${slug}-agent"
+  agent_name="lore-${slug}-agent"
   skills="${domain_skills[$i]}"
 
   # Build YAML skills list (word splitting on $skills is intentional)
@@ -88,7 +89,9 @@ for i in "${!domain_names[@]}"; do
 name: $agent_name
 description: ${domain} operations specialist. Generated from skills.
 domain: $domain
-model: sonnet
+claude-model: sonnet
+opencode-model: openai/gpt-4o
+cursor-model: # not yet supported
 skills:
 $skills_yaml---
 

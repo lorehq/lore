@@ -134,12 +134,15 @@ if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
     fail ".claude/skills/ missing — run: bash scripts/sync-platform-skills.sh"
   fi
 fi
+# Agent platform copies are transformed (model cascade), so check existence not content
 if [[ -d "$REPO_ROOT/.lore/agents" ]]; then
   if [[ -d "$REPO_ROOT/.claude/agents" ]]; then
-    diff_out=$(diff -rq "$REPO_ROOT/.lore/agents" "$REPO_ROOT/.claude/agents" 2>&1) || true
-    if [[ -n "$diff_out" ]]; then
-      fail ".claude/agents/ out of sync with .lore/agents/ — run: bash scripts/sync-platform-skills.sh"
-    fi
+    for f in "$REPO_ROOT"/.lore/agents/*.md; do
+      [[ -f "$f" ]] || continue
+      agent_base=$(basename "$f")
+      [[ -f "$REPO_ROOT/.claude/agents/$agent_base" ]] \
+        || fail ".claude/agents/$agent_base missing — run: bash scripts/sync-platform-skills.sh"
+    done
   else
     fail ".claude/agents/ missing — run: bash scripts/sync-platform-skills.sh"
   fi
