@@ -49,4 +49,4 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 - Always show the version diff and file list before syncing — never auto-update
 - The sync script uses rsync semantics: overwrite existing, never delete operator files
 - If the operator has modified a framework file (e.g., edited CLAUDE.md), the update will overwrite it — warn about this
-- If `.lore-links` exists, remind the operator to run `bash scripts/lore-link.sh --refresh` to update linked repos with the new hooks
+- If `.lore-links` exists, remind the operator to run `/lore-link --refresh` to update linked repos with the new hooks

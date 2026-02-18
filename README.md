@@ -73,8 +73,8 @@ Lore is a central hub. Launch your agent here and work on any repo by referencin
 
 For IDEs where you need the work repo's file tree, git, and search:
 
-```bash
-bash scripts/lore-link.sh ~/projects/my-app
+```
+/lore-link ~/projects/my-app
 ```
 
 This links the work repo so hooks fire from the hub even when you open the work repo directly. See the [full guide](https://lorehq.github.io/lore-docs/guides/cross-repo-workflow/).
@@ -85,6 +85,7 @@ This links the work repo so hooks fire from the hub even when you open the work 
 |---------|-------------|
 | `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
 | `/lore-consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
+| `/lore-link <target>` | Link a work repo so hooks fire from the hub in IDE workflows |
 | `/lore-ui` | Manage docs UI lifecycle (start/stop/status), preferring Docker with local mkdocs fallback |
 
 ## Documentation
