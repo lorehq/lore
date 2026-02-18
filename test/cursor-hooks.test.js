@@ -76,7 +76,7 @@ test('session-init: creates sticky files', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir, 'session-init.js');
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'local', 'index.md')));
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
 

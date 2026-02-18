@@ -1,13 +1,10 @@
 # Context
 
-Operational knowledge about the systems, services, and conventions you work with. Runbooks for multi-step procedures live under `runbooks/`. This section is yours to organize — add subdirectories that match your domain. Use kebab-case for directory names (`my-section`, not `my_section`).
+Rules and conventions injected into every agent session. This is the "always-on" configuration — what the agent must know before doing anything.
+
+Reference material (environment details, runbooks, scratch notes) lives in [Knowledge](../knowledge/index.md).
 
 ## Default Structure
 
-- **Systems** — repos, services, infrastructure, accounts
-- **Conventions** — naming standards, workflows, team norms
-- **Diagrams** — architecture, topology, data flow
-- **Runbooks** — multi-step operational procedures
-- **`local/`** — local-only notes, gitignored (never committed)
-
-See the [Customization](../guides/customization.md) guide for advanced configuration.
+- **Agent Rules** — project identity and behavior rules
+- **Conventions** — coding standards, docs formatting, team norms
