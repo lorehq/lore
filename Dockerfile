@@ -1,4 +1,4 @@
-# MkDocs docs server — used by /lore-serve-docs-docker
+# MkDocs docs server — used by /lore-ui (Docker mode)
 # Serves the knowledge base at http://localhost:8000 with live reload
 FROM python:3.12-slim
 COPY requirements-docs.txt /tmp/requirements-docs.txt

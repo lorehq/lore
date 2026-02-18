@@ -10,10 +10,8 @@
 | lore-create-roadmap | Orchestrator | Create a roadmap folder with frontmatter and validation |
 | lore-create-skill | Orchestrator | Create a new skill when an operation required non-obvious knowledge |
 | lore-create-todo-with-capture | Orchestrator | Append a capture checkpoint to task lists |
-| lore-serve-docs-docker | Documentation | Start the docs site via Docker. No Python required. Supports multiple instances with deterministic ports. |
-| lore-serve-docs | Documentation | Start the local docs site with live reload. Installs Python and MkDocs deps if needed. |
 | lore-status | Orchestrator | Show Lore instance health — version, hooks, skills, agents, active work |
-| lore-stop-docs | Documentation | Stop the local docs site (started by /lore-serve-docs or /lore-serve-docs-docker). |
+| lore-ui | Documentation | Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs. |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
 | platform-command-collisions | Orchestrator | Avoid naming skills that collide with platform built-in slash commands |
 | pymdownx-extension-order | Documentation | pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes |

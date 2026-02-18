@@ -8,9 +8,7 @@ These appear in the TUI menu. Type the command name to invoke.
 |---------|-------------|
 | `/lore-capture` | Review session work, capture skills, update registries |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
-| `/lore-serve-docs` | Local docs site with live reload |
-| `/lore-serve-docs-docker` | Docs via Docker (no Python needed) |
-| `/lore-stop-docs` | Stop the docs server |
+| `/lore-ui` | Start, stop, or check docs UI status (prefers Docker, falls back to local mkdocs) |
 | `/lore-update` | Pull latest framework files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 

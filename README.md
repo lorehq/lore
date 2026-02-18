@@ -85,10 +85,7 @@ This links the work repo so hooks fire from the hub even when you open the work 
 |---------|-------------|
 | `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
 | `/lore-consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
-| `/lore-serve-docs` | Browse your knowledge base locally at localhost:8000 |
-| `/lore-stop-docs` | Stop the docs server |
-
-Docker alternative: `/lore-serve-docs-docker` — no Python required, supports multiple instances.
+| `/lore-ui` | Manage docs UI lifecycle (start/stop/status), preferring Docker with local mkdocs fallback |
 
 ## Documentation
 
