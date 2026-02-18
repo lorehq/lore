@@ -48,7 +48,7 @@ const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 let msg = 'Knowledge path guide:\n';
 msg += `${treeLabel}\n${structure || '(empty)\n'}`;
 msg += isKnowledge
-  ? 'Organize under environment/ subdirs (systems/, architecture/, accounts/, integrations/, operations/)'
+  ? 'Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)'
   : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
 console.log(JSON.stringify({ decision: 'proceed', additional_context: msg }));
