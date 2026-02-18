@@ -39,6 +39,7 @@ Run these checks and present a formatted summary to the operator:
    - `session-init.js`
    - `protect-memory.js`
    - `knowledge-tracker.js`
+   - `context-path-guide.js`
 
    Report each platform as OK, PARTIAL, or MISSING.
 
