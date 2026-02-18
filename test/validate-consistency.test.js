@@ -10,10 +10,14 @@ const os = require('os');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-validate-'));
-  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'scripts', 'lib'), { recursive: true });
   fs.copyFileSync(
     path.join(__dirname, '..', 'scripts', 'validate-consistency.sh'),
     path.join(dir, 'scripts', 'validate-consistency.sh')
+  );
+  fs.copyFileSync(
+    path.join(__dirname, '..', 'scripts', 'lib', 'common.sh'),
+    path.join(dir, 'scripts', 'lib', 'common.sh')
   );
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
@@ -42,15 +46,17 @@ function runScript(dir) {
   }
 }
 
-test('passes with empty repo', () => {
+test('passes with empty repo', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runScript(dir);
   assert.equal(code, 0);
   assert.ok(stdout.includes('PASSED'));
 });
 
-test('fails: skill directory missing from registry', () => {
+test('fails: skill directory missing from registry', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skillDir = path.join(dir, '.lore', 'skills', 'my-skill');
   fs.mkdirSync(skillDir);
   fs.writeFileSync(path.join(skillDir, 'SKILL.md'), [
@@ -65,8 +71,9 @@ test('fails: skill directory missing from registry', () => {
   assert.ok(stdout.includes("Skill 'my-skill' not in skills-registry.md"));
 });
 
-test('fails: registry skill has no directory on disk', () => {
+test('fails: registry skill has no directory on disk', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, 'skills-registry.md'), [
     '| Skill | Domain | Description |',
     '|---|---|---|',
@@ -77,8 +84,9 @@ test('fails: registry skill has no directory on disk', () => {
   assert.ok(stdout.includes("Registry skill 'ghost-skill' has no directory"));
 });
 
-test('fails: skill missing required frontmatter field', () => {
+test('fails: skill missing required frontmatter field', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skillDir = path.join(dir, '.lore', 'skills', 'bad-skill');
   fs.mkdirSync(skillDir);
   // Missing 'domain' field
@@ -98,8 +106,9 @@ test('fails: skill missing required frontmatter field', () => {
   assert.ok(stdout.includes("Skill 'bad-skill' missing 'domain'"));
 });
 
-test('fails: agent references non-existent skill', () => {
+test('fails: agent references non-existent skill', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, '.lore', 'agents', 'test-agent.md'), [
     '---',
     'name: test-agent',
@@ -120,8 +129,9 @@ test('fails: agent references non-existent skill', () => {
   assert.ok(stdout.includes("references missing skill 'nonexistent-skill'"));
 });
 
-test('passes: fully consistent setup', () => {
+test('passes: fully consistent setup', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   // Create skill in canonical location and mirror to platform copy
   const skillDir = path.join(dir, '.lore', 'skills', 'test-skill');
@@ -172,8 +182,9 @@ test('passes: fully consistent setup', () => {
   assert.ok(stdout.includes('PASSED'));
 });
 
-test('fails: CLAUDE.md out of sync with .lore/instructions.md', () => {
+test('fails: CLAUDE.md out of sync with .lore/instructions.md', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Make CLAUDE.md differ from canonical
   fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Stale copy\n');
   const { code, stdout } = runScript(dir);
@@ -181,8 +192,9 @@ test('fails: CLAUDE.md out of sync with .lore/instructions.md', () => {
   assert.ok(stdout.includes('CLAUDE.md out of sync'));
 });
 
-test('fails: .cursorrules out of sync with .lore/instructions.md', () => {
+test('fails: .cursorrules out of sync with .lore/instructions.md', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Make .cursorrules differ from canonical
   fs.writeFileSync(path.join(dir, '.cursorrules'), '# Stale copy\n');
   const { code, stdout } = runScript(dir);
@@ -190,8 +202,9 @@ test('fails: .cursorrules out of sync with .lore/instructions.md', () => {
   assert.ok(stdout.includes('.cursorrules out of sync'));
 });
 
-test('fails: Cursor hooks.json references missing script', () => {
+test('fails: Cursor hooks.json references missing script', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.cursor', 'hooks.json'), JSON.stringify({
     hooks: {
@@ -206,8 +219,9 @@ test('fails: Cursor hooks.json references missing script', () => {
   assert.ok(stdout.includes('missing script'));
 });
 
-test('passes: Cursor hooks.json with existing scripts', () => {
+test('passes: Cursor hooks.json with existing scripts', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, '.cursor', 'hooks'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.cursor', 'hooks.json'), JSON.stringify({
     hooks: {
@@ -222,8 +236,9 @@ test('passes: Cursor hooks.json with existing scripts', () => {
   assert.ok(stdout.includes('PASSED'));
 });
 
-test('fails: platform copy out of sync with canonical source', () => {
+test('fails: platform copy out of sync with canonical source', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   // Create skill in .lore/ only (no platform copy)
   const skillDir = path.join(dir, '.lore', 'skills', 'sync-test');
