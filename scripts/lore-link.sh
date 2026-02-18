@@ -70,35 +70,35 @@ do_link() {
     "SessionStart": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/session-init.js" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/session-init.js\"" }]
       }
     ],
     "UserPromptSubmit": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/prompt-preamble.js" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/prompt-preamble.js\"" }]
       }
     ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/protect-memory.js" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/protect-memory.js\"" }]
       },
       {
         "matcher": "Write",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/context-path-guide.js" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/context-path-guide.js\"" }]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/knowledge-tracker.js || true" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/knowledge-tracker.js\" || true" }]
       }
     ],
     "PostToolUseFailure": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=$HUB node $HUB/hooks/knowledge-tracker.js || true" }]
+        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/knowledge-tracker.js\" || true" }]
       }
     ]
   }
@@ -111,16 +111,16 @@ SETTINGS
   "version": 1,
   "hooks": {
     "sessionStart": [
-      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/session-init.js" }
+      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/session-init.js\"" }
     ],
     "beforeReadFile": [
-      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/protect-memory.js" }
+      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/protect-memory.js\"" }
     ],
     "afterFileEdit": [
-      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/knowledge-tracker.js" }
+      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/knowledge-tracker.js\"" }
     ],
     "afterShellExecution": [
-      { "command": "LORE_HUB=$HUB node $HUB/.cursor/hooks/knowledge-tracker.js" }
+      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/knowledge-tracker.js\"" }
     ]
   }
 }

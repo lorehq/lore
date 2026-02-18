@@ -23,12 +23,9 @@ shopt -s nullglob
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ERRORS=0
 
-fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
+source "$(dirname "$0")/lib/common.sh"
 
-# Extract a field from YAML frontmatter between --- markers
-extract_field() {
-  awk -v f="$1" '/^---$/{if(fm)exit;fm=1;next} fm&&$1==f":"{sub("^"f": *","");print;exit}' "$2" 2>/dev/null
-}
+fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
 
 echo "=== Lore Consistency Validation ==="
 echo ""
@@ -159,14 +156,14 @@ fi
 echo "--- Cursor Hooks ---"
 if [[ -f "$REPO_ROOT/.cursor/hooks.json" ]]; then
   # Extract command values and verify referenced scripts exist
-  while IFS= read -r cmd; do
+  while IFS= read -r cmd || [[ -n "$cmd" ]]; do
     cmd=$(echo "$cmd" | xargs)
     # Strip "node " prefix to get the script path
     script="${cmd#node }"
     if [[ "$script" != "$cmd" && ! -f "$REPO_ROOT/$script" ]]; then
       fail "Cursor hooks.json references missing script: $script"
     fi
-  done < <(grep -oP '"command"\s*:\s*"\K[^"]+' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
+  done < <(sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
 fi
 
 # -- 11. Linked repos --
