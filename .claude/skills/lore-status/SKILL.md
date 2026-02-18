@@ -47,7 +47,9 @@ Run these checks and present a formatted summary to the operator:
    - Context docs: number of `.md` files under `docs/context/`
    - Runbooks: number of `.md` files under `docs/context/runbooks/`
 
-4. **Active work** — scan `docs/work/roadmaps/` and `docs/work/plans/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
+4. **Linked repos** — if `.lore-links` exists, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale.
+
+5. **Active work** — scan `docs/work/roadmaps/` and `docs/work/plans/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
 
 5. **Format** — present as a clean block the operator can read at a glance:
    ```
@@ -59,6 +61,8 @@ Run these checks and present a formatted summary to the operator:
      OpenCode      OK
 
    Skills: 12 | Agents: 2 | Context docs: 5 | Runbooks: 1
+
+   Linked repos: 2 (1 stale)
 
    Active roadmaps: V1 Go-Live
    Active plans: (none)

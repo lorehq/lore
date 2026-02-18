@@ -52,3 +52,7 @@ cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
 bash "$TARGET/scripts/sync-platform-skills.sh"
 
 echo "Framework synced from $SOURCE"
+
+if [ -f "$TARGET/.lore-links" ]; then
+  echo "Note: Run 'bash scripts/lore-link.sh --refresh' to update linked repos."
+fi
