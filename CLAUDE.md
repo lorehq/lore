@@ -24,19 +24,32 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 `MEMORY.md` is intercepted by hooks and blocked. Use the routes above.
 
+## Ownership
+
+`lore-*` prefix = framework-owned (overwritten on sync). Everything else = operator-owned (never touched by sync or generation scripts).
+
+- Framework skills: `lore-capture`, `lore-create-skill`, etc.
+- Operator skills: `bash-macos-compat`, `deploy-staging`, etc.
+- Framework agents: `lore-documentation-agent`, etc.
+- Operator agents: `infrastructure-agent`, etc.
+
+Discovered gotchas are operator-owned from birth — Lore creates the file, operator owns it. If a skill already exists, warn and skip.
+
 ## Skill Creation
 
 **Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
-Naming: `<service>-<action>-<object>`. See `.lore/skills/lore-create-skill/SKILL.md`.
+Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands. See `.lore/skills/lore-create-skill/SKILL.md`.
 
 ## Agent Creation
 
 **Domain = Agent (1:1). No orphaned skills.** Create immediately when skill has clear domain, even with 1 skill.
 
-Naming: `<domain-slug>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
+Naming: `lore-<domain-slug>-agent` for framework agents, `<domain-slug>-agent` for operator agents. See `.lore/skills/lore-create-agent/SKILL.md`.
+
+Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
 
 ## Delegation
 

@@ -50,8 +50,8 @@ Lore is a directory of markdown files, hooks/plugins that shape agent behavior, 
 | Component | Location | What it does |
 |-----------|----------|--------------|
 | **Platform hooks** | `hooks/`, `.cursor/hooks/`, `.opencode/plugins/` | Fire on session start, tool use, and edits. Each platform has thin adapters over shared `lib/`. |
-| **Skills** | `.lore/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. |
-| **Agents** | `.lore/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. |
+| **Skills** | `.lore/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. `lore-*` = framework-owned, everything else = yours. |
+| **Agents** | `.lore/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. Per-platform model preferences in frontmatter. |
 | **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
 | **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent. |
 

@@ -28,24 +28,23 @@ Read `agent-registry.md`. If agent exists for domain, update it. Otherwise creat
 ```markdown
 ---
 name: <domain-slug>-agent
-description: "Use for ANY <domain> operation"
+description: <Domain> operations specialist. Generated from skills.
 domain: <Domain Name>
-model: sonnet
+claude-model: sonnet
+opencode-model: openai/gpt-4o
+cursor-model: # not yet supported
 skills:
   - <skill-name>
 ---
 # <Domain> Agent
 
-Handles all <domain> operations. Domain = delegation trigger.
+Handles all <domain> operations. Create new skills as needed.
 
 ## Available Skills
-- `<skill-name>` — description
-
-## Approach
-1. Check existing skills for the operation
-2. Skill missing? → Create it
-3. Execute the operation
+- `<skill-name>`
 ```
+
+Model fields are per-platform. Instance defaults in `.lore-config` under `subagentDefaults` — agent frontmatter overrides those defaults.
 
 ### Step 3: Update Registries
 
@@ -61,6 +60,6 @@ bash scripts/sync-platform-skills.sh
 
 ## Naming
 
-Pattern: `<domain-slug>-agent` (e.g., `github-agent`, `docker-agent`)
+Pattern: `<domain-slug>-agent` (e.g., `github-agent`, `docker-agent`). Domain slug = lowercase, kebab-case.
 
-Domain slug: lowercase, kebab-case of domain name.
+**Do not use the `lore-` prefix** — that's reserved for framework agents. Operator agents use descriptive names without the prefix.
