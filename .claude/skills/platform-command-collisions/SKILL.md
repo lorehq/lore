@@ -23,4 +23,4 @@ All user-invocable Lore skills use the `lore-` prefix. This eliminates collision
 
 ## When Creating New Skills
 
-All user-invocable skills MUST be named `lore-<action>` (e.g., `/lore-capture`, `/lore-serve-docs`). Non-user-invocable skills (internal gotcha captures) don't need the prefix.
+All user-invocable skills MUST be named `lore-<action>` (e.g., `/lore-capture`, `/lore-ui`). Non-user-invocable skills (internal gotcha captures) don't need the prefix.
