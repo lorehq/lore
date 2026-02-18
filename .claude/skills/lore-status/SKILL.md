@@ -57,7 +57,7 @@ Run these checks and present a formatted summary to the operator:
 
 5. **Format** — present as a clean block the operator can read at a glance:
    ```
-   Lore v0.3.0
+   Lore v<version>
 
    Hooks:
      Claude Code   OK
