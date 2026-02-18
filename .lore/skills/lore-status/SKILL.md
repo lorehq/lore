@@ -32,7 +32,6 @@ Run these checks and present a formatted summary to the operator:
 
    **Cursor** (`.cursor/hooks.json`):
    - `sessionStart` → `session-init.js`
-   - `beforeSubmitPrompt` → `prompt-preamble.js`
    - `beforeReadFile` → `protect-memory.js`
    - `afterFileEdit` → `knowledge-tracker.js`
    - `afterShellExecution` → `knowledge-tracker.js`
