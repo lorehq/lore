@@ -54,7 +54,8 @@ function tree(dir, prefix, depth) {
 }
 
 // -- Build guidance message --
-const ctxDir = path.join(process.cwd(), 'docs', 'context');
+const hubDir = process.env.LORE_HUB || process.cwd();
+const ctxDir = path.join(hubDir, 'docs', 'context');
 const structure = fs.existsSync(ctxDir) ? tree(ctxDir, '', 0) : '';
 
 let msg = 'Context path guide:\n';

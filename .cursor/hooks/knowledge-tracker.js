@@ -17,10 +17,11 @@ try {
 }
 
 const cwd = process.cwd();
+const hubDir = process.env.LORE_HUB || cwd;
 const filePath = input.filePath || input.file_path || '';
 
 // Nav-dirty flag
-const navFlag = getNavFlagPath(cwd);
+const navFlag = getNavFlagPath(hubDir);
 if (isDocsWrite('write', filePath)) setNavDirty(navFlag);
 
 // Process as a write event (no bash tracking in Cursor)
@@ -29,7 +30,7 @@ const result = processToolUse({
   filePath,
   isFailure: false,
   bashCount: 0,
-  thresholds: getThresholds(cwd),
+  thresholds: getThresholds(hubDir),
 });
 
 if (!result.silent) {

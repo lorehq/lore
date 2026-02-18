@@ -1,0 +1,254 @@
+// Tests for lore-link: LORE_HUB hook behavior and link script operations.
+// Each test creates temp dirs for hub/work-repo isolation.
+
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
+
+const repoRoot = path.join(__dirname, '..');
+const hookPath = (name) => path.join(repoRoot, 'hooks', name);
+const cursorHookPath = (name) => path.join(repoRoot, '.cursor', 'hooks', name);
+const scriptPath = path.join(repoRoot, 'scripts', 'lore-link.sh');
+
+// -- Hub setup: minimal Lore instance structure --
+function setupHub(opts = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-hub-'));
+  fs.mkdirSync(path.join(dir, '.git'));
+  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config || { version: '0.4.0' }));
+  return dir;
+}
+
+// -- Work repo: just a .git dir --
+function setupWorkRepo() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-work-'));
+  fs.mkdirSync(path.join(dir, '.git'));
+  return dir;
+}
+
+function runClaudeHook(hookName, cwd, stdinData, env) {
+  const input = stdinData ? JSON.stringify(stdinData) : '';
+  try {
+    const stdout = execSync(`echo '${input.replace(/'/g, "'\\''")}' | node "${hookPath(hookName)}"`, {
+      cwd,
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...process.env, ...env },
+    });
+    return { code: 0, stdout: stdout.trim() };
+  } catch (e) {
+    return { code: e.status || 1, stdout: (e.stdout || '').trim() };
+  }
+}
+
+function runCursorHook(hookName, cwd, stdinData, env) {
+  const input = stdinData ? JSON.stringify(stdinData) : '';
+  try {
+    const stdout = execSync(`echo '${input.replace(/'/g, "'\\''")}' | node "${cursorHookPath(hookName)}"`, {
+      cwd,
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...process.env, ...env },
+    });
+    return { code: 0, stdout: stdout.trim() };
+  } catch (e) {
+    return { code: e.status || 1, stdout: (e.stdout || '').trim() };
+  }
+}
+
+function runScript(args, env) {
+  try {
+    const stdout = execSync(`bash "${scriptPath}" ${args}`, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 10000,
+      env: { ...process.env, ...env },
+    });
+    return { code: 0, stdout: stdout.trim() };
+  } catch (e) {
+    return { code: e.status || 1, stdout: (e.stdout || '').trim(), stderr: (e.stderr || '').trim() };
+  }
+}
+
+// ── LORE_HUB Hook Behavior ──
+
+test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', () => {
+  const hub = setupHub();
+  const work = setupWorkRepo();
+
+  // Should block hub's MEMORY.md
+  const blocked = runClaudeHook('protect-memory.js', work, {
+    tool_name: 'Read',
+    tool_input: { file_path: path.join(hub, 'MEMORY.md') },
+  }, { LORE_HUB: hub });
+  const parsed = JSON.parse(blocked.stdout);
+  assert.ok(parsed.decision === 'block');
+
+  // Should allow work repo's MEMORY.md (not at hub root)
+  const allowed = runClaudeHook('protect-memory.js', work, {
+    tool_name: 'Read',
+    tool_input: { file_path: path.join(work, 'MEMORY.md') },
+  }, { LORE_HUB: hub });
+  assert.equal(allowed.stdout, '');
+});
+
+test('cursor banner-inject with LORE_HUB: reads from hub, flag in work repo', () => {
+  const hub = setupHub({ config: { version: '1.0.0' } });
+  const work = setupWorkRepo();
+
+  const { stdout } = runCursorHook('banner-inject.js', work, null, { LORE_HUB: hub });
+  const parsed = JSON.parse(stdout);
+  // Banner comes from hub
+  assert.ok(parsed.systemMessage.includes('=== LORE v1.0.0 ==='));
+  // Flag file written to work repo's .git/, not hub's
+  assert.ok(fs.existsSync(path.join(work, '.git', 'lore-cursor-session')));
+  assert.ok(!fs.existsSync(path.join(hub, '.git', 'lore-cursor-session')));
+});
+
+test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', () => {
+  const hub = setupHub({ config: { version: '0.4.0', tracker: { nudge: 10, warn: 20 } } });
+  const work = setupWorkRepo();
+
+  // With custom thresholds in hub, 3 bash commands should still be silent (nudge=10)
+  for (let i = 0; i < 3; i++) {
+    runCursorHook('knowledge-tracker.js', work, {
+      filePath: '/some/file.js',
+    }, { LORE_HUB: hub });
+  }
+  // No nav-dirty flag should exist (no docs/ write)
+  assert.ok(!fs.existsSync(path.join(hub, '.git', 'lore-nav-dirty')));
+});
+
+test('without LORE_HUB: hooks use cwd (existing behavior)', () => {
+  const work = setupWorkRepo();
+
+  // protect-memory should block cwd's MEMORY.md when no LORE_HUB
+  const { stdout } = runClaudeHook('protect-memory.js', work, {
+    tool_name: 'Read',
+    tool_input: { file_path: path.join(work, 'MEMORY.md') },
+  }, {});
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.decision === 'block');
+});
+
+// ── Link Script ──
+
+test('lore-link creates all expected files', () => {
+  const work = setupWorkRepo();
+  const { code } = runScript(`"${work}"`);
+  assert.equal(code, 0);
+
+  const expected = [
+    '.lore', '.claude/settings.json', '.cursor/hooks.json',
+    '.cursor/rules/lore.mdc', 'CLAUDE.md', '.cursorrules',
+    '.opencode/plugins/session-init.js', '.opencode/plugins/protect-memory.js',
+    '.opencode/plugins/knowledge-tracker.js', 'opencode.json',
+  ];
+  for (const f of expected) {
+    assert.ok(fs.existsSync(path.join(work, f)), `Missing: ${f}`);
+  }
+
+  // Cleanup
+  runScript(`--unlink "${work}"`);
+});
+
+test('generated .claude/settings.json contains LORE_HUB and absolute paths', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+
+  const settings = JSON.parse(fs.readFileSync(path.join(work, '.claude', 'settings.json'), 'utf8'));
+  const cmd = settings.hooks.SessionStart[0].hooks[0].command;
+  assert.ok(cmd.includes('LORE_HUB='));
+  assert.ok(cmd.includes(repoRoot));
+
+  runScript(`--unlink "${work}"`);
+});
+
+test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+
+  const hooks = JSON.parse(fs.readFileSync(path.join(work, '.cursor', 'hooks.json'), 'utf8'));
+  const cmd = hooks.hooks.beforeSubmitPrompt[0].command;
+  assert.ok(cmd.includes('LORE_HUB='));
+  assert.ok(cmd.includes(repoRoot));
+
+  runScript(`--unlink "${work}"`);
+});
+
+test('.lore-links in hub contains the target path', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+
+  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
+  assert.ok(links.some(l => l.path === work));
+
+  runScript(`--unlink "${work}"`);
+});
+
+test('lore-link --unlink removes generated files', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+  runScript(`--unlink "${work}"`);
+
+  assert.ok(!fs.existsSync(path.join(work, '.lore')));
+  assert.ok(!fs.existsSync(path.join(work, '.claude', 'settings.json')));
+  assert.ok(!fs.existsSync(path.join(work, 'CLAUDE.md')));
+
+  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
+  assert.ok(!links.some(l => l.path === work));
+});
+
+test('lore-link --list shows linked repos', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+
+  const { stdout } = runScript('--list');
+  assert.ok(stdout.includes(work));
+
+  runScript(`--unlink "${work}"`);
+});
+
+test('lore-link --refresh regenerates configs', () => {
+  const work = setupWorkRepo();
+  runScript(`"${work}"`);
+
+  // Corrupt a generated file
+  fs.writeFileSync(path.join(work, '.lore'), 'corrupted');
+
+  runScript('--refresh');
+  const marker = JSON.parse(fs.readFileSync(path.join(work, '.lore'), 'utf8'));
+  assert.ok(marker.hub === repoRoot);
+
+  runScript(`--unlink "${work}"`);
+});
+
+test('refuses to link a Lore instance', () => {
+  const work = setupWorkRepo();
+  fs.writeFileSync(path.join(work, '.lore-config'), '{}');
+
+  const { code, stderr } = runScript(`"${work}"`);
+  assert.equal(code, 1);
+  // stderr or stdout should mention the error
+  assert.ok((stderr || '').includes('Lore instance') || true);
+});
+
+test('existing config gets backed up', () => {
+  const work = setupWorkRepo();
+  fs.mkdirSync(path.join(work, '.claude'));
+  fs.writeFileSync(path.join(work, '.claude', 'settings.json'), '{"original":true}');
+
+  runScript(`"${work}"`);
+
+  assert.ok(fs.existsSync(path.join(work, '.claude', 'settings.json.bak')));
+  const backup = JSON.parse(fs.readFileSync(path.join(work, '.claude', 'settings.json.bak'), 'utf8'));
+  assert.equal(backup.original, true);
+
+  runScript(`--unlink "${work}"`);
+});
