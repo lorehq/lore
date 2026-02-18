@@ -2,11 +2,34 @@
 
 Thanks for your interest in contributing. Lore is early-stage and we welcome bug reports, fixes, and ideas.
 
-## Quick Start
+## Dev Setup
+
+```bash
+git clone https://github.com/lorehq/lore.git
+cd lore
+npm install
+```
+
+Requires **Node.js 18+**. No production dependencies — `npm install` pulls lint/format tooling only.
+
+## Running Checks
+
+```bash
+npm test                              # 156 tests (node:test)
+npm run lint                          # ESLint
+npm run format:check                  # Prettier
+bash scripts/validate-consistency.sh  # 11 cross-reference checks
+bash scripts/check-version-sync.sh   # .lore-config ↔ package.json
+bash scripts/smoke-test.sh            # Fresh-clone bootstrap simulation
+```
+
+CI runs all of these on Ubuntu + macOS, Node 18 + 20.
+
+## Pull Requests
 
 1. Fork the repo and create a branch from `main`
 2. Make your changes
-3. Run validation: `bash scripts/validate-consistency.sh`
+3. Run `npm test` and `bash scripts/validate-consistency.sh`
 4. Open a pull request
 
 ## What We're Looking For

@@ -64,67 +64,44 @@ do_link() {
   " "$target/.lore" "$HUB" "$now"
 
   # Claude Code hooks
-  cat > "$target/.claude/settings.json" << SETTINGS
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/session-init.js\"" }]
+  node -e "
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const h = (script, extra) => ({
+      type: 'command',
+      command: 'LORE_HUB=' + JSON.stringify(hub) + ' node ' + JSON.stringify(hub + '/hooks/' + script) + (extra || '')
+    });
+    const settings = {
+      hooks: {
+        SessionStart: [{ matcher: '', hooks: [h('session-init.js')] }],
+        UserPromptSubmit: [{ matcher: '', hooks: [h('prompt-preamble.js')] }],
+        PreToolUse: [
+          { matcher: 'Edit|Write|Read', hooks: [h('protect-memory.js')] },
+          { matcher: 'Write', hooks: [h('context-path-guide.js')] }
+        ],
+        PostToolUse: [{ matcher: '', hooks: [h('knowledge-tracker.js', ' || true')] }],
+        PostToolUseFailure: [{ matcher: '', hooks: [h('knowledge-tracker.js', ' || true')] }]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/prompt-preamble.js\"" }]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|Read",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/protect-memory.js\"" }]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/context-path-guide.js\"" }]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/knowledge-tracker.js\" || true" }]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "LORE_HUB=\"$HUB\" node \"$HUB/hooks/knowledge-tracker.js\" || true" }]
-      }
-    ]
-  }
-}
-SETTINGS
+    };
+    fs.writeFileSync(process.argv[2], JSON.stringify(settings, null, 2) + '\n');
+  " "$HUB" "$target/.claude/settings.json"
 
   # Cursor hooks
-  cat > "$target/.cursor/hooks.json" << CURSOR
-{
-  "version": 1,
-  "hooks": {
-    "sessionStart": [
-      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/session-init.js\"" }
-    ],
-    "beforeReadFile": [
-      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/protect-memory.js\"" }
-    ],
-    "afterFileEdit": [
-      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/knowledge-tracker.js\"" }
-    ],
-    "afterShellExecution": [
-      { "command": "LORE_HUB=\"$HUB\" node \"$HUB/.cursor/hooks/knowledge-tracker.js\"" }
-    ]
-  }
-}
-CURSOR
+  node -e "
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const cmd = (script) => 'LORE_HUB=' + JSON.stringify(hub) + ' node ' + JSON.stringify(hub + '/.cursor/hooks/' + script);
+    const config = {
+      version: 1,
+      hooks: {
+        sessionStart: [{ command: cmd('session-init.js') }],
+        beforeReadFile: [{ command: cmd('protect-memory.js') }],
+        afterFileEdit: [{ command: cmd('knowledge-tracker.js') }],
+        afterShellExecution: [{ command: cmd('knowledge-tracker.js') }]
+      }
+    };
+    fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
+  " "$HUB" "$target/.cursor/hooks.json"
 
   # Instructions copies
   cp "$HUB/.lore/instructions.md" "$target/.cursor/rules/lore.mdc"
@@ -136,19 +113,23 @@ CURSOR
   for plugin in session-init:SessionInit protect-memory:ProtectMemory knowledge-tracker:KnowledgeTracker; do
     name="${plugin%%:*}"
     export_name="${plugin##*:}"
-    cat > "$target/.opencode/plugins/$name.js" << PLUGIN
-process.env.LORE_HUB = "$HUB";
-const mod = await import("$HUB/.opencode/plugins/$name.js");
-export const $export_name = mod.$export_name;
-PLUGIN
+    node -e "
+      const fs = require('fs');
+      const hub = process.argv[1], name = process.argv[2], exp = process.argv[3];
+      const src = 'process.env.LORE_HUB = ' + JSON.stringify(hub) + ';\n'
+        + 'const mod = await import(' + JSON.stringify(hub + '/.opencode/plugins/' + name + '.js') + ');\n'
+        + 'export const ' + exp + ' = mod.' + exp + ';\n';
+      fs.writeFileSync(process.argv[4], src);
+    " "$HUB" "$name" "$export_name" "$target/.opencode/plugins/$name.js"
   done
 
   # opencode.json
-  cat > "$target/opencode.json" << OPENCODE
-{
-  "instructions": ["$HUB/.lore/instructions.md"]
-}
-OPENCODE
+  node -e "
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const config = { instructions: [hub + '/.lore/instructions.md'] };
+    fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
+  " "$HUB" "$target/opencode.json"
 
   # Add generated files to target .gitignore
   local begin="# Lore link (auto-generated) BEGIN"
