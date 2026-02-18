@@ -57,6 +57,7 @@ Delegate by domain. Check `agent-registry.md` before work.
 
 - Agent exists → delegate
 - If a task has independent branches, run them in parallel subagents; keep dependent steps sequential
+- Delegated subagents must load `docs/context/agent-rules.md` and relevant files under `docs/context/conventions/` before implementation
 - No agent → execute directly, create agent during capture
 
 ## Capture
