@@ -78,9 +78,13 @@ function runScript(args, env) {
 
 // ── LORE_HUB Hook Behavior ──
 
-test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', () => {
+test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', (t) => {
   const hub = setupHub();
   const work = setupWorkRepo();
+  t.after(() => {
+    fs.rmSync(hub, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  });
 
   // Should block hub's MEMORY.md
   const blocked = runClaudeHook('protect-memory.js', work, {
@@ -98,9 +102,13 @@ test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', () => 
   assert.equal(allowed.stdout, '');
 });
 
-test('cursor session-init with LORE_HUB: reads from hub', () => {
+test('cursor session-init with LORE_HUB: reads from hub', (t) => {
   const hub = setupHub({ config: { version: '1.0.0' } });
   const work = setupWorkRepo();
+  t.after(() => {
+    fs.rmSync(hub, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  });
 
   const { stdout } = runCursorHook('session-init.js', work, null, { LORE_HUB: hub });
   const parsed = JSON.parse(stdout);
@@ -109,9 +117,13 @@ test('cursor session-init with LORE_HUB: reads from hub', () => {
   assert.equal(parsed.continue, true);
 });
 
-test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', () => {
+test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', (t) => {
   const hub = setupHub({ config: { version: '0.4.0', tracker: { nudge: 10, warn: 20 } } });
   const work = setupWorkRepo();
+  t.after(() => {
+    fs.rmSync(hub, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  });
 
   // With custom thresholds in hub, 3 bash commands should still be silent (nudge=10)
   for (let i = 0; i < 3; i++) {
@@ -123,8 +135,9 @@ test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', () => 
   assert.ok(!fs.existsSync(path.join(hub, '.git', 'lore-nav-dirty')));
 });
 
-test('without LORE_HUB: hooks use cwd (existing behavior)', () => {
+test('without LORE_HUB: hooks use cwd (existing behavior)', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
 
   // protect-memory should block cwd's MEMORY.md when no LORE_HUB
   const { stdout } = runClaudeHook('protect-memory.js', work, {
@@ -137,8 +150,9 @@ test('without LORE_HUB: hooks use cwd (existing behavior)', () => {
 
 // ── Link Script ──
 
-test('lore-link creates all expected files', () => {
+test('lore-link creates all expected files', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   const { code } = runScript(`"${work}"`);
   assert.equal(code, 0);
 
@@ -156,8 +170,9 @@ test('lore-link creates all expected files', () => {
   runScript(`--unlink "${work}"`);
 });
 
-test('generated .claude/settings.json contains LORE_HUB and absolute paths', () => {
+test('generated .claude/settings.json contains LORE_HUB and absolute paths', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
   const settings = JSON.parse(fs.readFileSync(path.join(work, '.claude', 'settings.json'), 'utf8'));
@@ -168,8 +183,9 @@ test('generated .claude/settings.json contains LORE_HUB and absolute paths', () 
   runScript(`--unlink "${work}"`);
 });
 
-test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', () => {
+test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
   const hooks = JSON.parse(fs.readFileSync(path.join(work, '.cursor', 'hooks.json'), 'utf8'));
@@ -180,8 +196,9 @@ test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', () => 
   runScript(`--unlink "${work}"`);
 });
 
-test('.lore-links in hub contains the target path', () => {
+test('.lore-links in hub contains the target path', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
   const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
@@ -190,8 +207,9 @@ test('.lore-links in hub contains the target path', () => {
   runScript(`--unlink "${work}"`);
 });
 
-test('lore-link --unlink removes generated files', () => {
+test('lore-link --unlink removes generated files', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
   runScript(`--unlink "${work}"`);
 
@@ -203,8 +221,9 @@ test('lore-link --unlink removes generated files', () => {
   assert.ok(!links.some(l => l.path === work));
 });
 
-test('lore-link --list shows linked repos', () => {
+test('lore-link --list shows linked repos', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
   const { stdout } = runScript('--list');
@@ -213,8 +232,9 @@ test('lore-link --list shows linked repos', () => {
   runScript(`--unlink "${work}"`);
 });
 
-test('lore-link --refresh regenerates configs', () => {
+test('lore-link --refresh regenerates configs', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
   // Corrupt a generated file
@@ -227,8 +247,9 @@ test('lore-link --refresh regenerates configs', () => {
   runScript(`--unlink "${work}"`);
 });
 
-test('refuses to link a Lore instance', () => {
+test('refuses to link a Lore instance', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   fs.writeFileSync(path.join(work, '.lore-config'), '{}');
 
   const { code, stderr } = runScript(`"${work}"`);
@@ -237,8 +258,9 @@ test('refuses to link a Lore instance', () => {
   assert.ok((stderr || '').includes('Lore instance') || true);
 });
 
-test('existing config gets backed up', () => {
+test('existing config gets backed up', (t) => {
   const work = setupWorkRepo();
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   fs.mkdirSync(path.join(work, '.claude'));
   fs.writeFileSync(path.join(work, '.claude', 'settings.json'), '{"original":true}');
 

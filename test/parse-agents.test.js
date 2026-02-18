@@ -1,4 +1,4 @@
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
@@ -17,13 +17,14 @@ fs.copyFileSync(
 // Shared lib — parse-agents.js requires ../../lib/banner.js
 const sharedLib = path.join(tmpDir, 'lib');
 fs.mkdirSync(sharedLib, { recursive: true });
-fs.copyFileSync(
-  path.join(__dirname, '..', 'lib', 'banner.js'),
-  path.join(sharedLib, 'banner.js')
-);
+for (const f of fs.readdirSync(path.join(__dirname, '..', 'lib'))) {
+  fs.copyFileSync(path.join(__dirname, '..', 'lib', f), path.join(sharedLib, f));
+}
 
 const { getAgentDomains } = require(path.join(libDir, 'parse-agents.js'));
 const registryPath = path.join(tmpDir, 'agent-registry.md');
+
+after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
 test('returns [] when no registry file exists', () => {
   if (fs.existsSync(registryPath)) fs.unlinkSync(registryPath);

@@ -22,16 +22,18 @@ function runHook(cwd, input) {
   return JSON.parse(raw).hookSpecificOutput;
 }
 
-test('silent on read-only tools', () => {
+test('silent on read-only tools', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   for (const tool of ['Read', 'Grep', 'Glob']) {
     const out = runHook(dir, { tool_name: tool, hook_event_name: 'PostToolUse' });
     assert.equal(out.additionalContext, undefined, `${tool} should have no additionalContext`);
   }
 });
 
-test('resets bash counter after read-only tool', () => {
+test('resets bash counter after read-only tool', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Run 2 bash commands
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
@@ -42,22 +44,25 @@ test('resets bash counter after read-only tool', () => {
   assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset');
 });
 
-test('first bash: gentle reminder', () => {
+test('first bash: gentle reminder', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   assert.ok(out.additionalContext.includes('Gotcha?'));
 });
 
-test('3rd consecutive bash: nudge', () => {
+test('3rd consecutive bash: nudge', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   assert.ok(out.additionalContext.includes('3 commands in a row'));
 });
 
-test('5th consecutive bash: strong warning', () => {
+test('5th consecutive bash: strong warning', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   for (let i = 0; i < 4; i++) {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
@@ -65,14 +70,16 @@ test('5th consecutive bash: strong warning', () => {
   assert.ok(out.additionalContext.includes('5 consecutive commands'));
 });
 
-test('bash failure: error pattern message', () => {
+test('bash failure: error pattern message', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
   assert.ok(out.additionalContext.includes('Error pattern'));
 });
 
-test('knowledge capture resets counter', () => {
+test('knowledge capture resets counter', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Build up bash counter
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
@@ -83,22 +90,25 @@ test('knowledge capture resets counter', () => {
   assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset after capture');
 });
 
-test('MEMORY.local.md write: scratch notes warning', () => {
+test('MEMORY.local.md write: scratch notes warning', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/MEMORY.local.md' }, hook_event_name: 'PostToolUse' });
   assert.ok(out.additionalContext.includes('scratch notes'));
 });
 
-test('nav-dirty flag set on docs/ write', () => {
+test('nav-dirty flag set on docs/ write', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
   assert.ok(!fs.existsSync(navFlag), 'flag should not exist before');
   runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/docs/foo.md' }, hook_event_name: 'PostToolUse' });
   assert.ok(fs.existsSync(navFlag), 'flag should be set after docs/ write');
 });
 
-test('non-bash tool resets bash counter', () => {
+test('non-bash tool resets bash counter', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Build up bash counter
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });

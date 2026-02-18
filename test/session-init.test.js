@@ -18,13 +18,12 @@ function setup(opts = {}) {
     path.join(__dirname, '..', 'hooks', 'session-init.js'),
     path.join(dir, 'hooks', 'session-init.js')
   );
-  // Shared lib — hook resolves ../lib/banner relative to hooks/
+  // Shared lib — hook resolves ../lib/ relative to hooks/
   const libDir = path.join(dir, 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(__dirname, '..', 'lib', 'banner.js'),
-    path.join(libDir, 'banner.js')
-  );
+  for (const f of fs.readdirSync(path.join(__dirname, '..', 'lib'))) {
+    fs.copyFileSync(path.join(__dirname, '..', 'lib', f), path.join(libDir, f));
+  }
 
   // Minimal structure so the hook doesn't error
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
@@ -66,20 +65,23 @@ function runHook(dir) {
   });
 }
 
-test('shows version from .lore-config', () => {
+test('shows version from .lore-config', (t) => {
   const dir = setup({ config: { version: '1.2.3' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('=== LORE v1.2.3 ==='));
 });
 
-test('shows "(none yet)" when no agents', () => {
+test('shows "(none yet)" when no agents', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('(none yet)'));
 });
 
-test('shows active roadmap title and summary', () => {
+test('shows active roadmap title and summary', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(path.join(rmDir, 'index.md'), [
@@ -95,8 +97,9 @@ test('shows active roadmap title and summary', () => {
   assert.ok(out.includes('My Roadmap (Phase 1 in progress)'));
 });
 
-test('shows on-hold label', () => {
+test('shows on-hold label', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'paused');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(path.join(rmDir, 'index.md'), [
@@ -109,10 +112,11 @@ test('shows on-hold label', () => {
   assert.ok(out.includes('Paused Roadmap [ON HOLD]'));
 });
 
-test('reads PROJECT from docs/context/agent-rules.md', () => {
+test('reads PROJECT from docs/context/agent-rules.md', (t) => {
   const dir = setup({
     agentRules: '---\ntitle: Agent Rules\n---\n\n# My Project\n\nCustom agent rules here.',
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('PROJECT:'));
   assert.ok(out.includes('# My Project'));
@@ -120,8 +124,9 @@ test('reads PROJECT from docs/context/agent-rules.md', () => {
   assert.ok(!out.includes('title: Agent Rules'), 'frontmatter should be stripped');
 });
 
-test('creates MEMORY.local.md if missing', () => {
+test('creates MEMORY.local.md if missing', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const memPath = path.join(dir, 'MEMORY.local.md');
   assert.ok(!fs.existsSync(memPath), 'should not exist before hook runs');
   runHook(dir);
@@ -129,8 +134,9 @@ test('creates MEMORY.local.md if missing', () => {
   assert.equal(fs.readFileSync(memPath, 'utf8'), '# Local Memory\n');
 });
 
-test('builds knowledge map tree', () => {
+test('builds knowledge map tree', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Create some skill directories
   fs.mkdirSync(path.join(dir, '.lore', 'skills', 'my-skill'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.lore', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
@@ -140,8 +146,9 @@ test('builds knowledge map tree', () => {
   assert.ok(out.includes('my-skill/'));
 });
 
-test('skips archive directories in tree', () => {
+test('skips archive directories in tree', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item', 'index.md'), '# Old');
   const out = runHook(dir);
@@ -149,8 +156,9 @@ test('skips archive directories in tree', () => {
   assert.ok(!out.includes('old-item'), 'archive contents should not be expanded');
 });
 
-test('creates sticky docs/context/local/ when missing', () => {
+test('creates sticky docs/context/local/ when missing', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const localIndex = path.join(dir, 'docs', 'context', 'local', 'index.md');
   assert.ok(!fs.existsSync(localIndex), 'should not exist before hook runs');
   runHook(dir);
@@ -160,8 +168,9 @@ test('creates sticky docs/context/local/ when missing', () => {
   assert.ok(content.includes('gitignored'));
 });
 
-test('creates sticky docs/context/agent-rules.md when missing', () => {
+test('creates sticky docs/context/agent-rules.md when missing', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rulesPath = path.join(dir, 'docs', 'context', 'agent-rules.md');
   assert.ok(!fs.existsSync(rulesPath), 'should not exist before hook runs');
   runHook(dir);
@@ -172,7 +181,7 @@ test('creates sticky docs/context/agent-rules.md when missing', () => {
   assert.ok(!content.includes('Coding Rules'), 'template should not contain coding rules');
 });
 
-test('injects conventions directory as CONVENTIONS section', () => {
+test('injects conventions directory as CONVENTIONS section', (t) => {
   const dir = setup({
     conventionsDir: {
       'index.md': '# Conventions\n\nOverview here.',
@@ -180,6 +189,7 @@ test('injects conventions directory as CONVENTIONS section', () => {
       'docs.md': '# Docs\n\nUse checkboxes.',
     },
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('CONVENTIONS:'));
   assert.ok(out.includes('Overview here.'));
@@ -187,26 +197,29 @@ test('injects conventions directory as CONVENTIONS section', () => {
   assert.ok(out.includes('Use checkboxes.'));
 });
 
-test('injects flat conventions.md as fallback', () => {
+test('injects flat conventions.md as fallback', (t) => {
   const dir = setup({
     conventions: '# Conventions\n\nFlat file rules.',
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('CONVENTIONS:'));
   assert.ok(out.includes('Flat file rules.'));
 });
 
-test('scaffolds conventions and includes them when neither path exists', () => {
+test('scaffolds conventions and includes them when neither path exists', (t) => {
   // ensureStickyFiles now runs before buildBanner, so the scaffold is
   // always present on first run. CONVENTIONS section appears immediately.
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
   assert.ok(out.includes('CONVENTIONS:'));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')));
 });
 
-test('creates sticky conventions directory scaffold when neither path exists', () => {
+test('creates sticky conventions directory scaffold when neither path exists', (t) => {
   const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const convDir = path.join(dir, 'docs', 'context', 'conventions');
   assert.ok(!fs.existsSync(convDir), 'should not exist before hook runs');
   runHook(dir);
@@ -217,10 +230,11 @@ test('creates sticky conventions directory scaffold when neither path exists', (
   assert.ok(docsContent.includes('Checkboxes'));
 });
 
-test('does not overwrite existing conventions.md with scaffold', () => {
+test('does not overwrite existing conventions.md with scaffold', (t) => {
   const dir = setup({
     conventions: '# My Custom Conventions\n\nOperator rules here.',
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir);
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), 'utf8');
   assert.ok(content.includes('My Custom Conventions'), 'should preserve operator content');
@@ -228,10 +242,11 @@ test('does not overwrite existing conventions.md with scaffold', () => {
     'should not create scaffold when flat file exists');
 });
 
-test('does not overwrite existing conventions directory with scaffold', () => {
+test('does not overwrite existing conventions directory with scaffold', (t) => {
   const dir = setup({
     conventionsDir: { 'index.md': '# My Conventions\n\nCustom.' },
   });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir);
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md'), 'utf8');
   assert.ok(content.includes('My Conventions'), 'should preserve operator content');
