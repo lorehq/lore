@@ -2,7 +2,6 @@
 name: lore-create-agent
 description: Create a domain agent when a skill has a clear domain
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
 ---

@@ -2,7 +2,6 @@
 name: lore-serve-docs-docker
 description: Start the docs site via Docker. No Python required. Supports multiple instances with deterministic ports.
 domain: Documentation
-scope: internal
 user-invocable: true
 allowed-tools: Bash
 ---

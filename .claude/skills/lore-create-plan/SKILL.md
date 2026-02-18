@@ -2,7 +2,6 @@
 name: lore-create-plan
 description: Create a plan folder with frontmatter and validation
 domain: Orchestrator
-scope: internal
 user-invocable: false
 allowed-tools: Write, Read, Bash, Glob
 ---

@@ -2,7 +2,6 @@
 name: lore-capture
 description: Session-scoped knowledge capture — review work, create skills, update registries
 domain: Orchestrator
-scope: internal
 user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate
 ---
