@@ -9,7 +9,7 @@
 | lore-create-plan | Orchestrator | Create a plan folder with frontmatter and validation |
 | lore-create-roadmap | Orchestrator | Create a roadmap folder with frontmatter and validation |
 | lore-create-skill | Orchestrator | Create a new skill when an operation required non-obvious knowledge |
-| lore-create-todo-with-capture | Orchestrator | Append a capture checkpoint to task lists |
+| lore-create-todo-with-capture | Orchestrator | Append a capture checkpoint and optimize task lists for parallelism |
 | lore-status | Orchestrator | Show Lore instance health — version, hooks, skills, agents, active work |
 | lore-ui | Documentation | Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs. |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
