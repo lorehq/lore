@@ -16,7 +16,7 @@ test('buildTree: empty directory returns empty array', (t) => {
   assert.deepStrictEqual(buildTree(dir), []);
 });
 
-test('buildTree: lists files and directories', (t) => {
+test('buildTree: default shows directories only', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, 'README.md'), '');
@@ -27,39 +27,52 @@ test('buildTree: lists files and directories', (t) => {
     lines.some((l) => l.includes('src/')),
     'should list src/ dir',
   );
+  assert.ok(!lines.some((l) => l.includes('README.md')), 'should not list files');
+  assert.ok(!lines.some((l) => l.includes('index.js')), 'should not list nested files');
+});
+
+test('buildTree: dirsOnly=false shows files too', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, 'README.md'), '');
+  fs.mkdirSync(path.join(dir, 'src'));
+  fs.writeFileSync(path.join(dir, 'src', 'index.js'), '');
+  const lines = buildTree(dir, '', { dirsOnly: false });
+  assert.ok(
+    lines.some((l) => l.includes('src/')),
+    'should list src/ dir',
+  );
   assert.ok(
     lines.some((l) => l.includes('README.md')),
-    'should list README.md',
+    'should list files',
   );
   assert.ok(
     lines.some((l) => l.includes('index.js')),
-    'should list nested file',
+    'should list nested files',
   );
 });
 
-test('buildTree: directories sort before files', (t) => {
+test('buildTree: dirsOnly=false sorts directories before files', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, 'aaa.txt'), '');
   fs.mkdirSync(path.join(dir, 'zzz'));
-  const lines = buildTree(dir);
+  const lines = buildTree(dir, '', { dirsOnly: false });
   const dirIdx = lines.findIndex((l) => l.includes('zzz/'));
   const fileIdx = lines.findIndex((l) => l.includes('aaa.txt'));
   assert.ok(dirIdx < fileIdx, 'directory should appear before file');
 });
 
-test('buildTree: skips dotfiles', (t) => {
+test('buildTree: skips dotfiles and dotdirs', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(dir, '.hidden'), '');
   fs.mkdirSync(path.join(dir, '.git'));
-  fs.writeFileSync(path.join(dir, 'visible.md'), '');
+  fs.mkdirSync(path.join(dir, 'visible'));
   const lines = buildTree(dir);
-  assert.ok(!lines.some((l) => l.includes('.hidden')), 'should skip dotfiles');
   assert.ok(!lines.some((l) => l.includes('.git')), 'should skip dotdirs');
   assert.ok(
-    lines.some((l) => l.includes('visible.md')),
-    'should include visible files',
+    lines.some((l) => l.includes('visible/')),
+    'should include visible dirs',
   );
 });
 
@@ -78,28 +91,18 @@ test('buildTree: skips SKIP_DIRS entries', (t) => {
   );
 });
 
-test('buildTree: archive/ appears but is not expanded', (t) => {
+test('buildTree: recurses into subdirectories including archive', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(dir, 'archive'));
-  fs.writeFileSync(path.join(dir, 'archive', 'old.md'), '');
+  fs.mkdirSync(path.join(dir, 'archive', 'old-plan'), { recursive: true });
   const lines = buildTree(dir);
   assert.ok(
     lines.some((l) => l.includes('archive/')),
     'archive/ should appear',
   );
-  assert.ok(!lines.some((l) => l.includes('old.md')), 'archive contents should not appear');
-});
-
-test('buildTree: archive/ expanded when skipArchive=false', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(dir, 'archive'));
-  fs.writeFileSync(path.join(dir, 'archive', 'old.md'), '');
-  const lines = buildTree(dir, '', { skipArchive: false });
   assert.ok(
-    lines.some((l) => l.includes('old.md')),
-    'archive contents should appear',
+    lines.some((l) => l.includes('old-plan/')),
+    'archive subdirs should appear',
   );
 });
 
@@ -107,7 +110,6 @@ test('buildTree: respects maxDepth', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, 'a', 'b', 'c'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'a', 'b', 'c', 'deep.md'), '');
   const lines = buildTree(dir, '', { maxDepth: 2 });
   assert.ok(
     lines.some((l) => l.includes('b/')),
@@ -119,6 +121,24 @@ test('buildTree: respects maxDepth', (t) => {
 test('buildTree: nonexistent directory returns empty array', (_t) => {
   const lines = buildTree('/tmp/lore-nonexistent-' + Date.now());
   assert.deepStrictEqual(lines, []);
+});
+
+test('buildTree: directory-only tree skips empty leaf dirs', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'has-children', 'child'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'only-files'));
+  fs.writeFileSync(path.join(dir, 'only-files', 'readme.md'), '');
+  const lines = buildTree(dir);
+  assert.ok(
+    lines.some((l) => l.includes('has-children/')),
+    'dir with subdirs should appear',
+  );
+  // only-files/ has no subdirectories, but it IS a directory so it appears
+  assert.ok(
+    lines.some((l) => l.includes('only-files/')),
+    'dir with only files still appears',
+  );
 });
 
 test('SKIP_DIRS: contains expected entries', (_t) => {
