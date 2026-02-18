@@ -12,6 +12,8 @@ These appear in the TUI menu. Type the command name to invoke.
 | `/lore-update` | Pull latest framework files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 
+OpenCode slash menu entries are defined in `.opencode/commands/` and ship with these Lore commands by default.
+
 ## Keywords
 
 These aren't in the slash menu but the agent recognizes them. Just ask naturally — "create a roadmap for X" works the same as typing the keyword.
