@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { processToolUse, getThresholds, isDocsWrite, getNavFlagPath, setNavDirty, navReminder } = require('../lib/tracker');
+const { debug } = require('../lib/debug');
 
 // -- State file location --
 const cwd = process.cwd();
@@ -39,6 +40,7 @@ const tool = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
 const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
+debug('knowledge-tracker: tool=%s file=%s event=%s', tool, filePath, event);
 
 // -- Nav-dirty flag --
 const navFlag = getNavFlagPath(hubDir);
