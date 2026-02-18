@@ -57,7 +57,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 - [stale] roadmaps/foo — "Title" — active, last updated 23 days ago
 
 #### Knowledge Doc Staleness (N found)
-- docs/knowledge/environment/systems/services.md — last touched 45 days ago
+- docs/knowledge/environment/inventory/services.md — last touched 45 days ago
 
 #### Archive Deletion Candidates (N found)
 - plans/archive/foo — "Title" — archived 75 days ago — suggest delete
