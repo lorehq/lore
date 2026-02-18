@@ -11,6 +11,7 @@ These appear in the TUI menu. Type the command name to invoke.
 | `/lore-ui` | Start, stop, or check docs UI status (prefers Docker, falls back to local mkdocs) |
 | `/lore-update` | Pull latest framework files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
+| `/lore-commands-check` | OpenCode smoke check for required `.opencode/commands` files |
 
 OpenCode slash menu entries are defined in `.opencode/commands/` and ship with these Lore commands by default.
 

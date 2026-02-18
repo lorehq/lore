@@ -37,6 +37,7 @@ GENERATED_FILES=(
   .opencode/plugins/protect-memory.js
   .opencode/plugins/knowledge-tracker.js
   .opencode/commands/lore-capture.md
+  .opencode/commands/lore-commands-check.md
   .opencode/commands/lore-consolidate.md
   .opencode/commands/lore-status.md
   .opencode/commands/lore-update.md
@@ -130,6 +131,7 @@ do_link() {
 
   # OpenCode custom slash commands
   cp "$HUB/.opencode/commands/lore-capture.md" "$target/.opencode/commands/lore-capture.md"
+  cp "$HUB/.opencode/commands/lore-commands-check.md" "$target/.opencode/commands/lore-commands-check.md"
   cp "$HUB/.opencode/commands/lore-consolidate.md" "$target/.opencode/commands/lore-consolidate.md"
   cp "$HUB/.opencode/commands/lore-status.md" "$target/.opencode/commands/lore-status.md"
   cp "$HUB/.opencode/commands/lore-update.md" "$target/.opencode/commands/lore-update.md"
