@@ -20,3 +20,5 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm test
       - run: bash scripts/validate-consistency.sh
+      - run: bash scripts/check-version-sync.sh
+      - run: bash scripts/generate-nav.sh && git diff --exit-code mkdocs.yml
