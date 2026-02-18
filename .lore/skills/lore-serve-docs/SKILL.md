@@ -25,7 +25,7 @@ Start `mkdocs serve` with live reload. Installs dependencies if missing.
    - If `pgrep` finds a PID, **always verify** it's actually serving: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8000`
    - If curl succeeds (200): report the URL, don't start a second instance
    - If curl fails: the process is stale — kill it (`kill $(pgrep -f 'mkdocs serve')`) and continue to step 4
-4. Start in background: `nohup mkdocs serve > /dev/null 2>&1 &`
+4. Start in background: `nohup mkdocs serve --livereload > /dev/null 2>&1 &`
 5. Wait briefly (`sleep 2`), then verify with `curl -s -o /dev/null -w '%{http_code}' http://localhost:8000`
    - If curl still fails, check `mkdocs serve` output for errors (port conflict, config error)
 6. Report to user:
@@ -35,6 +35,7 @@ Start `mkdocs serve` with live reload. Installs dependencies if missing.
 
 ## Gotchas
 
+- **Always pass `--livereload`**: Click 8.3.1 has a bug where the `flag_value` default resolves to `False` instead of `True`. Without the explicit flag, livereload is silently disabled — no file watches, no rebuild on change.
 - **Stale process**: `pgrep` can find a dead/zombie mkdocs process — always verify with curl before trusting it
 - **Port 8000 conflict**: If mkdocs fails to bind, suggest `mkdocs serve --dev-addr 0.0.0.0:8001`
 - **pip not found**: Try `pip3` first, then suggest `/lore-serve-docs-docker` as the zero-install alternative
