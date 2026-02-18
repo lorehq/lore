@@ -39,7 +39,7 @@ No configuration needed. Hooks and plugins activate automatically on all platfor
 
 **Self-Learning** — Your agent captures gotchas as reusable skills and maps your environment through docs. API quirks, auth tricks, encoding issues, repo layouts, service endpoints — all persist. The agent adapts to your specific setup and stops re-discovering things.
 
-**Delegation** — An orchestrator/agent pattern where the main model dispatches domain-specific work to cheaper, faster models. Each agent gets focused context for its domain. Less token spend on the expensive model, cleaner context windows, specialized execution.
+**Delegation** — An orchestrator/agent pattern where the main model dispatches domain-specific work to cheaper, faster models. Independent branches are nudged toward parallel subagent execution; dependency-bound steps stay sequential. Less token spend on the expensive model, cleaner context windows, specialized execution.
 
 **Work Continuity** — Roadmaps and plans persist across sessions. Active work surfaces in the session banner every startup, so long-running projects pick up where they left off instead of starting cold.
 

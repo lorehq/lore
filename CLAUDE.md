@@ -56,6 +56,7 @@ Per-platform model preferences go on agents (not skills). Set `claude-model`, `o
 Delegate by domain. Check `agent-registry.md` before work.
 
 - Agent exists → delegate
+- If a task has independent branches, run them in parallel subagents; keep dependent steps sequential
 - No agent → execute directly, create agent during capture
 
 ## Capture

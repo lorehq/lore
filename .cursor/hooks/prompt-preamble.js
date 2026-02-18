@@ -17,6 +17,7 @@ const parts = [];
 
 const agents = getAgentDomains(hubDir);
 if (agents.length > 0) parts.push(`Delegate: ${agents.join(', ')}`);
+parts.push('Multi-step? -> task list; parallelize independent subtasks via subagents');
 
 const docsWork = path.join(hubDir, 'docs', 'work');
 const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
