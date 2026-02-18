@@ -253,3 +253,18 @@ test('does not overwrite existing conventions directory with scaffold', (t) => {
   assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')),
     'should not create extra scaffold files');
 });
+
+test('treeDepth config limits knowledge map depth', (t) => {
+  const dir = setup({ config: { treeDepth: 1 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  // Create a 3-level deep structure under docs/
+  fs.mkdirSync(path.join(dir, 'docs', 'level1', 'level2', 'level3'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'a.md'), '# A');
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'b.md'), '# B');
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'level3', 'c.md'), '# C');
+  const out = runHook(dir);
+  assert.ok(out.includes('level1/'), 'depth-0 dir should appear');
+  assert.ok(!out.includes('level2/'), 'depth-1 dir should not appear at treeDepth: 1');
+  assert.ok(!out.includes('b.md'), 'depth-2 file should not appear');
+  assert.ok(!out.includes('c.md'), 'depth-3 file should not appear');
+});

@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { buildTree } = require('../lib/banner');
+const { buildTree, getConfig } = require('../lib/banner');
 const { debug } = require('../lib/debug');
 
 // -- Parse hook input from stdin --
@@ -31,9 +31,11 @@ if (!filePath.includes('docs/context/')) {
 // -- Build guidance message --
 const hubDir = process.env.LORE_HUB || process.cwd();
 debug('context-path-guide: file=%s hub=%s', filePath, hubDir);
+const cfg = getConfig(hubDir);
+const treeDepth = cfg.treeDepth ?? 5;
 const ctxDir = path.join(hubDir, 'docs', 'context');
 const treeLines = fs.existsSync(ctxDir)
-  ? buildTree(ctxDir, '', { maxDepth: 4, skipDirs: new Set(), skipArchive: false })
+  ? buildTree(ctxDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })
   : [];
 const structure = treeLines.length > 0 ? treeLines.join('\n') + '\n' : '';
 
