@@ -53,7 +53,7 @@ test('includes work subsections under Home with active roadmap', (t) => {
   assert.ok(nav.includes('V1 Launch'));
 });
 
-test('excludes archive directories from nav output', (t) => {
+test('includes archive directories in nav sorted last', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const roadmap = path.join(dir, 'docs', 'work', 'roadmaps', 'active-roadmap');
@@ -65,8 +65,12 @@ test('excludes archive directories from nav output', (t) => {
 
   const { nav } = runScript(dir);
   assert.ok(nav.includes('Active Roadmap'));
-  assert.ok(!nav.includes('Archive'), 'archive should not appear in nav');
-  assert.ok(!nav.includes('Old Plan'), 'archived content should not appear in nav');
+  assert.ok(nav.includes('Archive'), 'archive should appear in nav');
+  assert.ok(nav.includes('Old Plan'), 'archived content should appear in nav');
+  // Archive should come after the active roadmap entry
+  const activePos = nav.indexOf('Active Roadmap');
+  const archivePos = nav.indexOf('Archive');
+  assert.ok(archivePos > activePos, 'archive should sort after active content');
 });
 
 test('work subsections always appear even with only archive content', (t) => {
@@ -78,7 +82,7 @@ test('work subsections always appear even with only archive content', (t) => {
 
   const { nav } = runScript(dir);
   assert.ok(nav.includes('- Roadmaps:'), 'Roadmaps subsection should always appear');
-  assert.ok(!nav.includes('Old Roadmap'), 'archived content should not appear in nav');
+  assert.ok(nav.includes('Old Roadmap'), 'archived content should appear in nav');
 });
 
 test('includes Context section when content exists', (t) => {

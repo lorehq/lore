@@ -13,7 +13,7 @@ Operator-facing diagnostic. Shows whether Lore is loaded and healthy.
 
 ## When to Use
 
-The operator types `/status` to verify their Lore instance.
+The operator types `/lore-status` to verify their Lore instance.
 
 ## Process
 
