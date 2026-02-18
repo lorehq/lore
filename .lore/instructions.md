@@ -16,7 +16,7 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 | What | Where |
 |------|-------|
-| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via create-skill |
+| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
 | Context (URLs, repos, services, relationships) | `docs/context/` |
 | Procedures (multi-step operations) | `docs/context/runbooks/` |
 | Scratch notes (temporary) | `MEMORY.local.md` (gitignored) |
@@ -29,13 +29,13 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
-Naming: `<service>-<action>-<object>`. See `.lore/skills/create-skill/SKILL.md`.
+Naming: `<service>-<action>-<object>`. See `.lore/skills/lore-create-skill/SKILL.md`.
 
 ## Agent Creation
 
 **Domain = Agent (1:1). No orphaned skills.** Create immediately when skill has clear domain, even with 1 skill.
 
-Naming: `<domain-slug>-agent`. See `.lore/skills/create-agent/SKILL.md`.
+Naming: `<domain-slug>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
 
 ## Delegation
 
@@ -53,7 +53,7 @@ After substantive work:
 4. Skills over 80 lines or mixing methods? → split
 5. Run `scripts/validate-consistency.sh`
 
-Use `/capture` for a full checklist pass. `/consolidate` for deep repo-wide health checks.
+Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.
 
 ## Work Management
 
@@ -74,4 +74,4 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Knowledge: `docs/context/`, `docs/context/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
 - Hooks: `hooks/`
-- Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/serve-docs`)
+- Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/lore-serve-docs`)

@@ -85,7 +85,7 @@ NAV_SECTIONS=("context" "guides")
 
 # Emit work subsections (roadmaps, plans, brainstorms) under Home.
 # Work structure is framework-controlled — operators create items via
-# /create-roadmap, /create-plan, /create-brainstorm but don't modify
+# /lore-create-roadmap, /lore-create-plan, /lore-create-brainstorm but don't modify
 # the folder structure itself.
 emit_work_subsections() {
   local indent="$1"

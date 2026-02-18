@@ -20,12 +20,8 @@ Check each supported platform for collisions before naming user-invocable skills
 
 ## Rule
 
-Lore instance management commands use the `lore-` prefix: `/lore-status`, `/lore-update`.
-
-Workflow commands (`/capture`, `/consolidate`, `/serve-docs`) stay unprefixed — they don't collide with built-ins on any supported platform.
+All user-invocable Lore skills use the `lore-` prefix. This eliminates collisions across all platforms — no per-name checking needed.
 
 ## When Creating New Skills
 
-Before naming a user-invocable skill, check for collisions:
-1. Type `/` in your coding agent and scan the autocomplete list
-2. If the name appears on any supported platform, prefix with `lore-`
+All user-invocable skills MUST be named `lore-<action>` (e.g., `/lore-capture`, `/lore-serve-docs`). Non-user-invocable skills (internal gotcha captures) don't need the prefix.

@@ -1,5 +1,5 @@
 # Docs server — run with: docker compose up -d
-# LORE_DOCS_PORT is set by /serve-docs-docker for multi-instance support
+# LORE_DOCS_PORT is set by /lore-serve-docs-docker for multi-instance support
 # Only mounts docs/ and mkdocs.yml — no hooks, settings, or credentials exposed
 services:
   docs:

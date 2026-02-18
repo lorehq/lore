@@ -83,12 +83,12 @@ This links the work repo so hooks fire from the hub even when you open the work 
 
 | Command | What it does |
 |---------|-------------|
-| `/capture` | Review session work, capture skills, update registries, validate consistency |
-| `/consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
-| `/serve-docs` | Browse your knowledge base locally at localhost:8000 |
-| `/stop-docs` | Stop the docs server |
+| `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
+| `/lore-consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
+| `/lore-serve-docs` | Browse your knowledge base locally at localhost:8000 |
+| `/lore-stop-docs` | Stop the docs server |
 
-Docker alternative: `/serve-docs-docker` — no Python required, supports multiple instances.
+Docker alternative: `/lore-serve-docs-docker` — no Python required, supports multiple instances.
 
 ## Documentation
 
