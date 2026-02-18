@@ -21,6 +21,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 | Planned/on-hold work items | 30 days since `updated` |
 | Brainstorms | 21 days since `created` |
 | Context docs | 30 days since last git commit |
+| Archived work items | 60 days since `updated` |
 | MEMORY.local.md | >50 lines |
 
 ## Process
@@ -33,15 +34,17 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 
 3. **Context doc staleness**: For `.md` files in `docs/context/` (recursive), check last git commit date. Flag files >30 days stale. Skip `index.md` files.
 
-4. **MEMORY.local.md hygiene**: Flag if >50 lines.
+4. **Archive cleanup**: Glob `archive/` directories under `docs/work/`. Check `updated` field. Flag items older than 60 days as deletion candidates. Archives exist for visibility — not permanent storage.
+
+5. **MEMORY.local.md hygiene**: Flag if >50 lines.
 
 ### Tier 2: Deep Content Analysis
 
-5. **Work item semantic overlap**: Read full content of all active roadmaps and plans. Flag near-identical scope (HIGH), shared concerns (MEDIUM), or regrouping opportunities.
+6. **Work item semantic overlap**: Read full content of all active roadmaps and plans. Flag near-identical scope (HIGH), shared concerns (MEDIUM), or regrouping opportunities.
 
-6. **Brainstorm lifecycle**: Cross-reference active brainstorms against completed work. Flag as archive candidate, promote candidate, or stale.
+7. **Brainstorm lifecycle**: Cross-reference active brainstorms against completed work. Flag as archive candidate, promote candidate, or stale.
 
-7. **Context doc duplication**: Read all `docs/context/` files. Flag content overlap, stale facts, orphaned inventory.
+8. **Context doc duplication**: Read all `docs/context/` files. Flag content overlap, stale facts, orphaned inventory.
 
 ## Report Format
 
@@ -55,6 +58,9 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 
 #### Environment Doc Staleness (N found)
 - docs/context/inventory/services.md — last touched 45 days ago
+
+#### Archive Deletion Candidates (N found)
+- plans/archive/foo — "Title" — archived 75 days ago — suggest delete
 
 ### Tier 2: Deep Analysis
 
@@ -73,6 +79,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 ## Gotchas
 
 - Read-only during scan phase — never modify files until operator approves
-- Exclude `archive/` directories from all scans
+- Exclude `archive/` from staleness scans (items 1-3) — archived items have their own cleanup threshold (item 4)
+- Deletion of archived items requires explicit operator approval — suggest, never auto-delete
 - Missing frontmatter fields are findings, not errors
 - Overlap detection is semantic judgment, not string matching

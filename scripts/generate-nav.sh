@@ -18,12 +18,23 @@ scan_dir() {
   local dir="${1%/}" indent="$2"  # Strip trailing slash to avoid double-slash in paths
   [[ -d "$dir" ]] || return
 
-  # Subdirectories first
+  # Subdirectories first (archive/ sorted last)
+  local subdirs=()
+  local archive_dir=""
   for subdir in "$dir"/*/; do
     [[ -d "$subdir" ]] || continue
     local name=$(basename "$subdir")
     [[ "$name" == .* ]] && continue   # Skip hidden dirs
-    [[ "$name" == "archive" ]] && continue  # Skip archive dirs
+    if [[ "$name" == "archive" ]]; then
+      archive_dir="$subdir"
+    else
+      subdirs+=("$subdir")
+    fi
+  done
+  [[ -n "$archive_dir" ]] && subdirs+=("$archive_dir")
+
+  for subdir in "${subdirs[@]}"; do
+    local name=$(basename "$subdir")
     # Auto-scaffold: if dir has no index.md, create one from the dir name
     if [[ ! -f "${subdir%/}/index.md" ]]; then
       local scaffold_title=$(echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
