@@ -45,6 +45,7 @@ CI runs all of these on Ubuntu + macOS, Node 18 + 20.
 - Match existing code style
 - Run `bash scripts/validate-consistency.sh` before submitting
 - Skills and agents use YAML frontmatter — see `.lore/skills/lore-create-skill/SKILL.md` for the format
+- The `lore-*` prefix is reserved for framework-owned skills and agents — these are overwritten on sync. Operator-created skills and agents must not use this prefix
 
 ## Reporting Issues
 
