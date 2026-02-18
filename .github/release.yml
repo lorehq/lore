@@ -19,4 +19,4 @@ changelog:
         - chore
     - title: Other Changes
       labels:
-        - "*"
+        - '*'

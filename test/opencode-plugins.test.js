@@ -82,11 +82,9 @@ test('session-init: shows "(none yet)" when no agents', async (t) => {
 
 test('session-init: shows agent domains', async (t) => {
   const dir = setup({
-    registry: [
-      '| Agent | Domain | Description |',
-      '|---|---|---|',
-      '| `doc-agent` | Documentation | Docs |',
-    ].join('\n'),
+    registry: ['| Agent | Domain | Description |', '|---|---|---|', '| `doc-agent` | Documentation | Docs |'].join(
+      '\n',
+    ),
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
@@ -100,8 +98,7 @@ test('session-init: shows active roadmaps', async (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'test-rm');
   fs.mkdirSync(rmDir, { recursive: true });
-  fs.writeFileSync(path.join(rmDir, 'index.md'),
-    '---\ntitle: Test RM\nstatus: active\nsummary: Phase 1\n---\n');
+  fs.writeFileSync(path.join(rmDir, 'index.md'), '---\ntitle: Test RM\nstatus: active\nsummary: Phase 1\n---\n');
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
@@ -273,11 +270,8 @@ test('protect-memory: blocks writes to MEMORY.md at project root', async (t) => 
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
-    () => hooks['tool.execute.before'](
-      { tool: 'Write' },
-      { args: { file_path: path.join(dir, 'MEMORY.md') } }
-    ),
-    /MEMORY\.local\.md/
+    () => hooks['tool.execute.before']({ tool: 'Write' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
+    /MEMORY\.local\.md/,
   );
 });
 
@@ -287,11 +281,8 @@ test('protect-memory: blocks reads to MEMORY.md at project root', async (t) => {
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
-    () => hooks['tool.execute.before'](
-      { tool: 'Read' },
-      { args: { file_path: path.join(dir, 'MEMORY.md') } }
-    ),
-    /MEMORY\.local\.md/
+    () => hooks['tool.execute.before']({ tool: 'Read' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
+    /MEMORY\.local\.md/,
   );
 });
 
@@ -301,11 +292,8 @@ test('protect-memory: read error mentions MEMORY.local.md', async (t) => {
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
-    () => hooks['tool.execute.before'](
-      { tool: 'Read' },
-      { args: { file_path: path.join(dir, 'MEMORY.md') } }
-    ),
-    { message: /Read that file instead/ }
+    () => hooks['tool.execute.before']({ tool: 'Read' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
+    { message: /Read that file instead/ },
   );
 });
 
@@ -315,11 +303,8 @@ test('protect-memory: write error shows routing table', async (t) => {
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
-    () => hooks['tool.execute.before'](
-      { tool: 'Edit' },
-      { args: { file_path: path.join(dir, 'MEMORY.md') } }
-    ),
-    { message: /create-skill/ }
+    () => hooks['tool.execute.before']({ tool: 'Edit' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
+    { message: /create-skill/ },
   );
 });
 
@@ -328,10 +313,7 @@ test('protect-memory: allows MEMORY.local.md', async (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
-  await hooks['tool.execute.before'](
-    { tool: 'Write' },
-    { args: { file_path: path.join(dir, 'MEMORY.local.md') } }
-  );
+  await hooks['tool.execute.before']({ tool: 'Write' }, { args: { file_path: path.join(dir, 'MEMORY.local.md') } });
 });
 
 test('protect-memory: allows nested MEMORY.md', async (t) => {
@@ -339,10 +321,7 @@ test('protect-memory: allows nested MEMORY.md', async (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
-  await hooks['tool.execute.before'](
-    { tool: 'Write' },
-    { args: { file_path: path.join(dir, 'subdir', 'MEMORY.md') } }
-  );
+  await hooks['tool.execute.before']({ tool: 'Write' }, { args: { file_path: path.join(dir, 'subdir', 'MEMORY.md') } });
 });
 
 // ── Context Path Guide ──
@@ -357,7 +336,7 @@ test('context-path-guide: logs tree for docs/knowledge/ writes', async (t) => {
   const hooks = await ContextPathGuide({ directory: dir, client });
   await hooks['tool.execute.before'](
     { tool: 'Write' },
-    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'environment', 'new.md') } }
+    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'environment', 'new.md') } },
   );
   assert.equal(client.logs.length, 1);
   assert.ok(client.logs[0].message.includes('docs/knowledge/'));
@@ -374,7 +353,7 @@ test('context-path-guide: logs tree for docs/context/ writes', async (t) => {
   const hooks = await ContextPathGuide({ directory: dir, client });
   await hooks['tool.execute.before'](
     { tool: 'Write' },
-    { args: { file_path: path.join(dir, 'docs', 'context', 'test.md') } }
+    { args: { file_path: path.join(dir, 'docs', 'context', 'test.md') } },
   );
   assert.equal(client.logs.length, 1);
   assert.ok(client.logs[0].message.includes('docs/context/'));
@@ -387,10 +366,7 @@ test('context-path-guide: silent for non-docs writes', async (t) => {
   const client = mockClient();
   const { ContextPathGuide } = await import(pluginUrl(dir, 'context-path-guide.js'));
   const hooks = await ContextPathGuide({ directory: dir, client });
-  await hooks['tool.execute.before'](
-    { tool: 'Write' },
-    { args: { file_path: path.join(dir, 'src', 'main.js') } }
-  );
+  await hooks['tool.execute.before']({ tool: 'Write' }, { args: { file_path: path.join(dir, 'src', 'main.js') } });
   assert.equal(client.logs.length, 0);
 });
 
@@ -402,7 +378,7 @@ test('context-path-guide: silent for read tools', async (t) => {
   const hooks = await ContextPathGuide({ directory: dir, client });
   await hooks['tool.execute.before'](
     { tool: 'Read' },
-    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'test.md') } }
+    { args: { file_path: path.join(dir, 'docs', 'knowledge', 'test.md') } },
   );
   assert.equal(client.logs.length, 0);
 });
@@ -412,8 +388,5 @@ test('protect-memory: ignores non-file tools', async (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { ProtectMemory } = await import(pluginUrl(dir, 'protect-memory.js'));
   const hooks = await ProtectMemory({ directory: dir });
-  await hooks['tool.execute.before'](
-    { tool: 'Bash' },
-    { args: { command: 'cat MEMORY.md' } }
-  );
+  await hooks['tool.execute.before']({ tool: 'Bash' }, { args: { command: 'cat MEMORY.md' } });
 });

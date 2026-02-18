@@ -1,0 +1,5 @@
+docs/
+*.md
+mkdocs.yml
+package-lock.json
+node_modules/

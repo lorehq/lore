@@ -87,18 +87,28 @@ test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', (t) =>
   });
 
   // Should block hub's MEMORY.md
-  const blocked = runClaudeHook('protect-memory.js', work, {
-    tool_name: 'Read',
-    tool_input: { file_path: path.join(hub, 'MEMORY.md') },
-  }, { LORE_HUB: hub });
+  const blocked = runClaudeHook(
+    'protect-memory.js',
+    work,
+    {
+      tool_name: 'Read',
+      tool_input: { file_path: path.join(hub, 'MEMORY.md') },
+    },
+    { LORE_HUB: hub },
+  );
   const parsed = JSON.parse(blocked.stdout);
   assert.ok(parsed.decision === 'block');
 
   // Should allow work repo's MEMORY.md (not at hub root)
-  const allowed = runClaudeHook('protect-memory.js', work, {
-    tool_name: 'Read',
-    tool_input: { file_path: path.join(work, 'MEMORY.md') },
-  }, { LORE_HUB: hub });
+  const allowed = runClaudeHook(
+    'protect-memory.js',
+    work,
+    {
+      tool_name: 'Read',
+      tool_input: { file_path: path.join(work, 'MEMORY.md') },
+    },
+    { LORE_HUB: hub },
+  );
   assert.equal(allowed.stdout, '');
 });
 
@@ -127,9 +137,14 @@ test('cursor knowledge-tracker with LORE_HUB: reads thresholds from hub', (t) =>
 
   // With custom thresholds in hub, 3 bash commands should still be silent (nudge=10)
   for (let i = 0; i < 3; i++) {
-    runCursorHook('knowledge-tracker.js', work, {
-      filePath: '/some/file.js',
-    }, { LORE_HUB: hub });
+    runCursorHook(
+      'knowledge-tracker.js',
+      work,
+      {
+        filePath: '/some/file.js',
+      },
+      { LORE_HUB: hub },
+    );
   }
   // No nav-dirty flag should exist (no docs/ write)
   assert.ok(!fs.existsSync(path.join(hub, '.git', 'lore-nav-dirty')));
@@ -140,10 +155,15 @@ test('without LORE_HUB: hooks use cwd (existing behavior)', (t) => {
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
 
   // protect-memory should block cwd's MEMORY.md when no LORE_HUB
-  const { stdout } = runClaudeHook('protect-memory.js', work, {
-    tool_name: 'Read',
-    tool_input: { file_path: path.join(work, 'MEMORY.md') },
-  }, {});
+  const { stdout } = runClaudeHook(
+    'protect-memory.js',
+    work,
+    {
+      tool_name: 'Read',
+      tool_input: { file_path: path.join(work, 'MEMORY.md') },
+    },
+    {},
+  );
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.decision === 'block');
 });
@@ -157,10 +177,16 @@ test('lore-link creates all expected files', (t) => {
   assert.equal(code, 0);
 
   const expected = [
-    '.lore', '.claude/settings.json', '.cursor/hooks.json',
-    '.cursor/rules/lore.mdc', 'CLAUDE.md', '.cursorrules',
-    '.opencode/plugins/session-init.js', '.opencode/plugins/protect-memory.js',
-    '.opencode/plugins/knowledge-tracker.js', 'opencode.json',
+    '.lore',
+    '.claude/settings.json',
+    '.cursor/hooks.json',
+    '.cursor/rules/lore.mdc',
+    'CLAUDE.md',
+    '.cursorrules',
+    '.opencode/plugins/session-init.js',
+    '.opencode/plugins/protect-memory.js',
+    '.opencode/plugins/knowledge-tracker.js',
+    'opencode.json',
   ];
   for (const f of expected) {
     assert.ok(fs.existsSync(path.join(work, f)), `Missing: ${f}`);
@@ -202,7 +228,7 @@ test('.lore-links in hub contains the target path', (t) => {
   runScript(`"${work}"`);
 
   const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
-  assert.ok(links.some(l => l.path === work));
+  assert.ok(links.some((l) => l.path === work));
 
   runScript(`--unlink "${work}"`);
 });
@@ -218,7 +244,7 @@ test('lore-link --unlink removes generated files', (t) => {
   assert.ok(!fs.existsSync(path.join(work, 'CLAUDE.md')));
 
   const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
-  assert.ok(!links.some(l => l.path === work));
+  assert.ok(!links.some((l) => l.path === work));
 });
 
 test('lore-link --list shows linked repos', (t) => {

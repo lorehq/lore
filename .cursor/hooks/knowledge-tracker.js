@@ -8,7 +8,14 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { processToolUse, getThresholds, isDocsWrite, getNavFlagPath, setNavDirty, navReminder } = require('../../lib/tracker');
+const {
+  processToolUse,
+  getThresholds,
+  isDocsWrite,
+  getNavFlagPath,
+  setNavDirty,
+  navReminder,
+} = require('../../lib/tracker');
 
 let input = {};
 try {
@@ -34,13 +41,17 @@ const stateFile = fs.existsSync(gitDir)
   : path.join(require('os').tmpdir(), `lore-tracker-${hash}.json`);
 
 function readState() {
-  try { return JSON.parse(fs.readFileSync(stateFile, 'utf8')); }
-  catch { return { bash: 0 }; }
+  try {
+    return JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  } catch {
+    return { bash: 0 };
+  }
 }
 
 function writeState(s) {
-  try { fs.writeFileSync(stateFile, JSON.stringify(s)); }
-  catch {} // Non-critical — worst case we lose the counter
+  try {
+    fs.writeFileSync(stateFile, JSON.stringify(s));
+  } catch {} // Non-critical — worst case we lose the counter
 }
 
 // Nav-dirty flag

@@ -42,9 +42,7 @@ const treeDepth = cfg.treeDepth ?? 5;
 
 // Show tree of whichever directory the write targets
 const isKnowledge = resolved.startsWith(knowledgePrefix);
-const targetDir = isKnowledge
-  ? path.join(hubDir, 'docs', 'knowledge')
-  : path.join(hubDir, 'docs', 'context');
+const targetDir = isKnowledge ? path.join(hubDir, 'docs', 'knowledge') : path.join(hubDir, 'docs', 'context');
 const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
 const treeLines = fs.existsSync(targetDir)
   ? buildTree(targetDir, '', { maxDepth: treeDepth, skipDirs: new Set(), skipArchive: false })

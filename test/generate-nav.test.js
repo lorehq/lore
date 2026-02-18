@@ -13,7 +13,7 @@ function setup() {
   fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
   fs.copyFileSync(
     path.join(__dirname, '..', 'scripts', 'generate-nav.sh'),
-    path.join(dir, 'scripts', 'generate-nav.sh')
+    path.join(dir, 'scripts', 'generate-nav.sh'),
   );
   fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'index.md'), '# Home\n');

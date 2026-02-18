@@ -3,9 +3,9 @@
 // Thin ESM adapter — core logic lives in lib/banner.js.
 
 // OpenCode plugins are ESM but shared lib is CJS. createRequire bridges the gap.
-import { createRequire } from "node:module";
+import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { buildBanner, ensureStickyFiles } = require("../../lib/banner");
+const { buildBanner, ensureStickyFiles } = require('../../lib/banner');
 
 export const SessionInit = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
@@ -13,20 +13,20 @@ export const SessionInit = async ({ directory, client }) => {
   // picks up the agent-rules.md template on first run.
   ensureStickyFiles(hub);
   await client.app.log({
-    body: { service: "session-init", level: "info", message: buildBanner(hub) },
+    body: { service: 'session-init', level: 'info', message: buildBanner(hub) },
   });
 
   return {
-    "session.created": async (_input, output = {}) => {
+    'session.created': async (_input, output = {}) => {
       ensureStickyFiles(hub);
       const banner = buildBanner(hub);
       await client.app.log({
-        body: { service: "session-init", level: "info", message: banner },
+        body: { service: 'session-init', level: 'info', message: banner },
       });
       if (Array.isArray(output?.context)) output.context.push(banner);
     },
     // Re-inject after compaction so the banner survives context window trimming.
-    "experimental.session.compacting": async (_input, output) => {
+    'experimental.session.compacting': async (_input, output) => {
       ensureStickyFiles(hub);
       output.context.push(buildBanner(hub));
     },

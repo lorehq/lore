@@ -5,7 +5,14 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { processToolUse, getThresholds, isDocsWrite, getNavFlagPath, setNavDirty, navReminder } = require('../lib/tracker');
+const {
+  processToolUse,
+  getThresholds,
+  isDocsWrite,
+  getNavFlagPath,
+  setNavDirty,
+  navReminder,
+} = require('../lib/tracker');
 const { debug } = require('../lib/debug');
 
 // -- State file location --
@@ -18,13 +25,20 @@ const STATE_FILE = fs.existsSync(gitDir)
   : path.join(require('os').tmpdir(), `lore-tracker-${hash}.json`);
 
 function readState() {
-  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
-  catch (e) { debug('readState: %s', e.message); return { bash: 0 }; }
+  try {
+    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+  } catch (e) {
+    debug('readState: %s', e.message);
+    return { bash: 0 };
+  }
 }
 
 function writeState(s) {
-  try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); }
-  catch (e) { debug('writeState: %s', e.message); } // Non-critical — worst case we lose the counter
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify(s));
+  } catch (e) {
+    debug('writeState: %s', e.message);
+  } // Non-critical — worst case we lose the counter
 }
 
 // -- Parse hook input from stdin --
@@ -34,7 +48,9 @@ try {
     const s = fs.readFileSync(0, 'utf8');
     if (s) input = JSON.parse(s);
   }
-} catch (e) { debug('stdin parse: %s', e.message); }
+} catch (e) {
+  debug('stdin parse: %s', e.message);
+}
 
 const tool = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
@@ -49,7 +65,9 @@ if (isDocsWrite(tool, filePath)) setNavDirty(navFlag);
 // -- Process tool use --
 const state = readState();
 const result = processToolUse({
-  tool, filePath, isFailure,
+  tool,
+  filePath,
+  isFailure,
   bashCount: state.bash,
   thresholds: getThresholds(hubDir),
 });
@@ -62,7 +80,9 @@ if (result.silent) {
   if (extra) output.additionalContext = extra;
   console.log(JSON.stringify({ hookSpecificOutput: output }));
 } else {
-  console.log(JSON.stringify({
-    hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
-  }));
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
+    }),
+  );
 }

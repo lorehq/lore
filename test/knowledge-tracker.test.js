@@ -93,7 +93,11 @@ test('knowledge capture resets counter', (t) => {
 test('MEMORY.local.md write: scratch notes warning', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const out = runHook(dir, { tool_name: 'Write', tool_input: { file_path: '/proj/MEMORY.local.md' }, hook_event_name: 'PostToolUse' });
+  const out = runHook(dir, {
+    tool_name: 'Write',
+    tool_input: { file_path: '/proj/MEMORY.local.md' },
+    hook_event_name: 'PostToolUse',
+  });
   assert.ok(out.additionalContext.includes('scratch notes'));
 });
 
