@@ -48,18 +48,18 @@ None of this pollutes your work repos.
 
 ## IDE Workflow: lore link
 
-The One Rule works for CLI tools. For IDEs, opening the Lore project means losing the work repo's file tree, git, and search. `lore link` resolves this — run it once from the hub and hooks follow you into the work repo.
+The One Rule works for CLI tools. For IDEs, opening the Lore project means losing the work repo's file tree, git, and search. `/lore-link` resolves this — run it once from the hub and hooks follow you into the work repo.
 
-```bash
-bash scripts/lore-link.sh ~/projects/my-app          # Link a work repo
-bash scripts/lore-link.sh --unlink ~/projects/my-app  # Remove the link
-bash scripts/lore-link.sh --list                       # Show linked repos
-bash scripts/lore-link.sh --refresh                    # Regenerate all configs
+```
+/lore-link ~/projects/my-app          # Link a work repo
+/lore-link --unlink ~/projects/my-app  # Remove the link
+/lore-link --list                       # Show linked repos
+/lore-link --refresh                    # Regenerate all configs
 ```
 
-The script generates lightweight configs in the target repo that delegate to the hub's hooks via `LORE_HUB`. All generated files are auto-gitignored. Knowledge still captures to the hub.
+This generates lightweight configs in the target repo that delegate to the hub's hooks via `LORE_HUB`. All generated files are auto-gitignored. Knowledge still captures to the hub.
 
-Run `--refresh` after `/lore-update` to regenerate configs with the latest hooks.
+Run `/lore-link --refresh` after `/lore-update` to regenerate configs with the latest hooks.
 
 ## Framework Updates
 
