@@ -1,7 +1,7 @@
 {
   "version": 1,
   "hooks": {
-    "beforeSubmitPrompt": [{ "command": "node .cursor/hooks/prompt-preamble.js" }],
+    "sessionStart": [{ "command": "node .cursor/hooks/session-init.js" }],
     "beforeReadFile": [{ "command": "node .cursor/hooks/protect-memory.js" }],
     "afterFileEdit": [{ "command": "node .cursor/hooks/knowledge-tracker.js" }],
     "afterShellExecution": [{ "command": "node .cursor/hooks/knowledge-tracker.js" }]
