@@ -140,27 +140,15 @@ test('session-init: compaction pushes banner to context', async (t) => {
   assert.ok(output.context[0].includes('=== LORE v2.0.0 ==='));
 });
 
-test('session-init: session.created re-emits banner', async (t) => {
+test('session-init: system.transform pushes banner to system prompt', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   const hooks = await SessionInit({ directory: dir, client });
-  client.logs.length = 0;
-  await hooks['session.created']();
-  assert.equal(client.logs.length, 1);
-  assert.ok(client.logs[0].message.includes('=== LORE v2.0.0 ==='));
-});
-
-test('session-init: session.created pushes banner to context', async (t) => {
-  const dir = setup({ config: { version: '2.0.0' } });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const client = mockClient();
-  const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
-  const hooks = await SessionInit({ directory: dir, client });
-  const output = { context: [] };
-  await hooks['session.created']({}, output);
-  assert.ok(output.context[0].includes('=== LORE v2.0.0 ==='));
+  const output = { system: [] };
+  await hooks['experimental.chat.system.transform']({}, output);
+  assert.ok(output.system[0].includes('=== LORE v2.0.0 ==='));
 });
 
 // ── Knowledge Tracker ──
