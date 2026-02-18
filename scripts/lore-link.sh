@@ -36,6 +36,11 @@ GENERATED_FILES=(
   .opencode/plugins/session-init.js
   .opencode/plugins/protect-memory.js
   .opencode/plugins/knowledge-tracker.js
+  .opencode/commands/lore-capture.md
+  .opencode/commands/lore-consolidate.md
+  .opencode/commands/lore-status.md
+  .opencode/commands/lore-update.md
+  .opencode/commands/lore-ui.md
   opencode.json
 )
 
@@ -53,7 +58,7 @@ do_link() {
     backup_if_exists "$target/$f"
   done
 
-  mkdir -p "$target/.claude" "$target/.cursor/rules" "$target/.opencode/plugins"
+  mkdir -p "$target/.claude" "$target/.cursor/rules" "$target/.opencode/plugins" "$target/.opencode/commands"
 
   # .lore marker
   local now
@@ -123,6 +128,13 @@ do_link() {
     " "$HUB" "$name" "$export_name" "$target/.opencode/plugins/$name.js"
   done
 
+  # OpenCode custom slash commands
+  cp "$HUB/.opencode/commands/lore-capture.md" "$target/.opencode/commands/lore-capture.md"
+  cp "$HUB/.opencode/commands/lore-consolidate.md" "$target/.opencode/commands/lore-consolidate.md"
+  cp "$HUB/.opencode/commands/lore-status.md" "$target/.opencode/commands/lore-status.md"
+  cp "$HUB/.opencode/commands/lore-update.md" "$target/.opencode/commands/lore-update.md"
+  cp "$HUB/.opencode/commands/lore-ui.md" "$target/.opencode/commands/lore-ui.md"
+
   # opencode.json
   node -e "
     const fs = require('fs');
@@ -164,7 +176,7 @@ do_unlink() {
   done
 
   # Clean up empty directories
-  rmdir "$target/.opencode/plugins" "$target/.opencode" 2>/dev/null || true
+  rmdir "$target/.opencode/plugins" "$target/.opencode/commands" "$target/.opencode" 2>/dev/null || true
   rmdir "$target/.cursor/rules" "$target/.cursor" 2>/dev/null || true
   rmdir "$target/.claude" 2>/dev/null || true
 
