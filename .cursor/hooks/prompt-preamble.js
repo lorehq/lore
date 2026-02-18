@@ -1,32 +1,21 @@
 // Hook: beforeSubmitPrompt
-// Fires before every user message. Injects condensed banner essentials
-// (survives compaction) plus tracker state accumulated by afterFileEdit
-// and afterShellExecution (whose output Cursor ignores).
+// Fires before every user message. Injects the full session banner plus
+// tracker state. Cursor's initial auto-opened session skips sessionStart,
+// so we inject here to guarantee orientation on every prompt. Each prompt
+// gets a fresh rebuild — no accumulation across turns (Cursor replaces
+// prior additional_context on compaction).
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { getThresholds, getNavFlagPath, navReminder } = require('../../lib/tracker');
-const { getAgentDomains, scanWork } = require('../../lib/banner');
+const { buildBanner } = require('../../lib/banner');
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..');
 
-// --- Condensed banner (always injected, survives compaction) ---
-const parts = [];
-
-const agents = getAgentDomains(hubDir);
-if (agents.length > 0) parts.push(`Delegate: ${agents.join(', ')}`);
-parts.push('Multi-step? -> task list; parallelize independent subtasks via subagents');
-
-const docsWork = path.join(hubDir, 'docs', 'work');
-const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
-const plans = scanWork(path.join(docsWork, 'plans'));
-if (roadmaps.length > 0) parts.push(`Active: ${roadmaps.join('; ')}`);
-if (plans.length > 0) parts.push(`Plans: ${plans.join('; ')}`);
-
-parts.push('Knowledge hub — code changes in external repos');
-parts.push('Conventions: docs/context/conventions/');
+// --- Full banner (rebuilt fresh each prompt) ---
+const banner = buildBanner(hubDir);
 
 // --- Tracker state (read-back from after-hooks) ---
 const hash = crypto.createHash('md5').update(cwd).digest('hex').slice(0, 8);
@@ -41,15 +30,20 @@ try {
 } catch {}
 
 const { nudge, warn } = getThresholds(hubDir);
+const trackerParts = [];
 
 if (bashCount >= warn) {
-  parts.push(`${bashCount} consecutive commands — capture what you learned → lore-create-skill`);
+  trackerParts.push(`${bashCount} consecutive commands — capture what you learned → lore-create-skill`);
 } else if (bashCount >= nudge) {
-  parts.push(`${bashCount} commands in a row — gotcha worth a skill?`);
+  trackerParts.push(`${bashCount} commands in a row — gotcha worth a skill?`);
 }
 
 const navFlag = getNavFlagPath(hubDir);
 const navMsg = navReminder(navFlag, null);
-if (navMsg) parts.push(navMsg);
+if (navMsg) trackerParts.push(navMsg);
 
-console.log(JSON.stringify({ additional_context: `[${parts.join(' | ')}]`, continue: true }));
+const output = trackerParts.length > 0
+  ? banner + '\n\n' + trackerParts.join('\n')
+  : banner;
+
+console.log(JSON.stringify({ additional_context: output, continue: true }));
