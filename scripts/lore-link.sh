@@ -99,7 +99,7 @@ do_link() {
     const config = {
       version: 1,
       hooks: {
-        sessionStart: [{ command: cmd('session-init.js') }],
+        beforeSubmitPrompt: [{ command: cmd('prompt-preamble.js') }],
         beforeReadFile: [{ command: cmd('protect-memory.js') }],
         afterFileEdit: [{ command: cmd('knowledge-tracker.js') }],
         afterShellExecution: [{ command: cmd('knowledge-tracker.js') }]
