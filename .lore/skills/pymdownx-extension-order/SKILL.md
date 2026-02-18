@@ -1,6 +1,6 @@
 ---
 name: pymdownx-extension-order
-domain: documentation
+domain: Documentation
 description: pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes
 ---
 
