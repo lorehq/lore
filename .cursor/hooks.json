@@ -4,6 +4,9 @@
     "sessionStart": [
       { "command": "node .cursor/hooks/session-init.js" }
     ],
+    "beforeSubmitPrompt": [
+      { "command": "node .cursor/hooks/prompt-preamble.js" }
+    ],
     "beforeReadFile": [
       { "command": "node .cursor/hooks/protect-memory.js" }
     ],
