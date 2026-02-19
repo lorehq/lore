@@ -88,7 +88,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 ## File Layout
 
-- Instructions: `.lore/instructions.md` (canonical), `CLAUDE.md` + `.cursorrules` (generated)
+- Instructions: `.lore/instructions.md` (canonical), `CLAUDE.md` (generated), `.cursor/rules/lore-*.mdc` (generated)
 - Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
 - Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
 - Registries: `agent-registry.md`, `skills-registry.md` (auto-generated via `scripts/generate-registries.sh`)

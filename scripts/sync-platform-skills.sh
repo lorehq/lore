@@ -3,7 +3,7 @@
 # Copies .lore/ canonical files into platform directories. Does NOT use
 # --delete — user-added content in .claude/skills/ etc. is preserved.
 #
-# Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursorrules), OpenCode
+# Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursor/rules/lore-*.mdc), OpenCode
 # Future: Windsurf, etc.
 
 set -euo pipefail
