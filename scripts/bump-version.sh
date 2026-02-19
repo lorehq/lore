@@ -30,7 +30,7 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 1
 fi
 
-CURRENT="$(node -p "require('$LORE_ROOT/package.json').version")"
+CURRENT="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/package.json','utf8')).version")"
 echo "=== Bumping $CURRENT → $VERSION ==="
 echo ""
 
