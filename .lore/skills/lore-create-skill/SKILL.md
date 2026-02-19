@@ -2,6 +2,7 @@
 name: lore-create-skill
 description: Create a new skill when an operation required non-obvious knowledge
 domain: Orchestrator
+type: command
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
 ---
@@ -28,7 +29,7 @@ Keep it **30-80 lines**. Only document what's non-obvious. Skills must be generi
 ---
 name: <skill-name>
 description: One-line description
-domain: Specific Domain Name
+domain: Orchestrator
 user-invocable: false
 allowed-tools: Bash, Read, etc
 ---
@@ -42,12 +43,19 @@ allowed-tools: Bash, Read, etc
 
 ### Step 2: Choose Domain
 
-Domain = the **tool/platform/service** used, NOT the purpose.
+**Default to Orchestrator.** The domain is the **tool at the bottom of the call stack** — the specific tool that broke or had the gotcha, not a category.
 
-- Uses specific external tool/API/CLI? → Domain = that tool/platform
-- About Lore's own operation? → Domain = Orchestrator
-- Built-in agent tools (Bash, Read, Write, Grep, Task, etc.)? → Domain = Orchestrator. Don't create agents for framework tools.
-- Unsure? → "What breaks if this service is unavailable?" = your domain
+Examples:
+
+- Bash calls `mkdocs build` and it fails on extension order → domain is `mkdocs`, not "Documentation"
+- `git mv` fails on gitignored files → domain is `git`, not "VCS"
+- `docker-compose up` has a volume gotcha → domain is `docker-compose`, not "Infrastructure"
+- About Lore's own operation? → domain is `Orchestrator`
+- Built-in agent tools (Bash, Read, Write, Grep, Task, etc.)? → domain is `Orchestrator`. Don't create agents for framework tools.
+
+**Don't invent domains eagerly.** A new skill defaults to Orchestrator unless it clearly belongs to an existing domain with multiple skills. A domain earns existence when multiple skills cluster around the same tool.
+
+Framework commands (`lore-*` prefix) always use `type: command` in frontmatter and domain `Orchestrator`.
 
 ### Step 3: Update Registries
 
@@ -55,15 +63,18 @@ Domain = the **tool/platform/service** used, NOT the purpose.
 bash scripts/generate-registries.sh
 ```
 
-### Step 4: Create Agent if Needed
+### Step 4: Check Agent Clustering
 
-Domain = Agent (1:1). No orphaned skills. Check if agent exists:
+A domain earns an agent when **multiple skills cluster** around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent.
+
+Check if enough skills exist for the domain:
 
 ```bash
-grep -i "domain: <domain>" .lore/agents/*.md
+grep -rl "domain: <domain>" .lore/skills/*/SKILL.md | wc -l
 ```
 
-No agent? → Create one now using the lore-create-agent skill. Same session.
+- 2+ skills in a domain with no agent? → Consider creating one using the lore-create-agent skill.
+- 1 skill in a new domain? → Leave it. The domain and agent can form later when more skills cluster.
 
 ### Step 5: Sync Platform Copies
 

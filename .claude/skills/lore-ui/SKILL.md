@@ -1,7 +1,8 @@
 ---
 name: lore-ui
 description: Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs.
-domain: Documentation
+domain: Orchestrator
+type: command
 user-invocable: true
 allowed-tools: Bash
 ---

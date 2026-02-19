@@ -37,16 +37,18 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 {
   echo "# Skills Registry"
   echo ""
-  echo "| Skill | Domain | Description |"
-  echo "|-------|--------|-------------|"
+  echo "| Skill | Domain | Type | Description |"
+  echo "|-------|--------|------|-------------|"
 
   for skill_file in "$REPO_ROOT"/.lore/skills/*/SKILL.md; do
     [ -f "$skill_file" ] || continue
     name=$(extract_field name "$skill_file")
     [ -z "$name" ] && continue
     domain=$(extract_field domain "$skill_file")
+    skill_type=$(extract_field type "$skill_file")
+    [ -z "$skill_type" ] && skill_type="—"
     desc=$(extract_field description "$skill_file")
-    echo "| $name | $domain | $desc |"
+    echo "| $name | $domain | $skill_type | $desc |"
   done
   echo ""
 } > skills-registry.md

@@ -31,8 +31,8 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 - Framework skills: `lore-capture`, `lore-create-skill`, etc.
 - Operator skills: `bash-macos-compat`, `deploy-staging`, etc.
-- Framework agents: `lore-documentation-agent`, etc.
-- Operator agents: `infrastructure-agent`, etc.
+- Framework agents: `lore-<tool>-agent`, etc.
+- Operator agents: `git-agent`, `mkdocs-agent`, etc.
 
 Discovered gotchas are operator-owned from birth — Lore creates the file, operator owns it. If a skill already exists, warn and skip.
 
@@ -48,9 +48,13 @@ Actively map the environment as you encounter it. When you interact with a URL, 
 
 ## Agent Creation
 
-**Domain = Agent (1:1). No orphaned skills.** Create immediately when skill has clear domain, even with 1 skill.
+**Domain = Agent (1:1).** A domain earns an agent when multiple skills cluster around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent — it stays in Orchestrator until more skills cluster.
 
-Naming: `lore-<domain-slug>-agent` for framework agents, `<domain-slug>-agent` for operator agents. See `.lore/skills/lore-create-agent/SKILL.md`.
+The domain name is the **tool name** — the specific tool at the bottom of the call stack, not a category. Examples: `git-agent`, `mkdocs-agent`, `docker-compose-agent` — not "VCS agent" or "Documentation agent".
+
+Naming: `lore-<tool-name>-agent` for framework agents, `<tool-name>-agent` for operator agents. See `.lore/skills/lore-create-agent/SKILL.md`.
+
+`lore-*` skills with `type: command` in frontmatter are framework commands (e.g., `lore-capture`, `lore-create-skill`), not domain knowledge. They always belong to Orchestrator and don't count toward domain clustering.
 
 Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
 

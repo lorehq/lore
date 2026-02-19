@@ -1,19 +1,20 @@
 ---
 name: lore-create-agent
-description: Create a domain agent when a skill has a clear domain
+description: Create a domain agent when skills cluster around a specific tool
 domain: Orchestrator
+type: command
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
 ---
 
 # Create Agent
 
-Domain = Agent (1:1). Create immediately when skill has clear domain, even with 1 skill.
+Domain = Agent (1:1). A domain earns an agent when multiple skills cluster around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent.
 
 ## When to Create
 
-- Skill has clear domain boundary (specific service/platform)
-- After creating any skill — check if domain has an agent
+- Multiple skills (2+) cluster around the same specific tool/service/platform
+- The clustering makes delegation genuinely valuable (domain-specific expertise)
 
 ## Process
 
@@ -71,6 +72,6 @@ bash scripts/sync-platform-skills.sh
 
 ## Naming
 
-Pattern: `<domain-slug>-agent` (e.g., `github-agent`, `docker-agent`). Domain slug = lowercase, kebab-case.
+Pattern: `<tool-name>-agent` (e.g., `git-agent`, `mkdocs-agent`, `docker-compose-agent`). The domain name is the tool name — the specific tool at the bottom of the call stack, not a category. Lowercase, kebab-case.
 
 **Do not use the `lore-` prefix** — that's reserved for framework agents. Operator agents use descriptive names without the prefix.

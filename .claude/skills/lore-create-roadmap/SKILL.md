@@ -2,6 +2,7 @@
 name: lore-create-roadmap
 description: Create a roadmap folder with frontmatter and validation
 domain: Orchestrator
+type: command
 user-invocable: false
 allowed-tools: Write, Read, Bash, Glob
 ---

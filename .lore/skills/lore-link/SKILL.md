@@ -2,6 +2,7 @@
 name: lore-link
 description: Link and unlink work repos to the Lore hub
 domain: Orchestrator
+type: command
 user-invocable: true
 allowed-tools: Bash, Read, Glob
 ---

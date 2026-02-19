@@ -110,8 +110,8 @@ For multi-step work, state the plan up front:
 **Docs solve real problems. They are not a deliverable.**
 
 - Don't proactively generate README files, architecture docs, or guides unless requested.
-- Don't document what the code already makes obvious. `getUserById(id)` doesn't need a comment.
-- Don't add docstrings, type annotations, or inline comments to code you didn't change.
+- Don't write a page that restates what another page already covers. Link instead.
+- Don't document internal implementation details that only matter if you're reading the source.
 - If you wouldn't read it, don't write it.
 
 ## 5. Be Precise
