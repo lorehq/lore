@@ -12,7 +12,7 @@ This replaces what you'd normally put in `CLAUDE.md` / `.cursor/rules/` — but 
 
 ## Conventions
 
-`docs/context/conventions/` holds behavioral rules the agent follows when writing files. Each `.md` file is one convention. A write-time guard hook reinforces relevant conventions before every file write based on the target path — security fires on every write, docs fires for `docs/` paths, and so on. Remaining conventions are listed as a menu so the agent can self-serve.
+`docs/context/conventions/` holds behavioral rules the agent follows when writing files. Each `.md` file is one convention. Convention names are listed before every user message to keep them discoverable, and a write-time guard reinforces relevant principles before every file write based on the target path — security fires on every write, docs fires for `docs/` paths, and so on. Remaining conventions are listed as a menu so the agent can self-serve.
 
 To add a custom convention, drop a markdown file in the directory. Use bold principle lines (`**Like this.**`) — the guard extracts these for write-time reminders. No hook changes needed.
 
