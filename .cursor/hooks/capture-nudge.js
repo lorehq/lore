@@ -14,7 +14,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { getThresholds, getNavFlagPath } = require('../../lib/tracker');
-const { getAgentDomains } = require('../../lib/banner');
 const { getConfig } = require('../../lib/config');
 const { logHookEvent } = require('../../lib/hook-logger');
 
@@ -72,9 +71,7 @@ if (compacted) {
   // Post-compaction re-orientation — highest priority, delivers key context
   const cfg = getConfig(hubDir);
   const version = cfg.version ? `v${cfg.version}` : '';
-  const domains = getAgentDomains(hubDir);
-  const delegateStr = domains.length > 0 ? domains.join(', ') : 'none';
-  msg = `[COMPACTED] Lore ${version} | Delegate: ${delegateStr} | Re-read .cursor/rules/ and project context`;
+  msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 see agent-registry.md | Re-read .cursor/rules/ and project context`;
   clearCompacted();
 } else {
   // Normal operation — escalating nudge based on consecutive bash count

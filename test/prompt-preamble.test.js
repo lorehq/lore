@@ -64,18 +64,17 @@ test('prompt-preamble: always includes task list reminder', () => {
   }
 });
 
-test('prompt-preamble: no agents — no Delegate prefix', () => {
+test('prompt-preamble: no agents — no delegation line', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(!out.includes('Delegate:'), 'should not include Delegate without agents');
-    assert.equal(out, '[New context? → docs/knowledge/ | Active work? → update progress]');
+    assert.ok(!out.includes('Delegate'), 'should not include delegation without agents');
   } finally {
     cleanup(dir);
   }
 });
 
-test('prompt-preamble: with agents — includes Delegate', () => {
+test('prompt-preamble: with agents — points to registry', () => {
   const dir = setup({
     registry: [
       '| Agent | Domain | Model |',
@@ -86,8 +85,28 @@ test('prompt-preamble: with agents — includes Delegate', () => {
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes('Delegate: Documentation, Infrastructure'), 'should list agent domains');
+    assert.ok(out.includes('Delegate tasks to agents'), 'should include delegation nudge');
+    assert.ok(out.includes('agent-registry.md'), 'should point to registry');
+    assert.ok(!out.includes('Documentation, Infrastructure'), 'should not list domain names inline');
     assert.ok(out.includes('New context?'), 'should still include knowledge discovery nudge');
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test('prompt-preamble: with conventions — lists names', () => {
+  const dir = setup();
+  const convDir = path.join(dir, 'docs', 'context', 'conventions');
+  fs.mkdirSync(convDir, { recursive: true });
+  fs.writeFileSync(path.join(convDir, 'coding.md'), '# Coding\n');
+  fs.writeFileSync(path.join(convDir, 'security.md'), '# Security\n');
+  fs.writeFileSync(path.join(convDir, 'index.md'), '# Overview\n');
+  try {
+    const out = run(dir);
+    assert.ok(out.includes('Conventions:'), 'should include conventions label');
+    assert.ok(out.includes('coding'), 'should list coding convention');
+    assert.ok(out.includes('security'), 'should list security convention');
+    assert.ok(!out.includes('index'), 'should exclude index.md');
   } finally {
     cleanup(dir);
   }
