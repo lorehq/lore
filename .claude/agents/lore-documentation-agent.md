@@ -2,7 +2,9 @@
 name: lore-documentation-agent
 description: Documentation operations specialist. Generated from skills.
 domain: Documentation
-model: sonnet
+claude-model: sonnet
+opencode-model: openai/gpt-4o
+cursor-model: # not yet supported
 skills:
   - lore-ui
 ---
