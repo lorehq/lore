@@ -39,6 +39,10 @@ Run these checks and present a formatted summary to the operator:
    - `postToolUseFailure` → `failure-tracker.js`
    - `preCompact` → `compaction-flag.js`
 
+   **Cursor MCP** (`.cursor/mcp.json`):
+   - Config exists and references `lore-server.js`
+   - `.cursor/mcp/lore-server.js` exists
+
    **OpenCode** (`.opencode/plugins/`):
    - `session-init.js`
    - `protect-memory.js`
@@ -64,6 +68,7 @@ Run these checks and present a formatted summary to the operator:
    Hooks:
      Claude Code   OK
      Cursor        OK
+     Cursor MCP    OK
      OpenCode      OK
 
    Skills: 12 | Agents: 2 | Knowledge docs: 5 | Runbooks: 1

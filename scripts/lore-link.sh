@@ -30,6 +30,7 @@ GENERATED_FILES=(
   .lore
   .claude/settings.json
   .cursor/hooks.json
+  .cursor/mcp.json
   .cursor/rules/lore-core.mdc
   .cursor/rules/lore-project.mdc
   .cursor/rules/lore-work-tracking.mdc
@@ -116,6 +117,23 @@ do_link() {
     };
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/.cursor/hooks.json"
+
+  # Cursor MCP config — points to hub's lore-server.js with LORE_HUB so the
+  # server resolves shared libs and knowledge files from the hub, not the target repo.
+  node -e "
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const config = {
+      mcpServers: {
+        lore: {
+          command: 'node',
+          args: [hub + '/.cursor/mcp/lore-server.js'],
+          env: { LORE_HUB: hub }
+        }
+      }
+    };
+    fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
+  " "$HUB" "$target/.cursor/mcp.json"
 
   # Instructions copy (Claude Code)
   cp "$HUB/.lore/instructions.md" "$target/CLAUDE.md"

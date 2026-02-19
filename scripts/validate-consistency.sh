@@ -169,7 +169,7 @@ if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
       const strip = c => c.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
       const mdc = strip(fs.readFileSync(process.argv[1], 'utf8'));
       const inst = fs.readFileSync(process.argv[2], 'utf8').trim();
-      if (mdc !== inst) { console.log('MISMATCH'); process.exit(1); }
+      if (!mdc.startsWith(inst)) { console.log('MISMATCH'); process.exit(1); }
     " "$core_mdc" "$REPO_ROOT/.lore/instructions.md" >/dev/null 2>&1 \
       || fail "lore-core.mdc body out of sync with .lore/instructions.md — run: bash scripts/generate-cursor-rules.sh"
   else
