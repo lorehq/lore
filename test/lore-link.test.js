@@ -35,7 +35,8 @@ function setupWorkRepo() {
 function runClaudeHook(hookName, cwd, stdinData, env) {
   const input = stdinData ? JSON.stringify(stdinData) : '';
   try {
-    const stdout = execSync(`echo '${input.replace(/'/g, "'\\''")}' | node "${hookPath(hookName)}"`, {
+    const stdout = execSync(`node "${hookPath(hookName)}"`, {
+      input,
       cwd,
       encoding: 'utf8',
       timeout: 5000,
@@ -50,7 +51,8 @@ function runClaudeHook(hookName, cwd, stdinData, env) {
 function runCursorHook(hookName, cwd, stdinData, env) {
   const input = stdinData ? JSON.stringify(stdinData) : '';
   try {
-    const stdout = execSync(`echo '${input.replace(/'/g, "'\\''")}' | node "${cursorHookPath(hookName)}"`, {
+    const stdout = execSync(`node "${cursorHookPath(hookName)}"`, {
+      input,
       cwd,
       encoding: 'utf8',
       timeout: 5000,
