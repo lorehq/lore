@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 // State file path — same location and naming as knowledge-tracker.js
 const cwd = process.cwd();
@@ -28,3 +29,6 @@ state.lastFailure = true;
 try {
   fs.writeFileSync(stateFile, JSON.stringify(state));
 } catch { /* non-critical — worst case we lose the flag */ }
+// No output (Cursor ignores postToolUseFailure output), but log to confirm
+// the failure flag pipeline works: failure-tracker sets flag → capture-nudge reads it
+logHookEvent({ platform: 'cursor', hook: 'failure-tracker', event: 'postToolUseFailure', outputSize: 0, directory: cwd });

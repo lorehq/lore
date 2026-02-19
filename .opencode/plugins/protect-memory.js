@@ -8,6 +8,7 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { checkMemoryAccess } = require('../../lib/memory-guard');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 export const ProtectMemory = async ({ directory }) => {
   const hub = process.env.LORE_HUB || directory;
@@ -17,7 +18,8 @@ export const ProtectMemory = async ({ directory }) => {
       // OpenCode puts tool args in output.args (not input.args)
       const filePath = output?.args?.file_path || output?.args?.path || '';
       const result = checkMemoryAccess(tool, filePath, hub);
-      // Non-null result = blocked (no separate flag needed)
+      // Log before potential throw — blocked=true means MEMORY.md access attempted
+      logHookEvent({ platform: 'opencode', hook: 'protect-memory', event: 'tool.execute.before', outputSize: 0, state: { blocked: !!result }, directory: hub });
       if (result) throw new Error(result.reason);
     },
   };

@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const { checkMemoryAccess } = require('../../lib/memory-guard');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 let input = {};
 try {
@@ -27,11 +28,20 @@ const tool = isPreToolUse ? input.tool_name.toLowerCase() : 'read';
 
 const hubDir = process.env.LORE_HUB || process.cwd();
 const result = checkMemoryAccess(tool, filePath, hubDir);
-if (!result) process.exit(0);
+// Cursor protect-memory handles two event types with different output formats
+const eventName = isPreToolUse ? 'preToolUse' : 'beforeReadFile';
+if (!result) {
+  // Allowed — log with event type to distinguish read vs write guard paths
+  logHookEvent({ platform: 'cursor', hook: 'protect-memory', event: eventName, outputSize: 0, state: { blocked: false }, directory: hubDir });
+  process.exit(0);
+}
 
-// Output format differs by event type
 if (isPreToolUse) {
-  console.log(JSON.stringify({ decision: 'deny', reason: result.reason }));
+  const out = JSON.stringify({ decision: 'deny', reason: result.reason });
+  console.log(out);
+  logHookEvent({ platform: 'cursor', hook: 'protect-memory', event: eventName, outputSize: out.length, state: { blocked: true }, directory: hubDir });
 } else {
-  console.log(JSON.stringify({ permission: 'deny', user_message: result.reason }));
+  const out = JSON.stringify({ permission: 'deny', user_message: result.reason });
+  console.log(out);
+  logHookEvent({ platform: 'cursor', hook: 'protect-memory', event: eventName, outputSize: out.length, state: { blocked: true }, directory: hubDir });
 }

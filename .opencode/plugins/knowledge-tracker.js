@@ -16,6 +16,7 @@ const {
   setNavDirty,
   navReminder,
 } = require('../../lib/tracker');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 export const KnowledgeTracker = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
@@ -44,19 +45,23 @@ export const KnowledgeTracker = async ({ directory, client }) => {
       consecutiveBash = result.bashCount;
 
       if (result.silent) {
-        // Still emit nav reminder even when capture message is suppressed.
         const extra = navReminder(navFlag, null);
         if (extra) {
           await client.app.log({
             body: { service: 'knowledge-tracker', level: 'info', message: extra },
           });
         }
+        // Silent events (read-only, knowledge writes) — still log to track fire rate
+        logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: extra ? extra.length : 0, state: { bash: consecutiveBash, silent: true }, directory: hub });
         return;
       }
 
+      const msg = navReminder(navFlag, result.message);
       await client.app.log({
-        body: { service: 'knowledge-tracker', level: result.level, message: navReminder(navFlag, result.message) },
+        body: { service: 'knowledge-tracker', level: result.level, message: msg },
       });
+      // Non-silent: nudge delivered — bash counter tracks escalation level
+      logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: msg.length, state: { bash: consecutiveBash, silent: false }, directory: hub });
     },
   };
 };

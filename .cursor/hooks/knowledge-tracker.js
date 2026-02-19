@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { isDocsWrite, getNavFlagPath, setNavDirty } = require('../../lib/tracker');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 let input = {};
 try {
@@ -46,3 +47,6 @@ state.lastFailure = false;
 try {
   fs.writeFileSync(stateFile, JSON.stringify(state));
 } catch { /* non-critical */ }
+// No output (Cursor ignores afterFileEdit output), but log to confirm it fires
+// and resets the bash counter — important for validating the counter lifecycle
+logHookEvent({ platform: 'cursor', hook: 'knowledge-tracker', event: 'afterFileEdit', outputSize: 0, state: { bashReset: true, file: filePath }, directory: hubDir });

@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
 const { buildTree, getConfig } = require('../../lib/banner');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 export const ContextPathGuide = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
@@ -26,7 +27,11 @@ export const ContextPathGuide = async ({ directory, client }) => {
       const contextPrefix = path.resolve(hub, 'docs', 'context') + path.sep;
       const isKnowledge = resolved.startsWith(knowledgePrefix);
       const isContext = resolved.startsWith(contextPrefix);
-      if (!isKnowledge && !isContext) return;
+      if (!isKnowledge && !isContext) {
+        // Non-docs write — log to measure how often this hook fires vs matches
+        logHookEvent({ platform: 'opencode', hook: 'context-path-guide', event: 'tool.execute.before', outputSize: 0, state: { matched: false }, directory: hub });
+        return;
+      }
 
       const targetDir = isKnowledge ? path.join(hub, 'docs', 'knowledge') : path.join(hub, 'docs', 'context');
       const treeLabel = isKnowledge ? 'docs/knowledge/' : 'docs/context/';
@@ -44,6 +49,8 @@ export const ContextPathGuide = async ({ directory, client }) => {
       await client.app.log({
         body: { service: 'context-path-guide', level: 'info', message: msg },
       });
+      // Matched docs/ write — output includes full directory tree, so size matters
+      logHookEvent({ platform: 'opencode', hook: 'context-path-guide', event: 'tool.execute.before', outputSize: msg.length, state: { matched: true }, directory: hub });
     },
   };
 };
