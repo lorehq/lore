@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { spawnSync } = require('child_process');
+const { execSync } = require('child_process');
 
 const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
 const libSrc = path.join(__dirname, '..', 'lib');
@@ -47,29 +47,26 @@ function setup(opts = {}) {
 function runHook(dir, hookName, stdinData) {
   const hookFile = path.join(dir, '.cursor', 'hooks', hookName);
   const input = stdinData ? JSON.stringify(stdinData) : '';
-  // Write stdin to a file and open as fd 0 — fs.readFileSync(0) is unreliable
-  // with pipe-based stdin on macOS.
-  const inputFile = path.join(dir, '.test-stdin.json');
-  fs.writeFileSync(inputFile, input);
-  const fd = fs.openSync(inputFile, 'r');
   try {
-    const result = spawnSync('node', [hookFile], {
-      stdio: [fd, 'pipe', 'pipe'],
+    const raw = execSync(`node "${hookFile}"`, {
       cwd: dir,
+      input,
       encoding: 'utf8',
       timeout: 5000,
     });
-    return { code: result.status || 0, stdout: (result.stdout || '').trim() };
-  } finally {
-    fs.closeSync(fd);
-    fs.unlinkSync(inputFile);
+    return { code: 0, stdout: (raw || '').trim() };
+  } catch (e) {
+    return { code: e.status || 1, stdout: (e.stdout || '').trim() };
   }
 }
 
-// Helper to resolve the state file path for a test directory (same logic as hooks)
+// Helper to resolve the state file path for a test directory (same logic as hooks).
+// Uses realpath because process.cwd() in child processes resolves symlinks
+// (e.g., macOS /var/folders/ → /private/var/folders/).
 function getStateFile(dir) {
   const crypto = require('crypto');
-  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
+  const realDir = fs.realpathSync(dir);
+  const hash = crypto.createHash('md5').update(realDir).digest('hex').slice(0, 8);
   return path.join(dir, '.git', `lore-tracker-${hash}.json`);
 }
 
