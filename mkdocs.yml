@@ -74,6 +74,7 @@ nav:
           - context/conventions/index.md
           - Coding: context/conventions/coding.md
           - Docs: context/conventions/docs.md
+          - Work Items: context/conventions/work-items.md
   - Guides:
       - Commands: guides/commands.md
       - Customization: guides/customization.md
