@@ -1,52 +1,42 @@
 ---
 name: mcp-stdio-content-length-framing
-description: MCP stdio transport uses Content-Length header framing, not newline-delimited JSON
+description: Cursor MCP uses newline-delimited JSON over stdio, not Content-Length framing
 domain: MCP
 user-invocable: false
 allowed-tools: Bash, Read, Edit
 ---
 
-# MCP stdio Content-Length Framing
+# MCP stdio Transport — Cursor
 
-MCP's stdio transport uses LSP-style `Content-Length` header framing. Each message
-(request and response) must be preceded by a header block. Newline-delimited JSON
-will cause the client to hang waiting for a properly framed response.
+Cursor's MCP client uses **newline-delimited JSON** over stdio, not LSP-style
+Content-Length header framing. The MCP spec and SDK documentation describe
+Content-Length framing, but Cursor's actual implementation sends one JSON
+message per line terminated by `\n`.
 
-## Format
-
-```
-Content-Length: <byte-length>\r\n
-\r\n
-<JSON body>
-```
-
-- `Content-Length` is the **byte length** of the JSON body (use `Buffer.byteLength()`, not `.length`)
-- Header and body are separated by `\r\n\r\n` (two CRLFs)
-- No trailing newline after the JSON body
-
-## Sending (Node.js)
+## Correct Transport (Node.js)
 
 ```javascript
-function send(obj) {
-  const body = JSON.stringify(obj);
-  const header = `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n`;
-  process.stdout.write(header + body);
-}
+const readline = require('readline');
+const rl = readline.createInterface({ input: process.stdin, terminal: false });
+
+rl.on('line', (line) => {
+  const req = JSON.parse(line);
+  const res = handleRequest(req);
+  if (res) process.stdout.write(JSON.stringify(res) + '\n');
+});
 ```
-
-## Receiving (Node.js)
-
-Parse stdin as a stream buffer — accumulate chunks, scan for `\r\n\r\n` separator,
-extract `Content-Length` from the header, wait for the full body, then parse JSON.
-Multiple messages can arrive in a single chunk.
 
 ## Gotchas
 
-- **Not newline-delimited**: `readline` on stdin will never fire because there are
-  no newlines between messages. The client hangs indefinitely.
-- **Byte length vs char length**: Multi-byte UTF-8 characters (arrows, em-dashes)
-  make `string.length` wrong. Always use `Buffer.byteLength()`.
+- **Not Content-Length framed**: Despite the MCP spec describing LSP-style
+  `Content-Length: N\r\n\r\n{...}` framing, Cursor sends plain `{...}\n`.
+  A Content-Length parser will buffer forever waiting for `\r\n\r\n`.
+- **Protocol version**: Cursor sends `protocolVersion: "2025-11-25"`. Echo the
+  client's version back — hardcoding an older version may cause rejection.
 - **stdout is the channel**: All debug/error logging must go to `stderr` only.
-  Any stray `console.log()` corrupts the framing.
+  Any stray `console.log()` corrupts the transport.
 - **Notifications have no response**: MCP notifications (no `id` field, e.g.
   `notifications/initialized`) must not produce any output.
+- **Disabled state persists**: If the MCP server fails on first connect, Cursor
+  marks it "Disabled" and won't retry until the user re-enables it in
+  Settings > Tools & MCP. A full Cursor restart may also be needed.
