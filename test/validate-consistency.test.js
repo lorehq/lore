@@ -27,7 +27,12 @@ function setup() {
   const instructions = '# Lore\n\nTest instructions.\n';
   fs.writeFileSync(path.join(dir, '.lore', 'instructions.md'), instructions);
   fs.writeFileSync(path.join(dir, 'CLAUDE.md'), instructions);
-  fs.writeFileSync(path.join(dir, '.cursorrules'), instructions);
+  // lore-core.mdc = frontmatter + instructions body (replaces .cursorrules)
+  fs.mkdirSync(path.join(dir, '.cursor', 'rules'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, '.cursor', 'rules', 'lore-core.mdc'),
+    '---\nalwaysApply: true\n---\n\n' + instructions,
+  );
   // Empty registry files
   fs.writeFileSync(path.join(dir, 'skills-registry.md'), '| Skill | Domain | Description |\n|---|---|---|\n');
   fs.writeFileSync(path.join(dir, 'agent-registry.md'), '| Agent | Domain | Description |\n|---|---|---|\n');
@@ -190,14 +195,17 @@ test('fails: CLAUDE.md out of sync with .lore/instructions.md', (t) => {
   assert.ok(stdout.includes('CLAUDE.md out of sync'));
 });
 
-test('fails: .cursorrules out of sync with .lore/instructions.md', (t) => {
+test('fails: lore-core.mdc body out of sync with .lore/instructions.md', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Make .cursorrules differ from canonical
-  fs.writeFileSync(path.join(dir, '.cursorrules'), '# Stale copy\n');
+  // Make lore-core.mdc body differ from canonical instructions
+  fs.writeFileSync(
+    path.join(dir, '.cursor', 'rules', 'lore-core.mdc'),
+    '---\nalwaysApply: true\n---\n\n# Stale copy\n',
+  );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
-  assert.ok(stdout.includes('.cursorrules out of sync'));
+  assert.ok(stdout.includes('lore-core.mdc body out of sync'));
 });
 
 test('fails: Cursor hooks.json references missing script', (t) => {

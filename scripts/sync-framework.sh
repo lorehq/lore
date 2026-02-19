@@ -33,7 +33,17 @@ rsync -a "$SOURCE/hooks/" "$TARGET/hooks/"
 rsync -a "$SOURCE/lib/" "$TARGET/lib/"
 rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
 rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
-rsync -a "$SOURCE/.cursor/" "$TARGET/.cursor/"
+# Selective .cursor/ sync — hooks and hooks.json are framework-owned,
+# but .cursor/rules/ contains both framework and instance-specific .mdc files.
+# Sync hooks directly, then copy only framework-owned rules.
+rsync -a "$SOURCE/.cursor/hooks/" "$TARGET/.cursor/hooks/"
+cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
+
+# Framework-owned rules (content derived from instructions.md, same across instances)
+mkdir -p "$TARGET/.cursor/rules"
+for rule in lore-core lore-work-tracking lore-knowledge-routing lore-skill-creation lore-docs-formatting; do
+  [ -f "$SOURCE/.cursor/rules/$rule.mdc" ] && cp "$SOURCE/.cursor/rules/$rule.mdc" "$TARGET/.cursor/rules/$rule.mdc"
+done
 
 # Framework skills (lore-* only) — overwrite existing, skip operator skills
 if [ -d "$SOURCE/.lore/skills" ]; then

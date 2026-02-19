@@ -1,0 +1,39 @@
+---
+description: Directory tree of docs, skills, and agents for navigating the knowledge base
+alwaysApply: false
+---
+
+# Knowledge Map
+
+docs/
+├── context/
+│   └── conventions/
+├── guides/
+├── javascripts/
+├── knowledge/
+│   ├── environment/
+│   │   ├── decisions/
+│   │   ├── diagrams/
+│   │   ├── inventory/
+│   │   └── reference/
+│   ├── local/
+│   └── runbooks/
+└── work/
+    ├── brainstorms/
+    ├── plans/
+    └── roadmaps/
+.lore/skills/
+├── lore-capture/
+├── lore-consolidate/
+├── lore-create-agent/
+├── lore-create-brainstorm/
+├── lore-create-plan/
+├── lore-create-roadmap/
+├── lore-create-skill/
+├── lore-create-todo-with-capture/
+├── lore-link/
+├── lore-status/
+├── lore-ui/
+├── lore-update/
+├── platform-command-collisions/
+└── pymdownx-extension-order/

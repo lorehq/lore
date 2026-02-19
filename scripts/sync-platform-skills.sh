@@ -69,7 +69,11 @@ fi
 # -- Instructions --
 if [ -f "$REPO_ROOT/.lore/instructions.md" ]; then
   cp "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md"
-  cp "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/.cursorrules"
 fi
+
+# -- Cursor rules --
+# Generate tiered .cursor/rules/lore-*.mdc files from canonical sources.
+# These replace .cursorrules with always-on, glob-based, and agent-requested rules.
+bash "$REPO_ROOT/scripts/generate-cursor-rules.sh"
 
 echo "Platform copies synced from .lore/"

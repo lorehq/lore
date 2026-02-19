@@ -1,0 +1,35 @@
+---
+description: Project identity, agent behavior rules, and coding/docs conventions
+alwaysApply: true
+---
+
+# Agent Rules
+
+<!-- Injected into every agent session as PROJECT context. -->
+<!-- Customize with your project identity and behavior rules. -->
+<!-- Coding conventions belong in docs/context/conventions.md — also injected. -->
+
+## About
+
+Describe your project — what it is, what repos are involved, key constraints.
+
+## Agent Behavior
+
+Rules for how the agent should operate in this instance.
+
+# Conventions
+
+Operational rules and standards for this environment. Each page covers a specific domain.
+
+# Coding
+
+Add your coding rules here — standards the agent should follow when writing code.
+
+# Docs
+
+## Formatting
+
+- **Checkboxes** (`- [x]`/`- [ ]`) for all actionable items: scope, deliverables, success criteria
+- **Strikethrough** (`~~text~~`) on completed item text: `- [x] ~~Done item~~`
+- **No emoji icons** — no checkmarks, no colored circles, no decorative symbols
+- **Blank line before lists** — required for MkDocs to render lists correctly
