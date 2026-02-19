@@ -35,5 +35,6 @@ docs/
 ├── lore-status/
 ├── lore-ui/
 ├── lore-update/
+├── mcp-stdio-content-length-framing/
 ├── platform-command-collisions/
 └── pymdownx-extension-order/
