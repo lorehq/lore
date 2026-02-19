@@ -18,7 +18,13 @@ export const SessionInit = async ({ directory, client }) => {
     body: { service: 'session-init', level: 'info', message: banner },
   });
   // One-time init — log banner size for baseline context cost
-  logHookEvent({ platform: 'opencode', hook: 'session-init', event: 'SessionInit', outputSize: banner.length, directory: hub });
+  logHookEvent({
+    platform: 'opencode',
+    hook: 'session-init',
+    event: 'SessionInit',
+    outputSize: banner.length,
+    directory: hub,
+  });
 
   return {
     'experimental.chat.system.transform': async (_input, output) => {
@@ -28,14 +34,26 @@ export const SessionInit = async ({ directory, client }) => {
       // Fires every LLM call — this is the OpenCode per-prompt injection point.
       // Unlike Claude Code, this REPLACES the system prompt (not additive to history),
       // so output size here is the ongoing cost, not accumulated.
-      logHookEvent({ platform: 'opencode', hook: 'session-init', event: 'chat.system.transform', outputSize: b.length, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'session-init',
+        event: 'chat.system.transform',
+        outputSize: b.length,
+        directory: hub,
+      });
     },
     'experimental.session.compacting': async (_input, output) => {
       ensureStickyFiles(hub);
       const b = buildBanner(hub);
       output.context.push(b);
       // Fires on context compaction — should be rare, log to confirm it works
-      logHookEvent({ platform: 'opencode', hook: 'session-init', event: 'session.compacting', outputSize: b.length, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'session-init',
+        event: 'session.compacting',
+        outputSize: b.length,
+        directory: hub,
+      });
     },
   };
 };

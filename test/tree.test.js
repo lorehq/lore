@@ -96,10 +96,7 @@ test('buildTree: skips archive directories by default', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, 'archive', 'old-plan'), { recursive: true });
   const lines = buildTree(dir);
-  assert.ok(
-    !lines.some((l) => l.includes('archive/')),
-    'archive/ should be skipped',
-  );
+  assert.ok(!lines.some((l) => l.includes('archive/')), 'archive/ should be skipped');
 });
 
 test('buildTree: respects maxDepth', (t) => {

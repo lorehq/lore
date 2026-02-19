@@ -25,11 +25,25 @@ const result = checkMemoryAccess(toolName, filePath, hubDir);
 debug('protect-memory: tool=%s file=%s blocked=%s', toolName, filePath, !!result);
 if (!result) {
   // Allowed — log to confirm the hook fires even on non-MEMORY.md paths
-  logHookEvent({ platform: 'claude', hook: 'protect-memory', event: 'PreToolUse', outputSize: 0, state: { blocked: false }, directory: hubDir });
+  logHookEvent({
+    platform: 'claude',
+    hook: 'protect-memory',
+    event: 'PreToolUse',
+    outputSize: 0,
+    state: { blocked: false },
+    directory: hubDir,
+  });
   process.exit(0);
 }
 
 const out = JSON.stringify({ decision: 'block', reason: result.reason });
 console.log(out);
 // Blocked — track how often MEMORY.md access attempts occur
-logHookEvent({ platform: 'claude', hook: 'protect-memory', event: 'PreToolUse', outputSize: out.length, state: { blocked: true }, directory: hubDir });
+logHookEvent({
+  platform: 'claude',
+  hook: 'protect-memory',
+  event: 'PreToolUse',
+  outputSize: out.length,
+  state: { blocked: true },
+  directory: hubDir,
+});

@@ -19,7 +19,14 @@ export const ProtectMemory = async ({ directory }) => {
       const filePath = output?.args?.file_path || output?.args?.path || '';
       const result = checkMemoryAccess(tool, filePath, hub);
       // Log before potential throw — blocked=true means MEMORY.md access attempted
-      logHookEvent({ platform: 'opencode', hook: 'protect-memory', event: 'tool.execute.before', outputSize: 0, state: { blocked: !!result }, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'protect-memory',
+        event: 'tool.execute.before',
+        outputSize: 0,
+        state: { blocked: !!result },
+        directory: hub,
+      });
       if (result) throw new Error(result.reason);
     },
   };

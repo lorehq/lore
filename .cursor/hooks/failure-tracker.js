@@ -21,14 +21,24 @@ const stateFile = fs.existsSync(gitDir)
 let state = { bash: 0, lastFailure: false };
 try {
   state = { ...state, ...JSON.parse(fs.readFileSync(stateFile, 'utf8')) };
-} catch { /* no state file yet — use defaults */ }
+} catch {
+  /* no state file yet — use defaults */
+}
 
 // Mark failure for capture-nudge.js to pick up
 state.lastFailure = true;
 
 try {
   fs.writeFileSync(stateFile, JSON.stringify(state));
-} catch { /* non-critical — worst case we lose the flag */ }
+} catch {
+  /* non-critical — worst case we lose the flag */
+}
 // No output (Cursor ignores postToolUseFailure output), but log to confirm
 // the failure flag pipeline works: failure-tracker sets flag → capture-nudge reads it
-logHookEvent({ platform: 'cursor', hook: 'failure-tracker', event: 'postToolUseFailure', outputSize: 0, directory: cwd });
+logHookEvent({
+  platform: 'cursor',
+  hook: 'failure-tracker',
+  event: 'postToolUseFailure',
+  outputSize: 0,
+  directory: cwd,
+});

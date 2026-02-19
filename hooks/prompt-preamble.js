@@ -18,7 +18,8 @@ if (agents.length > 0) {
 // Conventions — list names so the LLM can pattern-match
 const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
 try {
-  const files = fs.readdirSync(convDir)
+  const files = fs
+    .readdirSync(convDir)
     .filter((f) => f.endsWith('.md') && f !== 'index.md')
     .map((f) => f.replace(/\.md$/, ''));
   if (files.length > 0) {
@@ -30,4 +31,10 @@ parts.push('New context? \u2192 docs/knowledge/ | Active work? \u2192 update pro
 
 const msg = `[${parts.join(' | ')}]`;
 console.log(msg);
-logHookEvent({ platform: 'claude', hook: 'prompt-preamble', event: 'UserPromptSubmit', outputSize: msg.length, directory: hubDir });
+logHookEvent({
+  platform: 'claude',
+  hook: 'prompt-preamble',
+  event: 'UserPromptSubmit',
+  outputSize: msg.length,
+  directory: hubDir,
+});

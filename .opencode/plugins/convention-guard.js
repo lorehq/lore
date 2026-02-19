@@ -81,7 +81,9 @@ export const ConventionGuard = async ({ directory, client }) => {
         const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
         if (files.length > 0) {
           const names = files.map((f) => f.replace(/\.md$/, ''));
-          conventions.push('Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant');
+          conventions.push(
+            'Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant',
+          );
         }
       } catch {}
 
@@ -91,7 +93,14 @@ export const ConventionGuard = async ({ directory, client }) => {
       await client.app.log({
         body: { service: 'convention-guard', level: 'info', message: msg },
       });
-      logHookEvent({ platform: 'opencode', hook: 'convention-guard', event: 'tool.execute.before', outputSize: msg.length, state: { path: relative }, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'convention-guard',
+        event: 'tool.execute.before',
+        outputSize: msg.length,
+        state: { path: relative },
+        directory: hub,
+      });
     },
   };
 };
