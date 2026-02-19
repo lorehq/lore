@@ -29,14 +29,14 @@ if [ ! -d "$SOURCE/hooks" ]; then
 fi
 
 # Framework directories — overwrite contents, don't delete operator extras
-rsync -a "$SOURCE/hooks/" "$TARGET/hooks/"
-rsync -a "$SOURCE/lib/" "$TARGET/lib/"
-rsync -a "$SOURCE/scripts/" "$TARGET/scripts/"
-rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
+cp -Rf "$SOURCE/hooks/." "$TARGET/hooks/"
+cp -Rf "$SOURCE/lib/." "$TARGET/lib/"
+cp -Rf "$SOURCE/scripts/." "$TARGET/scripts/"
+cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Selective .cursor/ sync — hooks and hooks.json are framework-owned,
 # but .cursor/rules/ contains both framework and instance-specific .mdc files.
-# Sync hooks directly, then copy only framework-owned rules.
-rsync -a "$SOURCE/.cursor/hooks/" "$TARGET/.cursor/hooks/"
+# Copy hooks directly, then copy only framework-owned rules.
+cp -Rf "$SOURCE/.cursor/hooks/." "$TARGET/.cursor/hooks/"
 cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
 # MCP server — exposes lore_check_in and lore_context as Cursor tools.
 # Both the server script and the config are framework-owned.
@@ -56,7 +56,8 @@ if [ -d "$SOURCE/.lore/skills" ]; then
   for skill_dir in "$SOURCE/.lore/skills"/lore-*/; do
     [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
-    rsync -a "$skill_dir" "$TARGET/.lore/skills/$skill_name/"
+    mkdir -p "$TARGET/.lore/skills/$skill_name"
+    cp -Rf "$skill_dir"* "$TARGET/.lore/skills/$skill_name/"
   done
 fi
 
