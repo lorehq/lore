@@ -62,6 +62,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
+          gh release delete "$tag" --yes 2>/dev/null || true
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes
