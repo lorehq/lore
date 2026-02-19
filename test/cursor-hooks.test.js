@@ -45,10 +45,11 @@ function setup(opts = {}) {
 }
 
 function runHook(dir, hookName, stdinData) {
-  const hookPath = path.join(dir, '.cursor', 'hooks', hookName);
+  const hookFile = path.join(dir, '.cursor', 'hooks', hookName);
   const input = stdinData ? JSON.stringify(stdinData) : '';
   try {
-    const stdout = execSync(`echo '${input.replace(/'/g, "'\\''")}' | node "${hookPath}"`, {
+    const stdout = execSync(`node "${hookFile}"`, {
+      input,
       cwd: dir,
       encoding: 'utf8',
       timeout: 5000,
