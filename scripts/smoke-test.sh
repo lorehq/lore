@@ -17,11 +17,11 @@ echo "Source: $REPO_ROOT"
 echo "Work dir: $WORK"
 
 # Copy repo excluding .git and gitignored runtime artifacts
-rsync -a \
+tar cf - \
   --exclude='.git' \
   --exclude='node_modules' \
-  --exclude='docs/knowledge/local/' \
-  "$REPO_ROOT/" "$WORK/"
+  --exclude='docs/knowledge/local' \
+  -C "$REPO_ROOT" . | tar xf - -C "$WORK"
 
 cd "$WORK"
 
