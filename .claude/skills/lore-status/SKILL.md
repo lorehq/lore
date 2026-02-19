@@ -57,7 +57,7 @@ Run these checks and present a formatted summary to the operator:
    - Knowledge docs: number of `.md` files under `docs/knowledge/`
    - Runbooks: number of `.md` files under `docs/knowledge/runbooks/`
 
-4. **Linked repos** — if `.lore-links` exists, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale.
+4. **Linked repos** — use Glob to check whether `.lore-links` exists before reading it (it is optional and gitignored — never use Read on it without confirming it exists first). If present, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale. If absent, report "none".
 
 5. **Active work** — scan `docs/work/roadmaps/` and `docs/work/plans/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
 
