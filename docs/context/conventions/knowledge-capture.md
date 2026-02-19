@@ -25,7 +25,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 **Structure for maintainability, not comprehensiveness.**
 
 - Before creating a new file, ask: "If this data changes, how many files do I touch?" If the answer is more than one, restructure.
-- Reference data (IPs, ports, credentials locations, VLANs) belongs in inventory tables, not embedded in prose across runbooks and plans.
+- Reference data (IPs, ports, VLANs, service URLs) belongs in inventory tables, not embedded in prose across runbooks and plans.
 - Runbooks should reference inventory data by link, not by copying it inline.
 - When infrastructure changes, one file update should be sufficient.
 

@@ -75,6 +75,7 @@ nav:
           - Coding: context/conventions/coding.md
           - Docs: context/conventions/docs.md
           - Knowledge Capture: context/conventions/knowledge-capture.md
+          - Security: context/conventions/security.md
           - Work Items: context/conventions/work-items.md
   - Guides:
       - Commands: guides/commands.md
