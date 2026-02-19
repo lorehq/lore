@@ -135,14 +135,17 @@ do_link() {
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/.cursor/mcp.json"
 
-  # Instructions copy (Claude Code)
-  cp "$HUB/.lore/instructions.md" "$target/CLAUDE.md"
+  # Instructions copy (Claude Code) — rewrite paths for linked repo
+  node -e "
+    const { rewriteForLinkedRepo } = require(process.argv[1] + '/lib/linked-rewrite');
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const content = fs.readFileSync(hub + '/.lore/instructions.md', 'utf8');
+    fs.writeFileSync(process.argv[2], rewriteForLinkedRepo(content, hub));
+  " "$HUB" "$target/CLAUDE.md"
 
-  # Cursor rules — copy pre-generated tiered .mdc files from hub
-  for mdc in "$HUB/.cursor/rules"/lore-*.mdc; do
-    [ -f "$mdc" ] || continue
-    cp "$mdc" "$target/.cursor/rules/$(basename "$mdc")"
-  done
+  # Cursor rules — generate linked-repo-specific .mdc files with rewritten paths
+  bash "$HUB/scripts/generate-cursor-rules.sh" --hub "$HUB" --target "$target" --linked "$HUB"
 
   # OpenCode plugin wrappers
   local name export_name
@@ -170,7 +173,7 @@ do_link() {
   node -e "
     const fs = require('fs');
     const hub = process.argv[1];
-    const config = { instructions: [hub + '/.lore/instructions.md'] };
+    const config = { instructions: ['CLAUDE.md'] };
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/opencode.json"
 
