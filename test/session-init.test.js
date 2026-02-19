@@ -52,6 +52,10 @@ function setup(opts = {}) {
   if (opts.memory) {
     fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
   }
+  if (opts.operatorProfile) {
+    fs.mkdirSync(path.join(dir, 'docs', 'knowledge', 'local'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'knowledge', 'local', 'operator-profile.md'), opts.operatorProfile);
+  }
 
   return dir;
 }
@@ -259,4 +263,61 @@ test('treeDepth config limits knowledge map depth', (t) => {
   assert.ok(!out.includes('level2/'), 'depth-1 dir should not appear at treeDepth: 1');
   assert.ok(!out.includes('b.md'), 'depth-2 file should not appear');
   assert.ok(!out.includes('c.md'), 'depth-3 file should not appear');
+});
+
+test('creates sticky operator-profile.md when missing', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const profilePath = path.join(dir, 'docs', 'knowledge', 'local', 'operator-profile.md');
+  assert.ok(!fs.existsSync(profilePath), 'should not exist before hook runs');
+  runHook(dir);
+  assert.ok(fs.existsSync(profilePath), 'operator-profile.md should be created');
+  const content = fs.readFileSync(profilePath, 'utf8');
+  assert.ok(content.includes('# Operator Profile'));
+  assert.ok(content.includes('OPERATOR PROFILE context'));
+});
+
+test('does not inject default operator profile template', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = runHook(dir);
+  assert.ok(!out.includes('OPERATOR PROFILE:'), 'default template should not be injected');
+});
+
+test('injects customized operator profile', (t) => {
+  const dir = setup({
+    operatorProfile: '# Operator Profile\n\n## Identity\n\n- **Name:** Jane Doe\n- **Role:** Staff Engineer',
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = runHook(dir);
+  assert.ok(out.includes('OPERATOR PROFILE:'), 'should inject customized profile');
+  assert.ok(out.includes('Jane Doe'));
+  assert.ok(out.includes('Staff Engineer'));
+});
+
+test('operator profile appears after PROJECT in banner', (t) => {
+  const dir = setup({
+    agentRules: '# My Project\n\nProject rules here.',
+    operatorProfile: '# Operator Profile\n\n- **Name:** Jane Doe\n- **Role:** Lead Dev',
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = runHook(dir);
+  const projectIdx = out.indexOf('PROJECT:');
+  const operatorIdx = out.indexOf('OPERATOR PROFILE:');
+  const conventionsIdx = out.indexOf('CONVENTIONS:');
+  assert.ok(projectIdx > -1, 'PROJECT should be present');
+  assert.ok(operatorIdx > -1, 'OPERATOR PROFILE should be present');
+  assert.ok(conventionsIdx > -1, 'CONVENTIONS should be present');
+  assert.ok(operatorIdx > projectIdx, 'OPERATOR PROFILE should come after PROJECT');
+  assert.ok(conventionsIdx > operatorIdx, 'CONVENTIONS should come after OPERATOR PROFILE');
+});
+
+test('does not overwrite existing operator-profile.md with scaffold', (t) => {
+  const dir = setup({
+    operatorProfile: '# Operator Profile\n\nCustom operator content here.',
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  runHook(dir);
+  const content = fs.readFileSync(path.join(dir, 'docs', 'knowledge', 'local', 'operator-profile.md'), 'utf8');
+  assert.ok(content.includes('Custom operator content here.'), 'should preserve operator content');
 });

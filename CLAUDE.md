@@ -16,6 +16,7 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 | What | Where |
 |------|-------|
+| Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored, injected every session) |
 | Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
 | Rules, conventions | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
