@@ -2,10 +2,9 @@
 // Matches Write and Edit. Injects concise convention reminders based on
 // the target file path:
 //   - Security: always, for any write to any file in the repo
-//   - Work Items: writes to docs/work/
-//   - Knowledge Capture: writes to docs/knowledge/
-//   - Docs: writes to docs/ (except work/ and knowledge/)
-//   - Coding: writes to non-docs files (source code)
+//   - Docs: writes to docs/work/, docs/knowledge/, or docs/ generally
+//   - Work Items: writes to docs/work/ (in addition to Docs)
+//   - Knowledge Capture: writes to docs/knowledge/ (in addition to Docs)
 //
 // Reads the actual convention files and extracts the bold principle lines
 // so the reminder stays in sync with the source of truth.
@@ -68,20 +67,28 @@ if (security.length > 0) {
 }
 
 // Path-specific conventions
-if (relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\')) {
+const isWork = relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\');
+const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
+const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
+
+// Docs convention applies to all docs/ paths (including work/ and knowledge/)
+if (isDocs) {
+  const docs = extractPrinciples('docs.md');
+  if (docs.length > 0) {
+    conventions.push('Docs: ' + docs.join(' | '));
+  }
+}
+
+// Additional domain-specific conventions
+if (isWork) {
   const workItems = extractPrinciples('work-items.md');
   if (workItems.length > 0) {
     conventions.push('Work items: ' + workItems.join(' | '));
   }
-} else if (relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\')) {
+} else if (isKnowledge) {
   const knowledge = extractPrinciples('knowledge-capture.md');
   if (knowledge.length > 0) {
     conventions.push('Knowledge: ' + knowledge.join(' | '));
-  }
-} else if (relative.startsWith('docs/') || relative.startsWith('docs\\')) {
-  const docs = extractPrinciples('docs.md');
-  if (docs.length > 0) {
-    conventions.push('Docs: ' + docs.join(' | '));
   }
 }
 
