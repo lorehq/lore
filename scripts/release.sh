@@ -16,7 +16,7 @@ CREATE_LORE_ROOT="$(cd "$LORE_ROOT/../create-lore" 2>/dev/null && pwd)" || true
 if [[ -n "${1:-}" ]]; then
   VERSION="$1"
 else
-  VERSION="$(node -p "require('$LORE_ROOT/package.json').version")"
+  VERSION="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/package.json','utf8')).version")"
 fi
 TAG="v$VERSION"
 
@@ -48,9 +48,9 @@ for repo in "$LORE_ROOT" "$CREATE_LORE_ROOT"; do
 done
 
 # 3. Verify versions match across both repos
-lore_ver="$(node -p "require('$LORE_ROOT/package.json').version")"
-lore_cfg="$(node -p "require('$LORE_ROOT/.lore-config').version")"
-create_ver="$(node -p "require('$CREATE_LORE_ROOT/package.json').version")"
+lore_ver="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/package.json','utf8')).version")"
+lore_cfg="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/.lore-config','utf8')).version")"
+create_ver="$(node -p "JSON.parse(require('fs').readFileSync('$CREATE_LORE_ROOT/package.json','utf8')).version")"
 
 if [[ "$lore_ver" != "$VERSION" ]]; then
   echo "FAIL: lore package.json is $lore_ver, expected $VERSION"
