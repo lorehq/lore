@@ -61,9 +61,7 @@ function loreCheckIn() {
     // Post-compaction re-orientation — highest priority, delivers key context
     const cfg = getConfig(hubDir);
     const version = cfg.version ? `v${cfg.version}` : '';
-    const domains = getAgentDomains(hubDir);
-    const delegateStr = domains.length > 0 ? domains.join(', ') : 'none';
-    msg = `[COMPACTED] Lore ${version} | Delegate: ${delegateStr} | Re-read .cursor/rules/ and project context`;
+    msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 see agent-registry.md | Re-read .cursor/rules/ and project context`;
     // Clear flag — both MCP and hook race to clear; harmless if already gone
     try { fs.unlinkSync(compactedPath); } catch {}
   } else {
