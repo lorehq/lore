@@ -1,8 +1,14 @@
 # Lore
 
-**Your coding agent forgets everything between sessions. Lore fixes that.**
+**Persistent memory for AI coding agents.**
 
-Lore is a lightweight framework that gives coding agents persistent memory. Install it, work normally, and your agent starts building knowledge that compounds across sessions.
+[![CI](https://github.com/lorehq/lore/actions/workflows/test.yml/badge.svg)](https://github.com/lorehq/lore/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/lorehq/lore)](https://github.com/lorehq/lore/releases)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
+[![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Cursor%20%7C%20OpenCode-purple)]()
+
+Lore captures skills, conventions, and project knowledge as you work — then loads them every session so your agent gets smarter instead of starting over. Plain files, git-versioned, zero runtime dependencies.
 
 ## Quick Start
 
@@ -11,86 +17,84 @@ npx create-lore my-project
 cd my-project
 ```
 
-**Claude Code:**
+Then open a session in your editor:
 
-```bash
-claude
-```
+| Platform | Command |
+|----------|---------|
+| Claude Code | `claude` |
+| Cursor | Open the project — hooks activate via `.cursor/hooks.json` |
+| OpenCode | `opencode` |
 
-**Cursor:**
-
-Open the project in Cursor. Hooks activate automatically via `.cursor/hooks.json`.
-
-**OpenCode:**
-
-```bash
-opencode
-```
-
-No configuration needed. Hooks and plugins activate automatically on all platforms.
-
-## Before / After
-
-**Without Lore** — Every session starts cold. The agent re-discovers your project structure, re-learns API quirks, and makes the same mistakes. Knowledge from yesterday's debugging session is gone.
-
-**With Lore** — The agent knows your project. API quirks captured last week load automatically. Domain-specific work delegates to specialized agents. Your roadmap picks up where you left off.
+No configuration needed. Your first session gets a full context banner immediately.
 
 ## What You Get
 
-**Self-Learning** — Your agent captures gotchas as reusable skills and maps your environment through docs. API quirks, auth tricks, encoding issues, repo layouts, service endpoints — all persist. The agent adapts to your specific setup and stops re-discovering things.
+**Sessions accelerate instead of resetting.** Every session opens with your project identity, conventions, active work, available agents, and a map of everything your agent knows. No re-explaining.
 
-**Delegation** — An orchestrator/agent pattern where the main model dispatches domain-specific work to cheaper, faster models. Independent branches are nudged toward parallel subagent execution; dependency-bound steps stay sequential. Less token spend on the expensive model, cleaner context windows, specialized execution.
+**Gotchas become skills that persist.** When your agent hits an API quirk, an encoding edge case, or a deployment gotcha, it captures that as a skill. That skill loads in every future session. The mistake happens once, the fix persists.
 
-**Work Continuity** — Roadmaps and plans persist across sessions. Active work surfaces in the session banner every startup, so long-running projects pick up where they left off instead of starting cold.
+**Conventions are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
+
+**One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift.
+
+**Complex work routes to domain specialists.** As your project grows, agents form around domains. When work spans multiple areas, your agent delegates to the right specialist with full project context.
+
+## Before / After
+
+**Without Lore** — Every session starts cold. You re-explain your project, the agent re-discovers API quirks, makes the same mistakes, and yesterday's debugging session is gone.
+
+**With Lore** — The agent knows your project. Skills from last week load automatically. Conventions are enforced at write-time. Active roadmaps surface at startup. Domain-specific work delegates to specialists.
 
 ## How It Works
 
-Lore is a directory of markdown files, hooks/plugins that shape agent behavior, and scripts that keep everything consistent.
+Lore is a directory of markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
-| Component | Location | What it does |
-|-----------|----------|--------------|
-| **Platform hooks** | `hooks/`, `.cursor/hooks/`, `.opencode/plugins/` | Fire on session start, tool use, and edits. Each platform has thin adapters over shared `lib/`. |
-| **Skills** | `.lore/skills/` | Non-obvious knowledge captured from real work — gotchas, tricks, patterns. `lore-*` = framework-owned, everything else = yours. |
-| **Agents** | `.lore/agents/` | Domain-specific workers. One agent per domain, run on cheaper models. Per-platform model preferences in frontmatter. |
-| **Docs** | `docs/` | Context and runbooks, plus work tracking. Your agent's long-term memory. |
-| **Scripts** | `scripts/` | Validation, registry generation, nav building. Keep the knowledge base consistent. |
+- **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Loaded every session.
+- **Agents** (`.lore/agents/`) — Domain specialists that handle delegated work on configurable models.
+- **Docs** (`docs/`) — Project context, conventions, environment knowledge, runbooks, and work tracking.
+- **Hooks** (`hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
+- **Scripts** (`scripts/`) — Registry generation, platform sync, validation, nav building.
 
-## Supported Platforms
-
-| Platform | Integration | How it works |
-|----------|-------------|--------------|
-| **Claude Code** | `hooks/` + `CLAUDE.md` | Hooks fire on lifecycle events. CLAUDE.md loaded automatically. |
-| **Cursor** | `.cursor/hooks/` + `.cursor/rules/lore-*.mdc` | Hooks fire on session start. Tiered .mdc rules load context automatically. |
-| **OpenCode** | `.opencode/plugins/` + `opencode.json` | Plugins fire on lifecycle events. opencode.json points to instructions. |
-
-`CLAUDE.md` and `.cursor/rules/lore-*.mdc` are generated from `.lore/instructions.md` and other canonical sources via `scripts/sync-platform-skills.sh`.
-
-All platforms share the same knowledge base — skills, agents, docs, and work tracking work identically.
+All hooks are plain JavaScript you can read in minutes. They don't make network requests, execute shell commands, or access anything outside your project directory.
 
 ## Working Across Repos
 
-Lore is a central hub. Launch your agent here and work on any repo by referencing its path — knowledge captures back to Lore, work repos stay clean.
-
-For IDEs where you need the work repo's file tree, git, and search:
+Link work repos to a central Lore hub so hooks fire from the hub even when you open the work repo directly:
 
 ```
 /lore-link ~/projects/my-app
 ```
 
-This links the work repo so hooks fire from the hub even when you open the work repo directly. See the [full guide](https://lorehq.github.io/lore-docs/guides/cross-repo-workflow/).
+One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq.github.io/lore-docs/guides/cross-repo-workflow/).
 
 ## Commands
 
 | Command | What it does |
 |---------|-------------|
 | `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
-| `/lore-consolidate` | Deep health check — find stale items, semantic overlaps, knowledge drift |
-| `/lore-link <target>` | Link a work repo so hooks fire from the hub in IDE workflows |
-| `/lore-ui` | Manage docs UI lifecycle (start/stop/status), preferring Docker with local mkdocs fallback |
+| `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
+| `/lore-link <path>` | Link a work repo to this hub |
+| `/lore-ui` | Start/stop the docs UI (Docker or local mkdocs) |
+
+## Platforms
+
+| Platform | Integration | Status |
+|----------|-------------|--------|
+| **Claude Code** | Hooks + `CLAUDE.md` | Stable |
+| **Cursor** | Hooks + MCP server + `.mdc` rules | Stable |
+| **OpenCode** | ESM plugins + `opencode.json` | Stable |
+
+All platforms share the same knowledge base. Skills, agents, and conventions written once sync to platform-specific formats automatically.
 
 ## Documentation
 
 Full docs: [lorehq.github.io/lore-docs](https://lorehq.github.io/lore-docs/)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+Security issues: see [SECURITY.md](SECURITY.md).
 
 ## License
 
