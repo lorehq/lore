@@ -65,6 +65,7 @@ nav:
               - knowledge/environment/reference/index.md
       - Local:
           - knowledge/local/index.md
+          - Operator Profile: knowledge/local/operator-profile.md
       - Runbooks:
           - knowledge/runbooks/index.md
   - Context:
