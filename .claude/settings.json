@@ -21,6 +21,11 @@
         "matcher": "Write",
         "hooks": [{ "type": "command", "command": "node hooks/context-path-guide.js" }],
         "description": "Guide writes to docs/context/ or docs/knowledge/"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "node hooks/convention-guard.js" }],
+        "description": "Reinforce conventions based on target file path"
       }
     ],
     "PostToolUse": [
