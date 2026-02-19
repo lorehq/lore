@@ -6,6 +6,10 @@
 //   - Work Items: writes to docs/work/ (in addition to Docs)
 //   - Knowledge Capture: writes to docs/knowledge/ (in addition to Docs)
 //
+// After hardcoded injections, lists any remaining conventions as a menu
+// so the LLM can self-serve if relevant. Operator-created conventions
+// appear automatically without hook changes.
+//
 // Reads the actual convention files and extracts the bold principle lines
 // so the reminder stays in sync with the source of truth.
 
@@ -90,6 +94,23 @@ if (isWork) {
   if (knowledge.length > 0) {
     conventions.push('Knowledge: ' + knowledge.join(' | '));
   }
+}
+
+// Build menu of conventions not already injected above
+const injected = new Set(['index.md', 'security.md']);
+if (isDocs) injected.add('docs.md');
+if (isWork) injected.add('work-items.md');
+if (isKnowledge) injected.add('knowledge-capture.md');
+
+const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
+try {
+  const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
+  if (files.length > 0) {
+    const names = files.map((f) => f.replace(/\.md$/, ''));
+    conventions.push('Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant');
+  }
+} catch (e) {
+  debug('convention-guard: could not list conventions: %s', e.message);
 }
 
 if (conventions.length === 0) process.exit(0);
