@@ -4,8 +4,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-pkg_ver="$(node -p "JSON.parse(require('fs').readFileSync('$ROOT/package.json','utf8')).version")"
-cfg_ver="$(node -p "JSON.parse(require('fs').readFileSync('$ROOT/.lore-config','utf8')).version")"
+# Use process.argv to avoid backslash escape issues on Windows paths
+pkg_ver="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).version" "$ROOT/package.json")"
+cfg_ver="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).version" "$ROOT/.lore-config")"
 
 failed=0
 
@@ -16,7 +17,7 @@ fi
 
 # package-lock.json
 if [[ -f "$ROOT/package-lock.json" ]]; then
-  lock_ver="$(node -p "JSON.parse(require('fs').readFileSync('$ROOT/package-lock.json','utf8')).version")"
+  lock_ver="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).version" "$ROOT/package-lock.json")"
   if [[ "$lock_ver" != "$pkg_ver" ]]; then
     echo "FAIL: package-lock.json=$lock_ver vs package.json=$pkg_ver" >&2
     failed=1
