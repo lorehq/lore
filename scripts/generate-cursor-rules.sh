@@ -24,10 +24,14 @@ SOURCE="$REPO_ROOT"
 TARGET="$REPO_ROOT"
 
 # --hub: read canonical sources from a hub directory (for linked repo generation).
+# --target: where to write .mdc files (defaults to REPO_ROOT).
+# --linked: hub path — activates path rewriting for linked work repos.
 # Without --hub, the script operates entirely within its own repo.
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --hub) SOURCE="$(cd "$2" && pwd)"; shift 2 ;;
+    --target) TARGET="$(cd "$2" && pwd)"; shift 2 ;;
+    --linked) LINKED="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -36,12 +40,13 @@ mkdir -p "$TARGET/.cursor/rules"
 
 # All generation runs in one Node process — reads from SOURCE, writes to TARGET.
 # Uses a single-quoted heredoc to avoid bash/JS quoting conflicts.
-node - "$SOURCE" "$TARGET" <<'NODE_SCRIPT'
+node - "$SOURCE" "$TARGET" "${LINKED:-}" <<'NODE_SCRIPT'
 const fs = require('fs');
 const path = require('path');
 
 const SOURCE = process.argv[2];
 const TARGET = process.argv[3];
+const LINKED = process.argv[4] || '';
 const outDir = path.join(TARGET, '.cursor', 'rules');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,7 +101,11 @@ function extractSections(content, headings) {
 
 // ── Read canonical sources ───────────────────────────────────────────────────
 
-const instructions = readOr(path.join(SOURCE, '.lore', 'instructions.md'));
+let instructions = readOr(path.join(SOURCE, '.lore', 'instructions.md'));
+if (LINKED) {
+  const { rewriteForLinkedRepo } = require(path.join(SOURCE, 'lib', 'linked-rewrite'));
+  instructions = rewriteForLinkedRepo(instructions, LINKED);
+}
 
 // Project identity — agent-rules.md with frontmatter stripped
 const agentRules = stripFrontmatter(
