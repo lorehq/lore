@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [18, 20]
     steps:
       - uses: actions/checkout@v4
@@ -24,17 +24,26 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install shellcheck
       - name: ShellCheck
+        if: runner.os != 'Windows'
         run: shellcheck -x scripts/*.sh scripts/lib/*.sh
       - name: Lint & format
         run: npx eslint . && npx prettier --check .
       - run: npm test
-      - run: bash scripts/validate-consistency.sh
-      - run: bash scripts/check-version-sync.sh
+      - name: Validate consistency
+        shell: bash
+        run: bash scripts/validate-consistency.sh
+      - name: Check version sync
+        shell: bash
+        run: bash scripts/check-version-sync.sh
       - name: Nav staleness check
+        if: runner.os != 'Windows'
         run: |
           # Create sticky dirs that are gitignored but present on dev machines.
           # Without this, generate-nav.sh output differs from committed mkdocs.yml.
           node -e "require('./lib/banner').ensureStickyFiles('.')"
           bash scripts/generate-nav.sh && git diff --exit-code mkdocs.yml
       - name: Fresh-clone smoke test
+        shell: bash
         run: bash scripts/smoke-test.sh
+      - name: Audit dependencies
+        run: npm audit --omit=dev
