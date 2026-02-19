@@ -11,7 +11,7 @@
 #   6. Agent frontmatter has required fields (name, domain, description, model or per-platform model)
 #   7. Agent skill references point to existing directories
 #   8. Platform copies (.claude/) match canonical source (.lore/)
-#   9. CLAUDE.md and .cursorrules match .lore/instructions.md
+#   9. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
 #  10. Cursor hooks configuration references existing scripts
 #  11. Linked repos (.lore-links) still exist on disk
 #
@@ -151,15 +151,30 @@ fi
 # -- 9. Instructions copies match canonical source --
 echo "--- Instructions Sync ---"
 if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
-  for copy in "CLAUDE.md" ".cursorrules"; do
-    if [[ -f "$REPO_ROOT/$copy" ]]; then
-      if ! diff -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/$copy" >/dev/null 2>&1; then
-        fail "$copy out of sync with .lore/instructions.md — run: bash scripts/sync-platform-skills.sh"
-      fi
-    else
-      fail "$copy missing — run: bash scripts/sync-platform-skills.sh"
+  # CLAUDE.md is a direct copy of instructions.md
+  if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
+    if ! diff -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1; then
+      fail "CLAUDE.md out of sync with .lore/instructions.md — run: bash scripts/sync-platform-skills.sh"
     fi
-  done
+  else
+    fail "CLAUDE.md missing — run: bash scripts/sync-platform-skills.sh"
+  fi
+
+  # lore-core.mdc has frontmatter + instructions body — compare body only.
+  # Uses node to strip frontmatter (same regex as lib/banner.js stripFrontmatter).
+  core_mdc="$REPO_ROOT/.cursor/rules/lore-core.mdc"
+  if [[ -f "$core_mdc" ]]; then
+    node -e "
+      const fs = require('fs');
+      const strip = c => c.replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+      const mdc = strip(fs.readFileSync(process.argv[1], 'utf8'));
+      const inst = fs.readFileSync(process.argv[2], 'utf8').trim();
+      if (mdc !== inst) { console.log('MISMATCH'); process.exit(1); }
+    " "$core_mdc" "$REPO_ROOT/.lore/instructions.md" >/dev/null 2>&1 \
+      || fail "lore-core.mdc body out of sync with .lore/instructions.md — run: bash scripts/generate-cursor-rules.sh"
+  else
+    fail "lore-core.mdc missing — run: bash scripts/generate-cursor-rules.sh"
+  fi
 fi
 
 # -- 10. Cursor hooks configuration --

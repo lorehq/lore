@@ -61,14 +61,17 @@ function runHook(dir, hookName, stdinData) {
 
 // ── Session Init ──
 
-test('session-init: emits full banner with additional_context', (t) => {
+test('session-init: emits dynamic-only banner with version', (t) => {
   const dir = setup({ config: { version: '1.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runHook(dir, 'session-init.js');
   assert.equal(code, 0);
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
-  assert.ok(parsed.additional_context.includes('DELEGATION:'));
+  // Static context (delegation, conventions, tree) is now in .mdc rules, not the hook
+  assert.ok(!parsed.additional_context.includes('DELEGATION:'), 'static content should not be in Cursor banner');
+  assert.ok(!parsed.additional_context.includes('CONVENTIONS:'), 'static content should not be in Cursor banner');
+  assert.ok(!parsed.additional_context.includes('KNOWLEDGE MAP:'), 'static content should not be in Cursor banner');
   assert.equal(parsed.continue, true);
 });
 
@@ -80,14 +83,19 @@ test('session-init: creates sticky files', (t) => {
   assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
 });
 
-test('session-init: includes agent domains in banner', (t) => {
-  const dir = setup({
-    registry: ['| Agent | Domain | Skills |', '|---|---|---|', '| `doc-agent` | Documentation | 2 |'].join('\n'),
-  });
+test('session-init: includes active roadmaps in dynamic banner', (t) => {
+  const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
+  fs.mkdirSync(rmDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(rmDir, 'index.md'),
+    ['---', 'title: My Roadmap', 'status: active', 'summary: Phase 1', '---'].join('\n'),
+  );
   const { stdout } = runHook(dir, 'session-init.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.additional_context.includes('Documentation'));
+  assert.ok(parsed.additional_context.includes('ACTIVE ROADMAPS:'));
+  assert.ok(parsed.additional_context.includes('My Roadmap (Phase 1)'));
 });
 
 // ── Protect Memory ──

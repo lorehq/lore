@@ -30,9 +30,15 @@ GENERATED_FILES=(
   .lore
   .claude/settings.json
   .cursor/hooks.json
-  .cursor/rules/lore.mdc
+  .cursor/rules/lore-core.mdc
+  .cursor/rules/lore-project.mdc
+  .cursor/rules/lore-work-tracking.mdc
+  .cursor/rules/lore-knowledge-routing.mdc
+  .cursor/rules/lore-skill-creation.mdc
+  .cursor/rules/lore-docs-formatting.mdc
+  .cursor/rules/lore-delegation.mdc
+  .cursor/rules/lore-knowledge-map.mdc
   CLAUDE.md
-  .cursorrules
   .opencode/plugins/session-init.js
   .opencode/plugins/protect-memory.js
   .opencode/plugins/knowledge-tracker.js
@@ -108,10 +114,14 @@ do_link() {
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/.cursor/hooks.json"
 
-  # Instructions copies
-  cp "$HUB/.lore/instructions.md" "$target/.cursor/rules/lore.mdc"
+  # Instructions copy (Claude Code)
   cp "$HUB/.lore/instructions.md" "$target/CLAUDE.md"
-  cp "$HUB/.lore/instructions.md" "$target/.cursorrules"
+
+  # Cursor rules — copy pre-generated tiered .mdc files from hub
+  for mdc in "$HUB/.cursor/rules"/lore-*.mdc; do
+    [ -f "$mdc" ] || continue
+    cp "$mdc" "$target/.cursor/rules/$(basename "$mdc")"
+  done
 
   # OpenCode plugin wrappers
   local name export_name

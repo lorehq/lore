@@ -1,3 +1,8 @@
+---
+description: Lore framework instructions — core behaviors, knowledge routing, ownership, skill/agent creation
+alwaysApply: true
+---
+
 # Lore
 
 Knowledge-persistent coding agent framework. No application code — hooks, skills, agents, and docs that persist across sessions.

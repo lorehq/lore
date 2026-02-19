@@ -1,0 +1,23 @@
+---
+description: Rules for managing roadmaps, plans, and brainstorms in Lore work system
+globs: docs/work/**
+---
+
+## Work Management
+
+Roadmaps, plans, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
+
+- **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
+- **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.
+- **Brainstorms** (`docs/work/brainstorms/<slug>/`): Conversation artifacts for future reference. No `status` field — not tracked work.
+
+Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
+
+## Cursor Plans vs Lore Plans
+
+Plans that should persist across sessions use `/lore-create-plan` and live in
+`docs/work/plans/` or under a roadmap. Cursor's built-in `.cursor/plans/` is for
+throwaway session-scoped implementation checklists only.
+
+When the operator asks to "create a plan", default to Lore's system unless the
+task is clearly a one-off implementation checklist that won't outlive the session.
