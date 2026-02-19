@@ -3,7 +3,7 @@
   "version": "0.8.1",
   "private": true,
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --test test/**/*.test.js",
     "lint": "eslint .",
     "format:check": "prettier --check ."
   },
