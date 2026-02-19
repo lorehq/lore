@@ -14,4 +14,10 @@ ensureStickyFiles(hub);
 const banner = buildBanner(hub);
 console.log(JSON.stringify({ additional_context: banner, continue: true }));
 // Log banner size — Cursor banner includes the full knowledge map and conventions
-logHookEvent({ platform: 'cursor', hook: 'session-init', event: 'sessionStart', outputSize: banner.length, directory: hub });
+logHookEvent({
+  platform: 'cursor',
+  hook: 'session-init',
+  event: 'sessionStart',
+  outputSize: banner.length,
+  directory: hub,
+});

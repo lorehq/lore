@@ -1,12 +1,12 @@
 {
   "version": 1,
   "hooks": {
-    "sessionStart":         [{ "command": "node .cursor/hooks/session-init.js" }],
-    "beforeReadFile":       [{ "command": "node .cursor/hooks/protect-memory.js" }],
-    "preToolUse":           [{ "command": "node .cursor/hooks/protect-memory.js", "matcher": "Write" }],
+    "sessionStart": [{ "command": "node .cursor/hooks/session-init.js" }],
+    "beforeReadFile": [{ "command": "node .cursor/hooks/protect-memory.js" }],
+    "preToolUse": [{ "command": "node .cursor/hooks/protect-memory.js", "matcher": "Write" }],
     "beforeShellExecution": [{ "command": "node .cursor/hooks/capture-nudge.js" }],
-    "afterFileEdit":        [{ "command": "node .cursor/hooks/knowledge-tracker.js" }],
-    "postToolUseFailure":   [{ "command": "node .cursor/hooks/failure-tracker.js" }],
-    "preCompact":           [{ "command": "node .cursor/hooks/compaction-flag.js" }]
+    "afterFileEdit": [{ "command": "node .cursor/hooks/knowledge-tracker.js" }],
+    "postToolUseFailure": [{ "command": "node .cursor/hooks/failure-tracker.js" }],
+    "preCompact": [{ "command": "node .cursor/hooks/compaction-flag.js" }]
   }
 }

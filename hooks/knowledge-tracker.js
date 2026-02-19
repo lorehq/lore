@@ -83,12 +83,26 @@ if (result.silent) {
   const out = JSON.stringify({ hookSpecificOutput: output });
   console.log(out);
   // Track silent events (read-only tools, knowledge writes) separately from nudges
-  logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event, outputSize: out.length, state: { bash: state.bash, silent: true }, directory: hubDir });
+  logHookEvent({
+    platform: 'claude',
+    hook: 'knowledge-tracker',
+    event,
+    outputSize: out.length,
+    state: { bash: state.bash, silent: true },
+    directory: hubDir,
+  });
 } else {
   const out = JSON.stringify({
     hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
   });
   console.log(out);
   // Track nudge delivery — bash counter shows escalation level
-  logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event, outputSize: out.length, state: { bash: state.bash, silent: false }, directory: hubDir });
+  logHookEvent({
+    platform: 'claude',
+    hook: 'knowledge-tracker',
+    event,
+    outputSize: out.length,
+    state: { bash: state.bash, silent: false },
+    directory: hubDir,
+  });
 }

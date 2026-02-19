@@ -52,7 +52,14 @@ export const KnowledgeTracker = async ({ directory, client }) => {
           });
         }
         // Silent events (read-only, knowledge writes) — still log to track fire rate
-        logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: extra ? extra.length : 0, state: { bash: consecutiveBash, silent: true }, directory: hub });
+        logHookEvent({
+          platform: 'opencode',
+          hook: 'knowledge-tracker',
+          event: 'tool.execute.after',
+          outputSize: extra ? extra.length : 0,
+          state: { bash: consecutiveBash, silent: true },
+          directory: hub,
+        });
         return;
       }
 
@@ -61,7 +68,14 @@ export const KnowledgeTracker = async ({ directory, client }) => {
         body: { service: 'knowledge-tracker', level: result.level, message: msg },
       });
       // Non-silent: nudge delivered — bash counter tracks escalation level
-      logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: msg.length, state: { bash: consecutiveBash, silent: false }, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'knowledge-tracker',
+        event: 'tool.execute.after',
+        outputSize: msg.length,
+        state: { bash: consecutiveBash, silent: false },
+        directory: hub,
+      });
     },
   };
 };

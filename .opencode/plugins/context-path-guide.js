@@ -29,7 +29,14 @@ export const ContextPathGuide = async ({ directory, client }) => {
       const isContext = resolved.startsWith(contextPrefix);
       if (!isKnowledge && !isContext) {
         // Non-docs write — log to measure how often this hook fires vs matches
-        logHookEvent({ platform: 'opencode', hook: 'context-path-guide', event: 'tool.execute.before', outputSize: 0, state: { matched: false }, directory: hub });
+        logHookEvent({
+          platform: 'opencode',
+          hook: 'context-path-guide',
+          event: 'tool.execute.before',
+          outputSize: 0,
+          state: { matched: false },
+          directory: hub,
+        });
         return;
       }
 
@@ -50,7 +57,14 @@ export const ContextPathGuide = async ({ directory, client }) => {
         body: { service: 'context-path-guide', level: 'info', message: msg },
       });
       // Matched docs/ write — output includes full directory tree, so size matters
-      logHookEvent({ platform: 'opencode', hook: 'context-path-guide', event: 'tool.execute.before', outputSize: msg.length, state: { matched: true }, directory: hub });
+      logHookEvent({
+        platform: 'opencode',
+        hook: 'context-path-guide',
+        event: 'tool.execute.before',
+        outputSize: msg.length,
+        state: { matched: true },
+        directory: hub,
+      });
     },
   };
 };

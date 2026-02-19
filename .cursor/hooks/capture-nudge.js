@@ -37,18 +37,23 @@ function readState() {
 }
 
 function writeState(s) {
-  try { fs.writeFileSync(stateFile, JSON.stringify(s)); } catch {}
+  try {
+    fs.writeFileSync(stateFile, JSON.stringify(s));
+  } catch {}
 }
 
 // ── Compaction flag (written by compaction-flag.js) ──
 
-const compactedPath = path.join(
-  fs.existsSync(gitDir) ? gitDir : require('os').tmpdir(),
-  'lore-compacted',
-);
+const compactedPath = path.join(fs.existsSync(gitDir) ? gitDir : require('os').tmpdir(), 'lore-compacted');
 
-function wasCompacted() { return fs.existsSync(compactedPath); }
-function clearCompacted() { try { fs.unlinkSync(compactedPath); } catch {} }
+function wasCompacted() {
+  return fs.existsSync(compactedPath);
+}
+function clearCompacted() {
+  try {
+    fs.unlinkSync(compactedPath);
+  } catch {}
+}
 
 // ── Read all accumulated state ──
 
@@ -100,4 +105,11 @@ const out = JSON.stringify({ permission: 'allow', agent_message: msg });
 console.log(out);
 // Highest-frequency Cursor hook — captures full state snapshot for correlating
 // nudge escalation with actual shell command patterns
-logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: msg.length, state: { bash: state.bash, compacted, hadFailure, navDirty }, directory: hubDir });
+logHookEvent({
+  platform: 'cursor',
+  hook: 'capture-nudge',
+  event: 'beforeShellExecution',
+  outputSize: msg.length,
+  state: { bash: state.bash, compacted, hadFailure, navDirty },
+  directory: hubDir,
+});

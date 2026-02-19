@@ -15,4 +15,10 @@ const flagPath = path.join(flagDir, 'lore-compacted');
 fs.writeFileSync(flagPath, Date.now().toString());
 // No output (Cursor ignores preCompact output), but log to verify compaction
 // detection works — capture-nudge should emit re-orientation on next shell command
-logHookEvent({ platform: 'cursor', hook: 'compaction-flag', event: 'preCompact', outputSize: 0, directory: process.cwd() });
+logHookEvent({
+  platform: 'cursor',
+  hook: 'compaction-flag',
+  event: 'preCompact',
+  outputSize: 0,
+  directory: process.cwd(),
+});

@@ -107,7 +107,9 @@ try {
   const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
   if (files.length > 0) {
     const names = files.map((f) => f.replace(/\.md$/, ''));
-    conventions.push('Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant');
+    conventions.push(
+      'Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant',
+    );
   }
 } catch (e) {
   debug('convention-guard: could not list conventions: %s', e.message);
@@ -118,4 +120,11 @@ if (conventions.length === 0) process.exit(0);
 const msg = conventions.join('\n');
 const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
 console.log(out);
-logHookEvent({ platform: 'claude', hook: 'convention-guard', event: 'PreToolUse', outputSize: out.length, state: { path: relative }, directory: hubDir });
+logHookEvent({
+  platform: 'claude',
+  hook: 'convention-guard',
+  event: 'PreToolUse',
+  outputSize: out.length,
+  state: { path: relative },
+  directory: hubDir,
+});

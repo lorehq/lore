@@ -63,7 +63,9 @@ function loreCheckIn() {
     const version = cfg.version ? `v${cfg.version}` : '';
     msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 see agent-registry.md | Re-read .cursor/rules/ and project context`;
     // Clear flag — both MCP and hook race to clear; harmless if already gone
-    try { fs.unlinkSync(compactedPath); } catch {}
+    try {
+      fs.unlinkSync(compactedPath);
+    } catch {}
   } else {
     // Normal operation — escalating nudge based on consecutive bash count
     const { nudge, warn } = getThresholds(hubDir);
@@ -194,7 +196,9 @@ function loreWriteGuard(filePath) {
     const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
     if (files.length > 0) {
       const names = files.map((f) => f.replace(/\.md$/, ''));
-      conventions.push('Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant');
+      conventions.push(
+        'Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant',
+      );
     }
   } catch {}
 
@@ -216,12 +220,14 @@ const TOOLS = [
   },
   {
     name: 'lore_context',
-    description: 'Get knowledge map, active work, and delegation domains. Use when navigating the knowledge base or after context compaction.',
+    description:
+      'Get knowledge map, active work, and delegation domains. Use when navigating the knowledge base or after context compaction.',
     inputSchema: { type: 'object', properties: {}, required: [] },
   },
   {
     name: 'lore_write_guard',
-    description: 'Get convention reminders before writing a file. MUST be called before every file write or edit. Returns security, docs, knowledge, or work-item conventions based on the target path.',
+    description:
+      'Get convention reminders before writing a file. MUST be called before every file write or edit. Returns security, docs, knowledge, or work-item conventions based on the target path.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -243,7 +249,8 @@ function handleRequest(req) {
   if (method === 'initialize') {
     const clientVersion = req.params?.protocolVersion || '2024-11-05';
     return {
-      jsonrpc: '2.0', id,
+      jsonrpc: '2.0',
+      id,
       result: {
         protocolVersion: clientVersion,
         capabilities: { tools: {} },
@@ -272,18 +279,21 @@ function handleRequest(req) {
       text = loreWriteGuard(req.params?.arguments?.file_path || '');
     } else {
       return {
-        jsonrpc: '2.0', id,
+        jsonrpc: '2.0',
+        id,
         result: { content: [{ type: 'text', text: `Unknown tool: ${toolName}` }], isError: true },
       };
     }
     return {
-      jsonrpc: '2.0', id,
+      jsonrpc: '2.0',
+      id,
       result: { content: [{ type: 'text', text }] },
     };
   }
 
   return {
-    jsonrpc: '2.0', id,
+    jsonrpc: '2.0',
+    id,
     error: { code: -32601, message: `Method not found: ${method}` },
   };
 }
@@ -304,10 +314,13 @@ rl.on('line', (line) => {
     if (res) process.stdout.write(JSON.stringify(res) + '\n');
   } catch (err) {
     console.error('[lore-mcp] parse error:', err.message);
-    process.stdout.write(JSON.stringify({
-      jsonrpc: '2.0', id: null,
-      error: { code: -32700, message: 'Parse error' },
-    }) + '\n');
+    process.stdout.write(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32700, message: 'Parse error' },
+      }) + '\n',
+    );
   }
 });
 

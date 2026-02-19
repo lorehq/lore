@@ -39,14 +39,25 @@ const stateFile = fs.existsSync(gitDir)
 let state = { bash: 0, lastFailure: false };
 try {
   state = { ...state, ...JSON.parse(fs.readFileSync(stateFile, 'utf8')) };
-} catch { /* no state file yet */ }
+} catch {
+  /* no state file yet */
+}
 
 state.bash = 0;
 state.lastFailure = false;
 
 try {
   fs.writeFileSync(stateFile, JSON.stringify(state));
-} catch { /* non-critical */ }
+} catch {
+  /* non-critical */
+}
 // No output (Cursor ignores afterFileEdit output), but log to confirm it fires
 // and resets the bash counter — important for validating the counter lifecycle
-logHookEvent({ platform: 'cursor', hook: 'knowledge-tracker', event: 'afterFileEdit', outputSize: 0, state: { bashReset: true, file: filePath }, directory: hubDir });
+logHookEvent({
+  platform: 'cursor',
+  hook: 'knowledge-tracker',
+  event: 'afterFileEdit',
+  outputSize: 0,
+  state: { bashReset: true, file: filePath },
+  directory: hubDir,
+});

@@ -13,4 +13,10 @@ ensureStickyFiles(root);
 const banner = buildBanner(root);
 console.log(banner);
 // Log banner size to track one-time session start context cost
-logHookEvent({ platform: 'claude', hook: 'session-init', event: 'SessionStart', outputSize: banner.length, directory: root });
+logHookEvent({
+  platform: 'claude',
+  hook: 'session-init',
+  event: 'SessionStart',
+  outputSize: banner.length,
+  directory: root,
+});

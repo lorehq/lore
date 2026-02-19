@@ -49,7 +49,13 @@ test('logHookEvent: writes JSONL when LORE_HOOK_LOG=1', (t) => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
   process.env.LORE_HOOK_LOG = '1';
-  logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: 100, directory: dir });
+  logHookEvent({
+    platform: 'cursor',
+    hook: 'capture-nudge',
+    event: 'beforeShellExecution',
+    outputSize: 100,
+    directory: dir,
+  });
   const logPath = getLogPath(dir);
   assert.ok(fs.existsSync(logPath));
   const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
@@ -71,7 +77,13 @@ test('logHookEvent: appends multiple events', (t) => {
   process.env.LORE_HOOK_LOG = '1';
   logHookEvent({ platform: 'claude', hook: 'session-init', event: 'SessionStart', outputSize: 500, directory: dir });
   logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event: 'PostToolUse', outputSize: 80, directory: dir });
-  logHookEvent({ platform: 'claude', hook: 'prompt-preamble', event: 'UserPromptSubmit', outputSize: 60, directory: dir });
+  logHookEvent({
+    platform: 'claude',
+    hook: 'prompt-preamble',
+    event: 'UserPromptSubmit',
+    outputSize: 60,
+    directory: dir,
+  });
   const logPath = getLogPath(dir);
   const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
   assert.equal(lines.length, 3);
@@ -84,7 +96,14 @@ test('logHookEvent: includes state when provided', (t) => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
   process.env.LORE_HOOK_LOG = '1';
-  logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: 50, state: { bash: 3, compacted: false }, directory: dir });
+  logHookEvent({
+    platform: 'cursor',
+    hook: 'capture-nudge',
+    event: 'beforeShellExecution',
+    outputSize: 50,
+    state: { bash: 3, compacted: false },
+    directory: dir,
+  });
   const logPath = getLogPath(dir);
   const entry = JSON.parse(fs.readFileSync(logPath, 'utf8').trim());
   assert.deepEqual(entry.state, { bash: 3, compacted: false });
