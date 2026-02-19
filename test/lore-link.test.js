@@ -199,31 +199,39 @@ test('lore-link creates all expected files', (t) => {
   runScript(`--unlink "${work}"`);
 });
 
-test('generated .claude/settings.json contains LORE_HUB and absolute paths', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
-  const work = setupWorkRepo();
-  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
-  runScript(`"${work}"`);
+test(
+  'generated .claude/settings.json contains LORE_HUB and absolute paths',
+  { skip: isWindows && 'bash paths differ on Windows' },
+  (t) => {
+    const work = setupWorkRepo();
+    t.after(() => fs.rmSync(work, { recursive: true, force: true }));
+    runScript(`"${work}"`);
 
-  const settings = JSON.parse(fs.readFileSync(path.join(work, '.claude', 'settings.json'), 'utf8'));
-  const cmd = settings.hooks.SessionStart[0].hooks[0].command;
-  assert.ok(cmd.includes('LORE_HUB='));
-  assert.ok(cmd.includes(repoRoot));
+    const settings = JSON.parse(fs.readFileSync(path.join(work, '.claude', 'settings.json'), 'utf8'));
+    const cmd = settings.hooks.SessionStart[0].hooks[0].command;
+    assert.ok(cmd.includes('LORE_HUB='));
+    assert.ok(cmd.includes(repoRoot));
 
-  runScript(`--unlink "${work}"`);
-});
+    runScript(`--unlink "${work}"`);
+  },
+);
 
-test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
-  const work = setupWorkRepo();
-  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
-  runScript(`"${work}"`);
+test(
+  'generated .cursor/hooks.json contains LORE_HUB and absolute paths',
+  { skip: isWindows && 'bash paths differ on Windows' },
+  (t) => {
+    const work = setupWorkRepo();
+    t.after(() => fs.rmSync(work, { recursive: true, force: true }));
+    runScript(`"${work}"`);
 
-  const hooks = JSON.parse(fs.readFileSync(path.join(work, '.cursor', 'hooks.json'), 'utf8'));
-  const cmd = hooks.hooks.sessionStart[0].command;
-  assert.ok(cmd.includes('LORE_HUB='));
-  assert.ok(cmd.includes(repoRoot));
+    const hooks = JSON.parse(fs.readFileSync(path.join(work, '.cursor', 'hooks.json'), 'utf8'));
+    const cmd = hooks.hooks.sessionStart[0].command;
+    assert.ok(cmd.includes('LORE_HUB='));
+    assert.ok(cmd.includes(repoRoot));
 
-  runScript(`--unlink "${work}"`);
-});
+    runScript(`--unlink "${work}"`);
+  },
+);
 
 test('.lore-links in hub contains the target path', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
