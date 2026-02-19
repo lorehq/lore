@@ -97,3 +97,8 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
 - Hooks: `hooks/`
 - Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/lore-ui`)
+
+
+## MCP Tools
+
+Call `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.

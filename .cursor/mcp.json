@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "lore": {
+      "command": "node",
+      "args": [".cursor/mcp/lore-server.js"]
+    }
+  }
+}

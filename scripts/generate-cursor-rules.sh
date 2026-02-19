@@ -159,10 +159,13 @@ function buildKnowledgeMap() {
 
 // -- Tier 1: Always-on (loaded every session, including first auto-open) ------
 
-// 1. lore-core — full framework instructions (replaces .cursorrules)
+// 1. lore-core — full framework instructions + MCP tool usage.
+//    MCP section is appended beyond instructions.md because it's Cursor-specific
+//    (Claude Code and OpenCode use hooks directly, not MCP tools).
+const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.';
 writeMdc('lore-core.mdc',
   'description: Lore framework instructions — core behaviors, knowledge routing, ownership, skill/agent creation\nalwaysApply: true',
-  instructions
+  instructions + mcpSection
 );
 
 // 2. lore-project — project identity + conventions snapshot

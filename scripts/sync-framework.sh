@@ -38,6 +38,11 @@ rsync -a "$SOURCE/.opencode/" "$TARGET/.opencode/"
 # Sync hooks directly, then copy only framework-owned rules.
 rsync -a "$SOURCE/.cursor/hooks/" "$TARGET/.cursor/hooks/"
 cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
+# MCP server — exposes lore_check_in and lore_context as Cursor tools.
+# Both the server script and the config are framework-owned.
+mkdir -p "$TARGET/.cursor/mcp"
+cp "$SOURCE/.cursor/mcp/lore-server.js" "$TARGET/.cursor/mcp/lore-server.js"
+cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
 
 # Framework-owned rules (content derived from instructions.md, same across instances)
 mkdir -p "$TARGET/.cursor/rules"
