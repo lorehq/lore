@@ -47,13 +47,23 @@ function setup(opts = {}) {
 function runHook(dir, hookName, stdinData) {
   const hookFile = path.join(dir, '.cursor', 'hooks', hookName);
   const input = stdinData ? JSON.stringify(stdinData) : '';
-  const result = spawnSync('node', [hookFile], {
-    input,
-    cwd: dir,
-    encoding: 'utf8',
-    timeout: 5000,
-  });
-  return { code: result.status || 0, stdout: (result.stdout || '').trim() };
+  // Write stdin to a file and open as fd 0 — fs.readFileSync(0) is unreliable
+  // with pipe-based stdin on macOS.
+  const inputFile = path.join(dir, '.test-stdin.json');
+  fs.writeFileSync(inputFile, input);
+  const fd = fs.openSync(inputFile, 'r');
+  try {
+    const result = spawnSync('node', [hookFile], {
+      stdio: [fd, 'pipe', 'pipe'],
+      cwd: dir,
+      encoding: 'utf8',
+      timeout: 5000,
+    });
+    return { code: result.status || 0, stdout: (result.stdout || '').trim() };
+  } finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(inputFile);
+  }
 }
 
 // Helper to resolve the state file path for a test directory (same logic as hooks)
