@@ -2,9 +2,10 @@
 // Lore MCP Server for Cursor
 // JSON-RPC 2.0 over stdio (newline-delimited JSON). Zero dependencies.
 //
-// Exposes two tools:
-//   lore_check_in  — capture nudges, failure notes, compaction re-orientation
-//   lore_context   — knowledge map + active work (navigation/post-compaction)
+// Exposes three tools:
+//   lore_check_in   — capture nudges, failure notes, compaction re-orientation
+//   lore_context    — knowledge map + active work (navigation/post-compaction)
+//   lore_write_guard — convention reminders based on target file path
 //
 // Reads state files written by Cursor hooks (capture-nudge, failure-tracker,
 // compaction-flag, knowledge-tracker). Read-only for state — hooks own the lifecycle.
@@ -134,6 +135,59 @@ function loreContext() {
   return parts.join('\n');
 }
 
+// Convention guard — returns relevant convention principles for a file path.
+// Reads the actual convention files and extracts bold principle lines so
+// reminders stay in sync with the source of truth (no duplication).
+function extractPrinciples(filename) {
+  const convPath = path.join(hubDir, 'docs', 'context', 'conventions', filename);
+  try {
+    const content = fs.readFileSync(convPath, 'utf8');
+    const principles = [];
+    for (const line of content.split('\n')) {
+      const match = line.match(/^\*\*(.+?)\*\*$/);
+      if (match) principles.push(match[1]);
+    }
+    return principles;
+  } catch {
+    return [];
+  }
+}
+
+function loreWriteGuard(filePath) {
+  if (!filePath) return 'No file path provided.';
+
+  const resolved = path.resolve(filePath);
+  const repoPrefix = path.resolve(hubDir) + path.sep;
+  if (!resolved.startsWith(repoPrefix)) return 'File is outside this repo.';
+
+  const relative = resolved.slice(repoPrefix.length);
+  const conventions = [];
+
+  // Security: always
+  const security = extractPrinciples('security.md');
+  if (security.length > 0) conventions.push('Security: ' + security.join(' | '));
+
+  // Docs convention for all docs/ paths
+  const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
+  if (isDocs) {
+    const docs = extractPrinciples('docs.md');
+    if (docs.length > 0) conventions.push('Docs: ' + docs.join(' | '));
+  }
+
+  // Domain-specific
+  const isWork = relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\');
+  const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
+  if (isWork) {
+    const workItems = extractPrinciples('work-items.md');
+    if (workItems.length > 0) conventions.push('Work items: ' + workItems.join(' | '));
+  } else if (isKnowledge) {
+    const knowledge = extractPrinciples('knowledge-capture.md');
+    if (knowledge.length > 0) conventions.push('Knowledge: ' + knowledge.join(' | '));
+  }
+
+  return conventions.length > 0 ? conventions.join('\n') : 'No conventions apply.';
+}
+
 // ── MCP protocol ────────────────────────────────────────────────────────────
 
 const SERVER_INFO = {
@@ -151,6 +205,17 @@ const TOOLS = [
     name: 'lore_context',
     description: 'Get knowledge map, active work, and delegation domains. Use when navigating the knowledge base or after context compaction.',
     inputSchema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'lore_write_guard',
+    description: 'Get convention reminders before writing a file. MUST be called before every file write or edit. Returns security, docs, knowledge, or work-item conventions based on the target path.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file_path: { type: 'string', description: 'The absolute path of the file about to be written or edited.' },
+      },
+      required: ['file_path'],
+    },
   },
 ];
 
@@ -190,6 +255,8 @@ function handleRequest(req) {
       text = loreCheckIn();
     } else if (toolName === 'lore_context') {
       text = loreContext();
+    } else if (toolName === 'lore_write_guard') {
+      text = loreWriteGuard(req.params?.arguments?.file_path || '');
     } else {
       return {
         jsonrpc: '2.0', id,
