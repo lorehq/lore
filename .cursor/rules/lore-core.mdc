@@ -101,4 +101,4 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 ## MCP Tools
 
-Call `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.
+Call `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction. Call `lore_write_guard` with the target file path before every file write or edit — it returns convention reminders (security, docs, knowledge capture, work items) relevant to that path.
