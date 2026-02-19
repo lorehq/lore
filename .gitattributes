@@ -1,0 +1,3 @@
+# Force LF line endings everywhere — prevents CRLF issues on Windows
+# with Prettier, ShellCheck, diff comparisons, and frontmatter parsing.
+* text=auto eol=lf
