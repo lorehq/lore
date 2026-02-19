@@ -14,7 +14,8 @@
 | lore-status | Orchestrator | Show Lore instance health — version, hooks, skills, agents, active work |
 | lore-ui | Documentation | Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs. |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
-| mcp-stdio-content-length-framing | MCP | MCP stdio transport uses Content-Length header framing, not newline-delimited JSON |
+| mcp-stdio-content-length-framing | MCP | Cursor MCP uses newline-delimited JSON over stdio, not Content-Length framing |
+| node-macos-stdin-fd |  |  |
 | platform-command-collisions | Orchestrator | Avoid naming skills that collide with platform built-in slash commands |
 | pymdownx-extension-order | Documentation | pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes |
 
