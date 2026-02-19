@@ -59,19 +59,26 @@ function runHook(dir, hookName, stdinData) {
   }
 }
 
+// Helper to resolve the state file path for a test directory (same logic as hooks)
+function getStateFile(dir) {
+  const crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
+  return path.join(dir, '.git', `lore-tracker-${hash}.json`);
+}
+
 // ── Session Init ──
 
-test('session-init: emits dynamic-only banner with version', (t) => {
+test('session-init: emits full banner with version and static context', (t) => {
   const dir = setup({ config: { version: '1.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runHook(dir, 'session-init.js');
   assert.equal(code, 0);
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
-  // Static context (delegation, conventions, tree) is now in .mdc rules, not the hook
-  assert.ok(!parsed.additional_context.includes('DELEGATION:'), 'static content should not be in Cursor banner');
-  assert.ok(!parsed.additional_context.includes('CONVENTIONS:'), 'static content should not be in Cursor banner');
-  assert.ok(!parsed.additional_context.includes('KNOWLEDGE MAP:'), 'static content should not be in Cursor banner');
+  // Full banner — .mdc rules serve as first-session fallback only
+  assert.ok(parsed.additional_context.includes('DELEGATION:'), 'full banner should include delegation');
+  assert.ok(parsed.additional_context.includes('CAPTURE:'), 'full banner should include capture reminder');
+  assert.ok(parsed.additional_context.includes('KNOWLEDGE MAP:'), 'full banner should include knowledge map');
   assert.equal(parsed.continue, true);
 });
 
@@ -162,15 +169,14 @@ test('knowledge-tracker: silent on knowledge path writes', (t) => {
   assert.equal(stdout, '');
 });
 
-test('knowledge-tracker: emits reminder on non-knowledge writes', (t) => {
+test('knowledge-tracker: silent on all writes (output moved to capture-nudge)', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { stdout } = runHook(dir, 'knowledge-tracker.js', {
     filePath: path.join(dir, 'MEMORY.local.md'),
   });
-  assert.ok(stdout.length > 0);
-  const parsed = JSON.parse(stdout);
-  assert.ok(parsed.message.includes('scratch notes'));
+  // knowledge-tracker no longer emits output — nudges delivered via capture-nudge.js
+  assert.equal(stdout, '');
 });
 
 test('knowledge-tracker: no nav-dirty on non-docs writes', (t) => {
@@ -183,38 +189,142 @@ test('knowledge-tracker: no nav-dirty on non-docs writes', (t) => {
   assert.ok(!fs.existsSync(navFlag));
 });
 
-test('knowledge-tracker: tracks consecutive bash commands via afterShellExecution', (t) => {
-  const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // First shell execution — count goes to 1, below nudge threshold
-  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
-  // Second shell execution — count goes to 2, hits nudge threshold
-  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
-  // Verify state file was created and bash count persisted
-  const crypto = require('crypto');
-  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
-  const stateFile = path.join(dir, '.git', `lore-tracker-${hash}.json`);
-  assert.ok(fs.existsSync(stateFile));
-  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-  assert.equal(state.bash, 2);
-});
-
 test('knowledge-tracker: file edit resets bash counter', (t) => {
-  const dir = setup({ config: { nudgeThreshold: 2, warnThreshold: 4 } });
+  const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const crypto = require('crypto');
-  const hash = crypto.createHash('md5').update(dir).digest('hex').slice(0, 8);
-  const stateFile = path.join(dir, '.git', `lore-tracker-${hash}.json`);
+  const stateFile = getStateFile(dir);
 
-  // Two shell executions
-  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
-  runHook(dir, 'knowledge-tracker.js', { hook_event_name: 'afterShellExecution' });
-  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash, 2);
+  // Pre-seed state with bash count (as if capture-nudge.js incremented it)
+  fs.writeFileSync(stateFile, JSON.stringify({ bash: 3, lastFailure: true }));
 
-  // File edit resets counter
+  // File edit resets counter and failure flag
   runHook(dir, 'knowledge-tracker.js', {
-    hook_event_name: 'afterFileEdit',
     filePath: path.join(dir, 'README.md'),
   });
-  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).bash, 0);
+  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  assert.equal(state.bash, 0);
+  assert.equal(state.lastFailure, false);
+});
+
+// ── Protect Memory (preToolUse Write) ──
+
+test('protect-memory: blocks MEMORY.md writes via preToolUse', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const { stdout } = runHook(dir, 'protect-memory.js', {
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(dir, 'MEMORY.md') },
+  });
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.decision, 'deny');
+  assert.ok(parsed.reason.includes('MEMORY.local.md'));
+});
+
+test('protect-memory: allows non-MEMORY writes via preToolUse', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const { stdout } = runHook(dir, 'protect-memory.js', {
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(dir, 'docs', 'foo.md') },
+  });
+  assert.equal(stdout, '');
+});
+
+// ── Capture Nudge ──
+
+test('capture-nudge: increments bash counter and emits allow', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.permission, 'allow');
+  assert.ok(parsed.agent_message.length > 0);
+  // State file should show bash: 1
+  const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
+  assert.equal(state.bash, 1);
+});
+
+test('capture-nudge: emits nudge at threshold', (t) => {
+  const dir = setup({ config: { nudgeThreshold: 3, warnThreshold: 5 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  // Pre-seed at 2 so next run hits nudge threshold (3)
+  fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 2, lastFailure: false }));
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.agent_message.includes('3 commands in a row'));
+});
+
+test('capture-nudge: emits warn at warn threshold', (t) => {
+  const dir = setup({ config: { nudgeThreshold: 3, warnThreshold: 5 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  // Pre-seed at 4 so next run hits warn threshold (5)
+  fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 4, lastFailure: false }));
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.agent_message.includes('5 consecutive commands'));
+});
+
+test('capture-nudge: emits compaction re-orientation and clears flag', (t) => {
+  const dir = setup({ config: { version: '0.8.1' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-compacted');
+  fs.writeFileSync(flagPath, Date.now().toString());
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.agent_message.includes('[COMPACTED]'));
+  assert.ok(parsed.agent_message.includes('Lore v0.8.1'));
+  // Flag should be cleared after reading
+  assert.ok(!fs.existsSync(flagPath));
+});
+
+test('capture-nudge: includes failure note and clears flag', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 0, lastFailure: true }));
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.agent_message.includes('Error pattern worth a skill?'));
+  // Failure flag should be cleared in state
+  const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
+  assert.equal(state.lastFailure, false);
+});
+
+test('capture-nudge: appends nav-dirty reminder', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, '.git', 'lore-nav-dirty'), '');
+  const { stdout } = runHook(dir, 'capture-nudge.js');
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.agent_message.includes('docs/ changed'));
+});
+
+// ── Compaction Flag ──
+
+test('compaction-flag: creates lore-compacted flag file', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const flagPath = path.join(dir, '.git', 'lore-compacted');
+  assert.ok(!fs.existsSync(flagPath));
+  runHook(dir, 'compaction-flag.js');
+  assert.ok(fs.existsSync(flagPath));
+});
+
+// ── Failure Tracker ──
+
+test('failure-tracker: sets lastFailure in state', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  runHook(dir, 'failure-tracker.js', { tool_name: 'bash' });
+  const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
+  assert.equal(state.lastFailure, true);
+});
+
+test('failure-tracker: preserves existing bash count', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 3, lastFailure: false }));
+  runHook(dir, 'failure-tracker.js', { tool_name: 'bash' });
+  const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
+  assert.equal(state.bash, 3);
+  assert.equal(state.lastFailure, true);
 });
