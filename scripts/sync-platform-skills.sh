@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies canonical skills and agents from .lore/ to platform-specific directories.
-# Copies .lore/ canonical files into platform directories. Does NOT use
-# --delete — user-added content in .claude/skills/ etc. is preserved.
+# Copies .lore/ canonical files into platform directories. Overwrites existing
+# files but never deletes operator-added content in .claude/skills/ etc.
 #
 # Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursor/rules/lore-*.mdc), OpenCode
 # Future: Windsurf, etc.
@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # -- Claude Code --
 if [ -d "$REPO_ROOT/.lore/skills" ]; then
   mkdir -p "$REPO_ROOT/.claude/skills"
-  rsync -a "$REPO_ROOT/.lore/skills/" "$REPO_ROOT/.claude/skills/"
+  cp -Rf "$REPO_ROOT/.lore/skills/." "$REPO_ROOT/.claude/skills/"
 fi
 
 if [ -d "$REPO_ROOT/.lore/agents" ]; then
