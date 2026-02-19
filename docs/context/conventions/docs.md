@@ -1,46 +1,46 @@
 # Docs
 
-## When to Write
+## 1. Don't Duplicate
 
-- A public API needs purpose, parameters, returns, and an example.
-- Architecture or design decisions need rationale captured.
-- Setup or onboarding steps aren't obvious from the code.
-- A non-trivial workaround or integration pattern was discovered.
+**One source of truth per fact. Everything else links.**
 
-Don't write docs speculatively. If the code is self-documenting, leave it alone.
+- Before writing, check if the information already exists. If it does, link to it.
+- If two files say the same thing, delete one and point to the other.
+- README, comments, docstrings, and commit messages serve different purposes. Don't repeat content across them.
+- If you find yourself copying a paragraph, you're creating a future contradiction.
 
-## Content Routing
+## 2. Keep It Short
 
-Different content belongs in different places:
+**Say it once, say it clearly, stop.**
 
-- **Code comments** — explain WHY, never WHAT. Intent, decisions, trade-offs, edge cases.
-- **Docstrings** — purpose, params, returns, exceptions, one example.
-- **README** — project context, setup, architecture (for humans).
-- **Commit messages** — WHY the change was made, not WHAT changed.
+- One topic per page. If a doc covers two unrelated things, split it.
+- Cut filler: "it should be noted that", "in order to", "as mentioned above." Just state the thing.
+- One code example beats a paragraph of explanation.
+- If a page exceeds 150 lines, it's probably two pages.
 
-Never duplicate across locations. Link instead.
+## 3. Don't Let Docs Rot
 
-## Formatting
+**Stale docs are worse than no docs.**
 
-- **Heading hierarchy** — H1 > H2 > H3 in sequence. Never skip levels.
-- **One topic per section** — don't mix unrelated concerns under one heading.
-- **Fenced code blocks** with language identifier. Never bare inline code for multi-word commands.
-- **Consistent terminology** — one term per concept, project-wide.
-- **No vague pronouns** — replace "it", "this", "that" with the explicit noun when ambiguous.
-- **Blank line before lists** — required for MkDocs to render lists correctly.
+- When you change code, update the docs that describe it in the same change.
+- If you find a doc that contradicts the code, fix or delete it immediately.
+- Don't leave commented-out content, TODO placeholders, or "will be updated later" notes. They never get updated.
+- Outdated docs actively mislead. Absence is safer than inaccuracy.
 
-## Tone
+## 4. Don't Create Docs Nobody Asked For
 
-- Second person ("you"), present tense, active voice.
-- Direct and imperative for instructions. No hedging.
-- Concrete over vague: specific values, exact commands, real examples.
-- One code example beats a paragraph of description.
-- Assume a competent reader. Don't over-explain basics.
+**Docs solve real problems. They are not a deliverable.**
 
-## Anti-Patterns
+- Don't proactively generate README files, architecture docs, or guides unless requested.
+- Don't document what the code already makes obvious. `getUserById(id)` doesn't need a comment.
+- Don't add docstrings, type annotations, or inline comments to code you didn't change.
+- If you wouldn't read it, don't write it.
 
-- Don't restate code as prose. `x = x + 1` does not need a comment saying "increment x."
-- Don't let docs contradict code. Stale docs are worse than no docs.
-- Don't create monolithic documents. Keep files focused.
-- Don't use vague guidance ("write clean code") without a concrete alternative.
-- Don't create docs proactively. Only when explicitly requested or when a real problem demands it.
+## 5. Be Precise
+
+**Vague docs create vague understanding.**
+
+- Use exact names: file paths, function names, CLI commands. Not "the config file" — which one?
+- Replace vague pronouns ("it", "this", "that") with the explicit noun when ambiguous.
+- Use consistent terminology. Pick one term per concept and stick with it project-wide.
+- Concrete over abstract: specific values, real examples, actual commands.
