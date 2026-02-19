@@ -38,7 +38,7 @@ scan_dir() {
   [[ -n "$archive_dir" ]] && subdirs+=("$archive_dir")
 
   local title rel scaffold_title
-  for subdir in "${subdirs[@]}"; do
+  for subdir in ${subdirs[@]+"${subdirs[@]}"}; do
     name=$(basename "$subdir")
     # Auto-scaffold: if dir has no index.md, create one from the dir name
     if [[ ! -f "${subdir%/}/index.md" ]]; then

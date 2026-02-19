@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync, spawnSync } = require('child_process');
+const { execSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '..');
 const hookPath = (name) => path.join(repoRoot, 'hooks', name);
@@ -32,32 +32,28 @@ function setupWorkRepo() {
   return dir;
 }
 
-function runWithFileStdin(cmd, args, cwd, stdinData, env) {
+function runHookExec(hookFile, cwd, stdinData, env) {
   const input = stdinData ? JSON.stringify(stdinData) : '';
-  const inputFile = path.join(cwd, '.test-stdin.json');
-  fs.writeFileSync(inputFile, input);
-  const fd = fs.openSync(inputFile, 'r');
   try {
-    const result = spawnSync(cmd, args, {
-      stdio: [fd, 'pipe', 'pipe'],
+    const raw = execSync(`node "${hookFile}"`, {
       cwd,
+      input,
       encoding: 'utf8',
       timeout: 5000,
       env: { ...process.env, ...env },
     });
-    return { code: result.status || 0, stdout: (result.stdout || '').trim() };
-  } finally {
-    fs.closeSync(fd);
-    fs.unlinkSync(inputFile);
+    return { code: 0, stdout: (raw || '').trim() };
+  } catch (e) {
+    return { code: e.status || 1, stdout: (e.stdout || '').trim() };
   }
 }
 
 function runClaudeHook(hookName, cwd, stdinData, env) {
-  return runWithFileStdin('node', [hookPath(hookName)], cwd, stdinData, env);
+  return runHookExec(hookPath(hookName), cwd, stdinData, env);
 }
 
 function runCursorHook(hookName, cwd, stdinData, env) {
-  return runWithFileStdin('node', [cursorHookPath(hookName)], cwd, stdinData, env);
+  return runHookExec(cursorHookPath(hookName), cwd, stdinData, env);
 }
 
 function runScript(args, env) {
