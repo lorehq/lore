@@ -32,28 +32,32 @@ function setupWorkRepo() {
   return dir;
 }
 
-function runClaudeHook(hookName, cwd, stdinData, env) {
+function runWithFileStdin(cmd, args, cwd, stdinData, env) {
   const input = stdinData ? JSON.stringify(stdinData) : '';
-  const result = spawnSync('node', [hookPath(hookName)], {
-    input,
-    cwd,
-    encoding: 'utf8',
-    timeout: 5000,
-    env: { ...process.env, ...env },
-  });
-  return { code: result.status || 0, stdout: (result.stdout || '').trim() };
+  const inputFile = path.join(cwd, '.test-stdin.json');
+  fs.writeFileSync(inputFile, input);
+  const fd = fs.openSync(inputFile, 'r');
+  try {
+    const result = spawnSync(cmd, args, {
+      stdio: [fd, 'pipe', 'pipe'],
+      cwd,
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...process.env, ...env },
+    });
+    return { code: result.status || 0, stdout: (result.stdout || '').trim() };
+  } finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(inputFile);
+  }
+}
+
+function runClaudeHook(hookName, cwd, stdinData, env) {
+  return runWithFileStdin('node', [hookPath(hookName)], cwd, stdinData, env);
 }
 
 function runCursorHook(hookName, cwd, stdinData, env) {
-  const input = stdinData ? JSON.stringify(stdinData) : '';
-  const result = spawnSync('node', [cursorHookPath(hookName)], {
-    input,
-    cwd,
-    encoding: 'utf8',
-    timeout: 5000,
-    env: { ...process.env, ...env },
-  });
-  return { code: result.status || 0, stdout: (result.stdout || '').trim() };
+  return runWithFileStdin('node', [cursorHookPath(hookName)], cwd, stdinData, env);
 }
 
 function runScript(args, env) {
