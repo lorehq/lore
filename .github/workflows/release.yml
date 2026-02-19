@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - name: Install ShellCheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+      - name: ShellCheck
+        run: shellcheck -x scripts/*.sh scripts/lib/*.sh
+      - name: Lint & format
+        run: npx eslint . && npx prettier --check .
+      - run: npm test
+      - run: bash scripts/validate-consistency.sh
+      - run: bash scripts/check-version-sync.sh
+      - name: Nav staleness check
+        run: |
+          node -e "require('./lib/banner').ensureStickyFiles('.')"
+          bash scripts/generate-nav.sh && git diff --exit-code mkdocs.yml
+      - name: Fresh-clone smoke test
+        run: bash scripts/smoke-test.sh
+
+  verify-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tag matches package.json version
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [[ "$tag" != "$pkg" ]]; then
+            echo "::error::Tag v$tag does not match package.json version $pkg"
+            exit 1
+          fi
+          echo "Tag v$tag matches package.json"
+
+  release:
+    needs: [test, verify-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title "$tag" \
+            --generate-notes
