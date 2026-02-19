@@ -15,7 +15,7 @@
 | lore-ui | Documentation | Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs. |
 | lore-update | Orchestrator | Update Lore framework files to the latest version |
 | mcp-stdio-content-length-framing | MCP | Cursor MCP uses newline-delimited JSON over stdio, not Content-Length framing |
-| node-macos-stdin-fd |  |  |
+| node-macos-stdin-fd | Orchestrator | macOS pitfalls for Node.js subprocess stdin delivery and tmp dir symlinks |
 | platform-command-collisions | Orchestrator | Avoid naming skills that collide with platform built-in slash commands |
 | pymdownx-extension-order | Documentation | pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes |
 

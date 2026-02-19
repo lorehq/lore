@@ -13,7 +13,8 @@ const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
 const libSrc = path.join(__dirname, '..', 'lib');
 
 function setup(opts = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-cursor-'));
+  // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-cursor-')));
 
   // Shared lib — hooks resolve ../../lib/ from .cursor/hooks/
   const libDir = path.join(dir, 'lib');

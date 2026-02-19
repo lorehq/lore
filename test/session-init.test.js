@@ -12,7 +12,8 @@ const os = require('os');
 // and all data files under tmp/
 
 function setup(opts = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-'));
+  // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-')));
   fs.mkdirSync(path.join(dir, 'hooks'), { recursive: true });
   fs.copyFileSync(path.join(__dirname, '..', 'hooks', 'session-init.js'), path.join(dir, 'hooks', 'session-init.js'));
   // Shared lib — hook resolves ../lib/ relative to hooks/

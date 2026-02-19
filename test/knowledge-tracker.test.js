@@ -8,7 +8,8 @@ const os = require('os');
 const hookPath = path.join(__dirname, '..', 'hooks', 'knowledge-tracker.js');
 
 function setup() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-reminder-'));
+  // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-reminder-')));
   fs.mkdirSync(path.join(dir, '.git'));
   return dir;
 }

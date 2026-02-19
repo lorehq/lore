@@ -36,5 +36,6 @@ docs/
 ├── lore-ui/
 ├── lore-update/
 ├── mcp-stdio-content-length-framing/
+├── node-macos-stdin-fd/
 ├── platform-command-collisions/
 └── pymdownx-extension-order/
