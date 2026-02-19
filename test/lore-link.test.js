@@ -15,7 +15,8 @@ const scriptPath = path.join(repoRoot, 'scripts', 'lore-link.sh');
 
 // -- Hub setup: minimal Lore instance structure --
 function setupHub(opts = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-hub-'));
+  // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-hub-')));
   fs.mkdirSync(path.join(dir, '.git'));
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
@@ -27,7 +28,8 @@ function setupHub(opts = {}) {
 
 // -- Work repo: just a .git dir --
 function setupWorkRepo() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-work-'));
+  // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-work-')));
   fs.mkdirSync(path.join(dir, '.git'));
   return dir;
 }

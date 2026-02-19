@@ -1,45 +1,47 @@
 ---
 name: node-macos-stdin-fd
-trigger: subprocess stdin delivery in Node.js tests
+description: macOS pitfalls for Node.js subprocess stdin delivery and tmp dir symlinks
+trigger: subprocess stdin or state file issues on macOS in Node.js tests
 category: testing
+domain: Orchestrator
 ---
 
-# Node.js macOS stdin: use file descriptor, not pipe
+# Node.js macOS test pitfalls: stdin, cwd symlinks, and spawnSync
 
-`fs.readFileSync(0, 'utf8')` is unreliable on macOS when stdin is delivered via:
+## 1. stdin via `fs.readFileSync(0)` is flaky on macOS
 
-- Shell pipe: `echo '...' | node script.js`
-- `execSync` with `input` option
-- `spawnSync` with `input` option
+Shell pipes (`echo '...' | node`) intermittently return empty string on macOS.
 
-All three methods work on Linux but intermittently return empty string on macOS.
-
-## Fix
-
-Write stdin data to a temp file, open it as a file descriptor, and pass via `stdio` array:
+**Fix:** Use `execSync` with the `input` option — this works reliably:
 
 ```javascript
-const inputFile = path.join(cwd, '.test-stdin.json');
-fs.writeFileSync(inputFile, JSON.stringify(data));
-const fd = fs.openSync(inputFile, 'r');
-try {
-  const result = spawnSync('node', [script], {
-    stdio: [fd, 'pipe', 'pipe'],
-    cwd,
-    encoding: 'utf8',
-    timeout: 5000,
-  });
-  return result;
-} finally {
-  fs.closeSync(fd);
-  fs.unlinkSync(inputFile);
+const raw = execSync(`node "${hookFile}"`, {
+  cwd: dir,
+  input: JSON.stringify(stdinData),
+  encoding: 'utf8',
+});
+```
+
+**Avoid:** `spawnSync` with `stdio: [fd, 'pipe', 'pipe']` — causes additional regressions.
+
+## 2. spawnSync cwd resolves symlinks — hash mismatch
+
+macOS `os.tmpdir()` returns `/var/folders/...` but `process.cwd()` inside `spawnSync` children returns `/private/var/folders/...` (resolved symlink). If hooks hash `process.cwd()` for state file paths, the test's hash (from unresolved path) won't match.
+
+**Fix:** Use `fs.realpathSync(dir)` when computing hashes in test helpers:
+
+```javascript
+function getStateFile(dir) {
+  const realDir = fs.realpathSync(dir);
+  const hash = crypto.createHash('md5').update(realDir).digest('hex').slice(0, 8);
+  return path.join(dir, '.git', `lore-tracker-${hash}.json`);
 }
 ```
 
-## Why
+## 3. Prefer execSync over spawnSync for hook tests
 
-macOS has different pipe buffering behavior than Linux. When Node.js synchronously reads fd 0 at process startup, the pipe may not be ready yet. A file descriptor backed by an actual file is always immediately readable.
+`execSync` with `input` matches the pattern used by working Claude hooks tests. `spawnSync` introduces macOS-specific regressions even for hooks that don't read stdin.
 
 ## Applies to
 
-Any Node.js test that spawns a subprocess and needs to deliver JSON via stdin, especially in CI with macOS runners.
+Node.js tests spawning subprocesses on macOS, especially with temp directories and stdin delivery. Critical for CI with macOS runners.
