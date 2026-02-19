@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
 const libSrc = path.join(__dirname, '..', 'lib');
@@ -47,17 +47,13 @@ function setup(opts = {}) {
 function runHook(dir, hookName, stdinData) {
   const hookFile = path.join(dir, '.cursor', 'hooks', hookName);
   const input = stdinData ? JSON.stringify(stdinData) : '';
-  try {
-    const stdout = execSync(`node "${hookFile}"`, {
-      input,
-      cwd: dir,
-      encoding: 'utf8',
-      timeout: 5000,
-    });
-    return { code: 0, stdout: stdout.trim() };
-  } catch (e) {
-    return { code: e.status || 1, stdout: (e.stdout || '').trim() };
-  }
+  const result = spawnSync('node', [hookFile], {
+    input,
+    cwd: dir,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  return { code: result.status || 0, stdout: (result.stdout || '').trim() };
 }
 
 // Helper to resolve the state file path for a test directory (same logic as hooks)
