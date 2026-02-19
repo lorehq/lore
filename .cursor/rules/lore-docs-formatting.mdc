@@ -5,9 +5,47 @@ globs: docs/**/*.md, *.md
 
 # Docs
 
-## Formatting
+## 1. Don't Duplicate
 
-- **Checkboxes** (`- [x]`/`- [ ]`) for all actionable items: scope, deliverables, success criteria
-- **Strikethrough** (`~~text~~`) on completed item text: `- [x] ~~Done item~~`
-- **No emoji icons** — no checkmarks, no colored circles, no decorative symbols
-- **Blank line before lists** — required for MkDocs to render lists correctly
+**One source of truth per fact. Everything else links.**
+
+- Before writing, check if the information already exists. If it does, link to it.
+- If two files say the same thing, delete one and point to the other.
+- README, comments, docstrings, and commit messages serve different purposes. Don't repeat content across them.
+- If you find yourself copying a paragraph, you're creating a future contradiction.
+
+## 2. Keep It Short
+
+**Say it once, say it clearly, stop.**
+
+- One topic per page. If a doc covers two unrelated things, split it.
+- Cut filler: "it should be noted that", "in order to", "as mentioned above." Just state the thing.
+- One code example beats a paragraph of explanation.
+- If a page exceeds 150 lines, it's probably two pages.
+
+## 3. Don't Let Docs Rot
+
+**Stale docs are worse than no docs.**
+
+- When you change code, update the docs that describe it in the same change.
+- If you find a doc that contradicts the code, fix or delete it immediately.
+- Don't leave commented-out content, TODO placeholders, or "will be updated later" notes. They never get updated.
+- Outdated docs actively mislead. Absence is safer than inaccuracy.
+
+## 4. Don't Create Docs Nobody Asked For
+
+**Docs solve real problems. They are not a deliverable.**
+
+- Don't proactively generate README files, architecture docs, or guides unless requested.
+- Don't document what the code already makes obvious. `getUserById(id)` doesn't need a comment.
+- Don't add docstrings, type annotations, or inline comments to code you didn't change.
+- If you wouldn't read it, don't write it.
+
+## 5. Be Precise
+
+**Vague docs create vague understanding.**
+
+- Use exact names: file paths, function names, CLI commands. Not "the config file" — which one?
+- Replace vague pronouns ("it", "this", "that") with the explicit noun when ambiguous.
+- Use consistent terminology. Pick one term per concept and stick with it project-wide.
+- Concrete over abstract: specific values, real examples, actual commands.

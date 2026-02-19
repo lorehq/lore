@@ -23,6 +23,7 @@ shopt -s nullglob
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ERRORS=0
 
+# shellcheck source=scripts/lib/common.sh
 source "$(dirname "$0")/lib/common.sh"
 
 fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
@@ -35,6 +36,7 @@ echo "--- Skills vs Registry ---"
 for dir in "$REPO_ROOT"/.lore/skills/*/; do
   name=$(basename "$dir")
   # Allow hyphens or spaces in registry matching
+  # shellcheck disable=SC2001
   pattern=$(echo "$name" | sed 's/-/[- ]/g')
   grep -qi "$pattern" "$REPO_ROOT/skills-registry.md" 2>/dev/null \
     || fail "Skill '$name' not in skills-registry.md"
@@ -44,6 +46,7 @@ done
 echo "--- Agents vs Registry ---"
 for f in "$REPO_ROOT"/.lore/agents/*.md; do
   name=$(basename "$f" .md)
+  # shellcheck disable=SC2001
   pattern=$(echo "$name" | sed 's/-/[- ]/g')
   grep -qi "$pattern" "$REPO_ROOT/agent-registry.md" 2>/dev/null \
     || fail "Agent '$name' not in agent-registry.md"
