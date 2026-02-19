@@ -70,6 +70,21 @@ export const ConventionGuard = async ({ directory, client }) => {
         if (knowledge.length > 0) conventions.push('Knowledge: ' + knowledge.join(' | '));
       }
 
+      // Menu of conventions not already injected
+      const injected = new Set(['index.md', 'security.md']);
+      if (isDocs) injected.add('docs.md');
+      if (isWork) injected.add('work-items.md');
+      if (isKnowledge) injected.add('knowledge-capture.md');
+
+      const convDir = path.join(hub, 'docs', 'context', 'conventions');
+      try {
+        const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
+        if (files.length > 0) {
+          const names = files.map((f) => f.replace(/\.md$/, ''));
+          conventions.push('Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant');
+        }
+      } catch {}
+
       if (conventions.length === 0) return;
 
       const msg = conventions.join('\n');
