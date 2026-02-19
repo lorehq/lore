@@ -23,5 +23,6 @@ After substantive work:
 3. Multi-step procedure? → `docs/knowledge/runbooks/`
 4. Skills over 80 lines or mixing methods? → split
 5. Run `scripts/validate-consistency.sh`
+6. Active plan or roadmap? → update progress
 
 Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.

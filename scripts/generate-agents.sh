@@ -55,7 +55,7 @@ for skill_dir in .lore/skills/lore-*/; do
   done
 
   if [[ $found -ge 0 ]]; then
-    domain_skills[$found]="${domain_skills[$found]} $name"
+    domain_skills[found]="${domain_skills[found]} $name"
   else
     domain_names+=("$domain")
     domain_skills+=("$name")
@@ -86,6 +86,7 @@ for i in "${!domain_names[@]}"; do
 
   # Generated agents include a scoped subagent contract so delegated workers
   # follow project rules without inheriting full orchestrator responsibilities.
+  # shellcheck disable=SC2086
   cat > ".lore/agents/${agent_name}.md" <<EOF
 ---
 name: $agent_name
@@ -103,18 +104,17 @@ Handles all ${domain} operations. Create new skills as needed.
 
 ## Subagent Operating Rules
 - You are a domain subagent, not the orchestrator. Stay within delegated scope and return concise results.
-- Before implementation, always load project guidance from `docs/context/agent-rules.md` and relevant files under `docs/context/conventions/`.
+- Before implementation, always load project guidance from \`docs/context/agent-rules.md\` and relevant files under \`docs/context/conventions/\`.
 - Follow repo boundaries from agent rules (Lore hub for knowledge; application code in external repos).
 - If scope has independent branches, run them in parallel subagents; keep dependency-gated steps sequential.
 
 ## Self-Learning
-- Non-obvious gotcha during execution -> create or update an operator skill under `.lore/skills/`.
-- New environment facts -> update `docs/knowledge/environment/`.
-- Multi-step procedures discovered -> add/update `docs/knowledge/runbooks/`.
+- Non-obvious gotcha during execution -> create or update an operator skill under \`.lore/skills/\`.
+- New environment facts -> update \`docs/knowledge/environment/\`.
+- Multi-step procedures discovered -> add/update \`docs/knowledge/runbooks/\`.
 
 ## Available Skills
-$(# shellcheck disable=SC2086
-for s in $skills; do echo "- \`$s\`"; done)
+$(for s in $skills; do echo "- \`$s\`"; done)
 EOF
 
   echo "Created $agent_name"
