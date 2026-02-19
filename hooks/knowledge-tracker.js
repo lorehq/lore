@@ -14,6 +14,7 @@ const {
   navReminder,
 } = require('../lib/tracker');
 const { debug } = require('../lib/debug');
+const { logHookEvent } = require('../lib/hook-logger');
 
 // -- State file location --
 const cwd = process.cwd();
@@ -79,11 +80,15 @@ if (result.silent) {
   const extra = navReminder(navFlag, null);
   const output = { hookEventName: event };
   if (extra) output.additionalContext = extra;
-  console.log(JSON.stringify({ hookSpecificOutput: output }));
+  const out = JSON.stringify({ hookSpecificOutput: output });
+  console.log(out);
+  // Track silent events (read-only tools, knowledge writes) separately from nudges
+  logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event, outputSize: out.length, state: { bash: state.bash, silent: true }, directory: hubDir });
 } else {
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
-    }),
-  );
+  const out = JSON.stringify({
+    hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
+  });
+  console.log(out);
+  // Track nudge delivery — bash counter shows escalation level
+  logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event, outputSize: out.length, state: { bash: state.bash, silent: false }, directory: hubDir });
 }

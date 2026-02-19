@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildTree, getConfig } = require('../lib/banner');
 const { debug } = require('../lib/debug');
+const { logHookEvent } = require('../lib/hook-logger');
 
 // -- Parse hook input from stdin --
 let input = {};
@@ -32,6 +33,8 @@ const knowledgePrefix = path.resolve(hubDir, 'docs', 'knowledge') + path.sep;
 
 // Only fire for writes targeting docs/context/ or docs/knowledge/
 if (!resolved.startsWith(contextPrefix) && !resolved.startsWith(knowledgePrefix)) {
+  // Write targets a non-docs path — log to track how often this hook fires vs matches
+  logHookEvent({ platform: 'claude', hook: 'context-path-guide', event: 'PreToolUse', outputSize: 0, state: { matched: false }, directory: hubDir });
   process.exit(0);
 }
 
@@ -55,4 +58,7 @@ msg += isKnowledge
   ? 'Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)'
   : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
-console.log(JSON.stringify({ decision: 'proceed', additional_context: msg }));
+const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
+console.log(out);
+// Matched a docs/ write — track output size since this injects a full directory tree
+logHookEvent({ platform: 'claude', hook: 'context-path-guide', event: 'PreToolUse', outputSize: out.length, state: { matched: true }, directory: hubDir });

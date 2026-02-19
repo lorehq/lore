@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { getThresholds, getNavFlagPath } = require('../../lib/tracker');
 const { getAgentDomains } = require('../../lib/banner');
 const { getConfig } = require('../../lib/config');
+const { logHookEvent } = require('../../lib/hook-logger');
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
@@ -98,4 +99,8 @@ if (navDirty) {
 }
 
 // Output — permission: allow lets the command proceed, agent_message reaches the agent
-console.log(JSON.stringify({ permission: 'allow', agent_message: msg }));
+const out = JSON.stringify({ permission: 'allow', agent_message: msg });
+console.log(out);
+// Highest-frequency Cursor hook — captures full state snapshot for correlating
+// nudge escalation with actual shell command patterns
+logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: msg.length, state: { bash: state.bash, compacted, hadFailure, navDirty }, directory: hubDir });
