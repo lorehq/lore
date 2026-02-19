@@ -12,6 +12,7 @@ const repoRoot = path.join(__dirname, '..');
 const hookPath = (name) => path.join(repoRoot, 'hooks', name);
 const cursorHookPath = (name) => path.join(repoRoot, '.cursor', 'hooks', name);
 const scriptPath = path.join(repoRoot, 'scripts', 'lore-link.sh');
+const isWindows = process.platform === 'win32';
 
 // -- Hub setup: minimal Lore instance structure --
 function setupHub(opts = {}) {
@@ -198,7 +199,7 @@ test('lore-link creates all expected files', (t) => {
   runScript(`--unlink "${work}"`);
 });
 
-test('generated .claude/settings.json contains LORE_HUB and absolute paths', (t) => {
+test('generated .claude/settings.json contains LORE_HUB and absolute paths', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
@@ -211,7 +212,7 @@ test('generated .claude/settings.json contains LORE_HUB and absolute paths', (t)
   runScript(`--unlink "${work}"`);
 });
 
-test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', (t) => {
+test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
@@ -224,7 +225,7 @@ test('generated .cursor/hooks.json contains LORE_HUB and absolute paths', (t) =>
   runScript(`--unlink "${work}"`);
 });
 
-test('.lore-links in hub contains the target path', (t) => {
+test('.lore-links in hub contains the target path', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
@@ -249,7 +250,7 @@ test('lore-link --unlink removes generated files', (t) => {
   assert.ok(!links.some((l) => l.path === work));
 });
 
-test('lore-link --list shows linked repos', (t) => {
+test('lore-link --list shows linked repos', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
@@ -260,7 +261,7 @@ test('lore-link --list shows linked repos', (t) => {
   runScript(`--unlink "${work}"`);
 });
 
-test('lore-link --refresh regenerates configs', (t) => {
+test('lore-link --refresh regenerates configs', { skip: isWindows && 'bash paths differ on Windows' }, (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
