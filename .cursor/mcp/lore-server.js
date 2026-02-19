@@ -73,7 +73,7 @@ function loreCheckIn() {
     } else if (state.bash >= nudge) {
       msg = `>>> ${state.bash} commands in a row \u2014 gotcha worth a skill? <<<`;
     } else {
-      msg = 'Gotcha? \u2192 skill | New knowledge? \u2192 docs';
+      msg = 'Gotcha? \u2192 skill | New context? \u2192 docs/knowledge/';
     }
   }
 
