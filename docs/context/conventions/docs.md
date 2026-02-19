@@ -2,11 +2,10 @@
 
 ## When to Write
 
-- A gotcha or non-obvious behavior was discovered.
-- A multi-step procedure would otherwise be re-discovered each time.
 - A public API needs purpose, parameters, returns, and an example.
 - Architecture or design decisions need rationale captured.
-- Environment-specific knowledge would be lost between sessions.
+- Setup or onboarding steps aren't obvious from the code.
+- A non-trivial workaround or integration pattern was discovered.
 
 Don't write docs speculatively. If the code is self-documenting, leave it alone.
 
@@ -17,7 +16,6 @@ Different content belongs in different places:
 - **Code comments** — explain WHY, never WHAT. Intent, decisions, trade-offs, edge cases.
 - **Docstrings** — purpose, params, returns, exceptions, one example.
 - **README** — project context, setup, architecture (for humans).
-- **Agent instructions** — build/test commands, conventions, gotchas (for agents).
 - **Commit messages** — WHY the change was made, not WHAT changed.
 
 Never duplicate across locations. Link instead.
