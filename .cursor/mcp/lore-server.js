@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lore MCP Server for Cursor
-// JSON-RPC 2.0 over stdio (newline-delimited). Zero dependencies.
+// JSON-RPC 2.0 over stdio with Content-Length header framing (MCP spec). Zero dependencies.
 //
 // Exposes two tools:
 //   lore_check_in  — capture nudges, failure notes, compaction re-orientation
@@ -12,7 +12,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const readline = require('readline');
 
 // Hub resolution — linked repos set LORE_HUB to point back to the hub instance;
 // direct instances resolve relative to this file's location (.cursor/mcp/ → repo root).
@@ -205,27 +204,61 @@ function handleRequest(req) {
   };
 }
 
-// ── Transport: newline-delimited JSON-RPC over stdio ────────────────────────
-// stdin  = one JSON-RPC request per line (from Cursor)
-// stdout = one JSON-RPC response per line (console.log is the MCP channel)
-// stderr = debug logging only (console.error) — never pollute stdout
+// ── Transport: Content-Length framed JSON-RPC over stdio (MCP spec) ──────────
+// MCP uses the same framing as LSP: each message is preceded by a header block
+// of "Content-Length: <N>\r\n\r\n" followed by exactly N bytes of JSON.
+// stdout is the MCP channel — all debug logging goes to stderr only.
 
-const rl = readline.createInterface({ input: process.stdin, terminal: false });
+// Send a JSON-RPC response with Content-Length header framing.
+function send(obj) {
+  const body = JSON.stringify(obj);
+  const header = `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n`;
+  process.stdout.write(header + body);
+}
 
-rl.on('line', (line) => {
-  if (!line.trim()) return;
-  try {
-    const req = JSON.parse(line);
-    const res = handleRequest(req);
-    // Notifications (no id) get null back — don't send anything
-    if (res) console.log(JSON.stringify(res));
-  } catch (err) {
-    console.error('[lore-mcp] parse error:', err.message);
-    console.log(JSON.stringify({
-      jsonrpc: '2.0', id: null,
-      error: { code: -32700, message: 'Parse error' },
-    }));
+// Parse incoming Content-Length framed messages from stdin.
+// Accumulates chunks in a buffer and extracts complete messages as they arrive.
+let buffer = Buffer.alloc(0);
+
+process.stdin.on('data', (chunk) => {
+  buffer = Buffer.concat([buffer, chunk]);
+
+  // Process all complete messages in the buffer
+  while (true) {
+    // Look for the header/body separator (\r\n\r\n)
+    const sepIndex = buffer.indexOf('\r\n\r\n');
+    if (sepIndex === -1) break;
+
+    // Extract Content-Length from the header block
+    const header = buffer.slice(0, sepIndex).toString();
+    const match = header.match(/Content-Length:\s*(\d+)/i);
+    if (!match) {
+      // Malformed header — skip past the separator and try again
+      console.error('[lore-mcp] malformed header:', header);
+      buffer = buffer.slice(sepIndex + 4);
+      continue;
+    }
+
+    const contentLength = parseInt(match[1], 10);
+    const bodyStart = sepIndex + 4;
+
+    // Wait for the full body to arrive
+    if (buffer.length < bodyStart + contentLength) break;
+
+    // Extract and parse the JSON body
+    const body = buffer.slice(bodyStart, bodyStart + contentLength).toString();
+    buffer = buffer.slice(bodyStart + contentLength);
+
+    try {
+      const req = JSON.parse(body);
+      const res = handleRequest(req);
+      // Notifications (no id) get null back — don't send anything
+      if (res) send(res);
+    } catch (err) {
+      console.error('[lore-mcp] parse error:', err.message);
+      send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+    }
   }
 });
 
-rl.on('close', () => process.exit(0));
+process.stdin.on('end', () => process.exit(0));
