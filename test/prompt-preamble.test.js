@@ -57,8 +57,8 @@ test('prompt-preamble: always includes task list reminder', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(out.includes('Multi-step?'), 'should include multi-step reminder');
-    assert.ok(out.includes('parallel'), 'should include parallelism reminder');
+    assert.ok(out.includes('Parallel subtasks'), 'should include parallelism reminder');
+    assert.ok(out.includes('Active work?'), 'should include work tracking reminder');
   } finally {
     cleanup(dir);
   }
@@ -69,7 +69,7 @@ test('prompt-preamble: no agents — no Delegate prefix', () => {
   try {
     const out = run(dir);
     assert.ok(!out.includes('Delegate:'), 'should not include Delegate without agents');
-    assert.equal(out, '[Multi-step? → use task list; run independent subtasks in parallel via subagents]');
+    assert.equal(out, '[Parallel subtasks via subagents | Active work? → update progress]');
   } finally {
     cleanup(dir);
   }
@@ -87,7 +87,7 @@ test('prompt-preamble: with agents — includes Delegate', () => {
   try {
     const out = run(dir);
     assert.ok(out.includes('Delegate: Documentation, Infrastructure'), 'should list agent domains');
-    assert.ok(out.includes('Multi-step?'), 'should still include task reminder');
+    assert.ok(out.includes('Parallel subtasks'), 'should still include parallelism reminder');
   } finally {
     cleanup(dir);
   }

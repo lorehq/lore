@@ -35,13 +35,15 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 Discovered gotchas are operator-owned from birth — Lore creates the file, operator owns it. If a skill already exists, warn and skip.
 
-## Skill Creation
+## Knowledge
 
 **Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
 Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands. See `.lore/skills/lore-create-skill/SKILL.md`.
+
+Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
 
 ## Agent Creation
 
@@ -68,6 +70,7 @@ After substantive work:
 3. Multi-step procedure? → `docs/knowledge/runbooks/`
 4. Skills over 80 lines or mixing methods? → split
 5. Run `scripts/validate-consistency.sh`
+6. Active plan or roadmap? → update progress
 
 Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.
 

@@ -8,7 +8,7 @@ const { logHookEvent } = require('../lib/hook-logger');
 const agents = getAgentDomains();
 const parts = [];
 if (agents.length > 0) parts.push(`Delegate: ${agents.join(', ')}`);
-parts.push('Multi-step? → use task list; run independent subtasks in parallel via subagents');
+parts.push('Parallel subtasks via subagents | Active work? \u2192 update progress');
 
 const msg = `[${parts.join(' | ')}]`;
 console.log(msg);
