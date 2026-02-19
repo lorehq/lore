@@ -19,9 +19,10 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 1. Read current version from `.lore-config`
 2. Clone the latest Lore template to a temp directory:
    ```bash
-   tmp=$(mktemp -d)
+   tmp=$(mktemp -d) && [ -d "$tmp" ] || { echo "mktemp failed"; exit 1; }
    git clone --depth 1 https://github.com/lorehq/lore.git "$tmp"
    ```
+   **Critical**: always pass `"$tmp"` as the target — omitting it clones into the working directory as `lore/`.
 3. Read the source version from the cloned `.lore-config`
 4. Show the operator: current version, new version, what will be synced
 5. On approval, run:
@@ -47,6 +48,8 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 ## Gotchas
 
 - Always show the version diff and file list before syncing — never auto-update
-- The sync script overwrites existing framework files but never deletes operator content
+- The sync script uses rsync semantics: overwrite existing, never delete operator files
 - If the operator has modified a framework file (e.g., edited CLAUDE.md), the update will overwrite it — warn about this
+- `.gitignore` is framework-owned and gets overwritten on sync — operator-specific ignores (like `.env`) must be re-added after update, or added to the framework template
 - If `.lore-links` exists, remind the operator to run `/lore-link --refresh` to update linked repos with the new hooks
+- Always clean up the temp clone (`rm -rf "$tmp"`) even if sync fails — otherwise a `lore/` directory persists in the project root

@@ -2,7 +2,9 @@
 name: mcp-agent
 description: MCP operations specialist. Generated from skills.
 domain: MCP
-model: sonnet
+claude-model: sonnet
+opencode-model: openai/gpt-4o
+cursor-model: # not yet supported
 skills:
   - mcp-stdio-content-length-framing
 ---
