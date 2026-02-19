@@ -1,21 +1,13 @@
-// Hook: afterFileEdit / afterShellExecution
+// Hook: afterFileEdit
 // Detects docs/ and skills/ writes, sets nav-dirty flag.
-// Tracks consecutive bash commands via state file.
-// Thin adapter — core logic lives in lib/tracker.js.
-// Note: Cursor ignores output from afterFileEdit and afterShellExecution.
-// Side effects (nav-dirty flag, state file) still work.
+// Resets consecutive bash counter (file edits break the streak).
+// No output — Cursor ignores afterFileEdit output.
+// Bash counting and nudge delivery moved to capture-nudge.js (beforeShellExecution).
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const {
-  processToolUse,
-  getThresholds,
-  isDocsWrite,
-  getNavFlagPath,
-  setNavDirty,
-  navReminder,
-} = require('../../lib/tracker');
+const { isDocsWrite, getNavFlagPath, setNavDirty } = require('../../lib/tracker');
 
 let input = {};
 try {
@@ -29,50 +21,28 @@ try {
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
-const eventName = input.hook_event_name || 'afterFileEdit';
-const isShellEvent = eventName === 'afterShellExecution';
 const filePath = input.filePath || input.file_path || '';
 
-// State file for bash counter persistence
+// Nav-dirty flag — signal that docs/ changed and nav needs regenerating
+const navFlag = getNavFlagPath(hubDir);
+if (isDocsWrite('write', filePath, hubDir)) setNavDirty(navFlag);
+
+// Reset bash counter — a file edit breaks the "consecutive bash" streak.
+// Also clears failure flag since a productive edit suggests the agent moved on.
 const hash = crypto.createHash('md5').update(cwd).digest('hex').slice(0, 8);
 const gitDir = path.join(cwd, '.git');
 const stateFile = fs.existsSync(gitDir)
   ? path.join(gitDir, `lore-tracker-${hash}.json`)
   : path.join(require('os').tmpdir(), `lore-tracker-${hash}.json`);
 
-function readState() {
-  try {
-    return JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-  } catch {
-    return { bash: 0 };
-  }
-}
+let state = { bash: 0, lastFailure: false };
+try {
+  state = { ...state, ...JSON.parse(fs.readFileSync(stateFile, 'utf8')) };
+} catch { /* no state file yet */ }
 
-function writeState(s) {
-  try {
-    fs.writeFileSync(stateFile, JSON.stringify(s));
-  } catch {} // Non-critical — worst case we lose the counter
-}
+state.bash = 0;
+state.lastFailure = false;
 
-// Nav-dirty flag
-const navFlag = getNavFlagPath(hubDir);
-if (!isShellEvent && isDocsWrite('write', filePath, hubDir)) setNavDirty(navFlag);
-
-// Process event
-const state = readState();
-const tool = isShellEvent ? 'bash' : 'write';
-const result = processToolUse({
-  tool,
-  filePath,
-  isFailure: false,
-  bashCount: state.bash,
-  thresholds: getThresholds(hubDir),
-  rootDir: hubDir,
-});
-state.bash = result.bashCount;
-writeState(state);
-
-if (!result.silent) {
-  const msg = navReminder(navFlag, result.message);
-  if (msg) console.log(JSON.stringify({ message: msg }));
-}
+try {
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+} catch { /* non-critical */ }

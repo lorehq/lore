@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Generates tiered .cursor/rules/lore-*.mdc files from canonical Lore sources.
 #
-# Produces 8 rule files in a 2-4-2 tier pattern:
-#   Always-on (2):  lore-core, lore-project
+# Produces 8 rule files in a 3-4-1 tier pattern:
+#   Always-on (3):  lore-core, lore-project, lore-delegation
 #   Glob-based (4): lore-work-tracking, lore-knowledge-routing,
 #                   lore-skill-creation, lore-docs-formatting
-#   Agent-req (2):  lore-delegation, lore-knowledge-map
+#   Agent-req (1):  lore-knowledge-map
 #
 # Each file gets Cursor .mdc frontmatter (alwaysApply, globs, or description)
 # so the right context loads at the right time — including Cursor's first
@@ -221,7 +221,7 @@ if (agentRegistry) {
   delegationBody += '\n\n## Agent Registry\n\n' + agentRegistry.trim();
 }
 writeMdc('lore-delegation.mdc',
-  'description: Agent delegation map — which agents handle which domains, parallel execution patterns\nalwaysApply: false',
+  'description: Agent delegation map — which agents handle which domains, parallel execution patterns\nalwaysApply: true',
   delegationBody
 );
 

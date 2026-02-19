@@ -105,10 +105,13 @@ do_link() {
     const config = {
       version: 1,
       hooks: {
-        sessionStart: [{ command: cmd('session-init.js') }],
-        beforeReadFile: [{ command: cmd('protect-memory.js') }],
-        afterFileEdit: [{ command: cmd('knowledge-tracker.js') }],
-        afterShellExecution: [{ command: cmd('knowledge-tracker.js') }]
+        sessionStart:         [{ command: cmd('session-init.js') }],
+        beforeReadFile:       [{ command: cmd('protect-memory.js') }],
+        preToolUse:           [{ command: cmd('protect-memory.js'), matcher: 'Write' }],
+        beforeShellExecution: [{ command: cmd('capture-nudge.js') }],
+        afterFileEdit:        [{ command: cmd('knowledge-tracker.js') }],
+        postToolUseFailure:   [{ command: cmd('failure-tracker.js') }],
+        preCompact:           [{ command: cmd('compaction-flag.js') }]
       }
     };
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');

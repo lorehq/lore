@@ -1,6 +1,6 @@
 ---
 description: Agent delegation map — which agents handle which domains, parallel execution patterns
-alwaysApply: false
+alwaysApply: true
 ---
 
 ## Delegation

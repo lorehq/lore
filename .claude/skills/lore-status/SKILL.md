@@ -33,8 +33,11 @@ Run these checks and present a formatted summary to the operator:
    **Cursor** (`.cursor/hooks.json`):
    - `sessionStart` → `session-init.js`
    - `beforeReadFile` → `protect-memory.js`
+   - `preToolUse` (Write) → `protect-memory.js`
+   - `beforeShellExecution` → `capture-nudge.js`
    - `afterFileEdit` → `knowledge-tracker.js`
-   - `afterShellExecution` → `knowledge-tracker.js`
+   - `postToolUseFailure` → `failure-tracker.js`
+   - `preCompact` → `compaction-flag.js`
 
    **OpenCode** (`.opencode/plugins/`):
    - `session-init.js`
