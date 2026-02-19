@@ -8,7 +8,7 @@ The file is **sticky** — if deleted, the session hook recreates it with a skel
 
 Coding standards go in `docs/context/conventions/` — a directory with per-domain pages (`coding.md`, `docs.md`). Conventions are also injected every session. Both are sticky and recreated if deleted.
 
-This replaces what you'd normally put in `CLAUDE.md` / `.cursorrules` — but lives in docs where it's browsable and version-controlled.
+This replaces what you'd normally put in `CLAUDE.md` / `.cursor/rules/` — but lives in docs where it's browsable and version-controlled.
 
 ## Context vs Knowledge
 
