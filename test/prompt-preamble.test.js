@@ -57,8 +57,11 @@ test('prompt-preamble: always includes task list reminder', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(out.includes('New context?'), 'should include knowledge discovery nudge');
-    assert.ok(out.includes('Active work?'), 'should include work tracking reminder');
+    assert.ok(out.includes('Vague question lookup order'), 'should include lookup-order reminder');
+    assert.ok(out.includes('Knowledge -> Work items -> Context'), 'should include lookup order sequence');
+    assert.ok(out.includes('Use Exploration -> Execution'), 'should include phase workflow reminder');
+    assert.ok(out.includes('Capture reusable Execution fixes -> skills'), 'should include capture reminder');
+    assert.ok(out.includes('docs/knowledge/environment/'), 'should include environment capture route');
   } finally {
     cleanup(dir);
   }
@@ -80,9 +83,10 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes("Orchestrate, don't execute"), 'should include delegation nudge');
-    assert.ok(out.includes('delegate to worker agents'), 'should mention worker agents');
-    assert.ok(out.includes('New context?'), 'should still include knowledge discovery nudge');
+    assert.ok(out.includes('Orchestrate wisely'), 'should include delegation nudge');
+    assert.ok(out.includes('delegate heavy or parallel work to worker agents'), 'should mention selective delegation');
+    assert.ok(out.includes('capture writes in the primary agent'), 'should discourage delegating capture writes');
+    assert.ok(out.includes('Use Exploration -> Execution'), 'should still include phase workflow reminder');
   } finally {
     cleanup(dir);
   }
@@ -100,7 +104,7 @@ test('prompt-preamble: with conventions — lists names', () => {
     assert.ok(out.includes('Conventions:'), 'should include conventions label');
     assert.ok(out.includes('coding'), 'should list coding convention');
     assert.ok(out.includes('security'), 'should list security convention');
-    assert.ok(!out.includes('index'), 'should exclude index.md');
+    assert.ok(!/Conventions:[^|\]]*\bindex\b/.test(out), 'should exclude index.md from conventions list');
   } finally {
     cleanup(dir);
   }

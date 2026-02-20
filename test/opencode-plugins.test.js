@@ -171,7 +171,8 @@ test('knowledge-tracker: gentle reminder on first bash', async (t) => {
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash' });
   assert.equal(client.logs[0].level, 'info');
-  assert.ok(client.logs[0].message.includes('Gotcha?'));
+  assert.ok(client.logs[0].message.includes('Use Exploration -> Execution'));
+  assert.ok(client.logs[0].message.includes('Capture reusable Execution fixes -> skills'));
 });
 
 test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
@@ -183,7 +184,9 @@ test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.ok(client.logs.at(-1).message.includes('3 commands in a row'));
+  assert.ok(client.logs.at(-1).message.includes('Capture checkpoint (3 commands in a row)'));
+  assert.ok(client.logs.at(-1).message.includes('Confirm Exploration vs Execution'));
+  assert.ok(client.logs.at(-1).message.includes('If this is Execution phase: REQUIRED'));
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
@@ -196,7 +199,8 @@ test('knowledge-tracker: strong warning at 5 consecutive bash', async (t) => {
   for (let i = 0; i < 5; i++) {
     await hooks['tool.execute.after']({ tool: 'Bash' });
   }
-  assert.ok(client.logs.at(-1).message.includes('5 consecutive commands'));
+  assert.ok(client.logs.at(-1).message.includes('REQUIRED capture review (5 consecutive commands)'));
+  assert.ok(client.logs.at(-1).message.includes('Confirm Exploration vs Execution'));
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
@@ -233,7 +237,8 @@ test('knowledge-tracker: error pattern message on bash failure', async (t) => {
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash', error: 'command failed' });
-  assert.ok(client.logs[0].message.includes('Error pattern'));
+  assert.ok(client.logs[0].message.includes('Execution-phase failure is high-signal'));
+  assert.ok(client.logs[0].message.includes('If this is Execution phase: REQUIRED'));
 });
 
 test('knowledge-tracker: respects custom thresholds from .lore-config', async (t) => {
@@ -245,7 +250,7 @@ test('knowledge-tracker: respects custom thresholds from .lore-config', async (t
   // 2nd bash should now nudge (custom threshold)
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.ok(client.logs.at(-1).message.includes('2 commands in a row'));
+  assert.ok(client.logs.at(-1).message.includes('Capture checkpoint (2 commands in a row)'));
 });
 
 // ── Protect Memory ──

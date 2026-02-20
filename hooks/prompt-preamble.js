@@ -12,7 +12,9 @@ const hubDir = process.env.LORE_HUB || path.join(__dirname, '..');
 const agents = getAgentNames();
 const parts = [];
 if (agents.length > 0) {
-  parts.push("Orchestrate, don't execute \u2014 delegate to worker agents");
+  parts.push(
+    "Orchestrate wisely \u2014 delegate heavy or parallel work to worker agents; keep simple lookups/calls and capture writes in the primary agent",
+  );
 }
 
 // Conventions — list names so the LLM can pattern-match
@@ -27,7 +29,12 @@ try {
   }
 } catch {}
 
-parts.push('New context? \u2192 docs/knowledge/ | Active work? \u2192 update progress');
+parts.push(
+  'Vague question lookup order: Knowledge -> Work items -> Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution | Capture reusable Execution fixes -> skills | Capture new environment facts -> docs/knowledge/environment/',
+);
+parts.push(
+  'LOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.',
+);
 
 const msg = `[${parts.join(' | ')}]`;
 console.log(msg);

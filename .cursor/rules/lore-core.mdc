@@ -11,8 +11,6 @@ Knowledge-persistent coding agent framework.
 
 **This is a knowledge hub. All code changes happen in external repos — NEVER here.** A Lore instance contains only knowledge files (docs, skills, agents), hooks, scripts, and work tracking. The operator's application code, infrastructure, and configs live in their own repos. If a task requires writing application code, stop and ask which repo it belongs in. Do not create `src/`, `lib/`, or any application code directories in a Lore instance.
 
-For IDE-based agents (Cursor, IDE-mode Claude Code), use `/lore-link` to connect work repos to this instance. Hooks fire from the hub, knowledge captures back here, but you open and work from the code repo with full file tree and git integration. See the cross-repo workflow guide for setup.
-
 ## Core Behaviors
 
 1. Creates skills and agents as needed (not pre-emptively)
@@ -52,6 +50,19 @@ Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework com
 
 Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
 
+## Exploration vs Execution
+
+Use a two-phase workflow for problem solving:
+
+- Exploration phase: discover interfaces, endpoints, inputs, and constraints. Non-success responses can be normal discovery noise.
+- Execution phase: run the expected-success path. Failures here are high-signal and require a capture decision before completion.
+
+Capture rules:
+
+- Reusable fix pattern resolved in Execution -> create or update a skill.
+- New environment facts (URL, endpoint, service, host, port, auth/header requirement, redirect, base path) -> `docs/knowledge/environment/`.
+- If neither applies, state: `No capture needed` with a one-line reason.
+
 ## Agent Creation
 
 **One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
@@ -65,32 +76,38 @@ Per-platform model preferences go on agents (not skills). Set `claude-model`, `o
 **Orchestrate, don't execute.** Default to `lore-worker-agent`. If another agent exists whose name fits the task, use it instead.
 
 Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
-Don't delegate: quick answers, single reads, clarifications, capture itself.
+Don't delegate: quick answers, single reads, single API calls, clarifications, or capture writes.
 
-Every worker prompt includes three REQUIRED context items:
+Never delegate capture writes. Environment docs, runbooks, and skills must be written by the primary orchestrator after reviewing results.
 
-1. **Agent rules** (`docs/context/agent-rules.md`) — project identity, repo boundaries, behavioral constraints. Without this, workers don't know what repo they're in or what they can modify.
-2. **Conventions** (`docs/context/conventions/`) — all convention files. Constraints on how to work; they apply to every task.
-3. **Skills** — scan the SKILLS list (in the banner) or `skills-registry.md`, match names and descriptions to the task, include relevant skill paths. If no skills match, say so explicitly.
+For vague asks, perform a quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep lookup shallow (first 2 levels) before asking clarifying questions.
 
-Then add **scope** — the target repo path and which files the worker may modify.
+Conventions are selective for worker delegation:
+
+- Always include core safety/capture conventions: `security.md`, `knowledge-capture.md`.
+- Add only task-relevant conventions from `docs/context/conventions/` (for example: `coding.md` for code edits, `docs.md` for documentation work, `work-items.md` for roadmap/plan updates).
+- If uncertain, include one extra likely-relevant convention rather than the entire directory.
+
+Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `skills-registry.md`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
 
 Example — user asks to "write a bash deploy script":
 
 > Task(lore-worker-agent): Write a bash deployment script for the staging environment.
 >
-> **Read first (REQUIRED):**
-> - `docs/context/agent-rules.md`
-> - `docs/context/conventions/` (all files)
+> **Load first:**
+> - `docs/context/conventions/security.md`
+> - `docs/context/conventions/knowledge-capture.md`
+> - `docs/context/conventions/coding.md`
 > - `.lore/skills/bash-macos-compat/SKILL.md`
 >
 > **Scope:** `/home/user/app` — only modify `scripts/deploy.sh`
 
-1. Always include agent rules + conventions + matched skills
-2. Always specify scope (repo path + files)
-3. **CRITICAL: Verify target files belong to the scoped repo.** This is a hub — you work across multiple repos. Before delegating, confirm the files you're modifying actually live in the repo you're scoping to. If they belong elsewhere, scope the worker there instead.
-4. Parallel workers for independent branches
-5. Review results, handle capture
+1. Always include core safety/capture conventions
+2. Add task-relevant conventions only
+3. Scan skills for relevance → `bash-macos-compat` matches
+4. Spawn worker with task + selected conventions + matched skills + scope
+5. Parallel workers for independent branches
+6. Review results, handle capture
 
 ## Capture
 

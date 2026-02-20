@@ -49,7 +49,8 @@ test('first bash: gentle reminder', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('Gotcha?'));
+  assert.ok(out.additionalContext.includes('Use Exploration -> Execution'));
+  assert.ok(out.additionalContext.includes('Capture reusable Execution fixes -> skills'));
 });
 
 test('3rd consecutive bash: nudge', (t) => {
@@ -58,7 +59,9 @@ test('3rd consecutive bash: nudge', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('3 commands in a row'));
+  assert.ok(out.additionalContext.includes('Capture checkpoint (3 commands in a row)'));
+  assert.ok(out.additionalContext.includes('Confirm Exploration vs Execution'));
+  assert.ok(out.additionalContext.includes('If this is Execution phase: REQUIRED'));
 });
 
 test('5th consecutive bash: strong warning', (t) => {
@@ -68,14 +71,16 @@ test('5th consecutive bash: strong warning', (t) => {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('5 consecutive commands'));
+  assert.ok(out.additionalContext.includes('REQUIRED capture review (5 consecutive commands)'));
+  assert.ok(out.additionalContext.includes('Confirm Exploration vs Execution'));
 });
 
 test('bash failure: error pattern message', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
-  assert.ok(out.additionalContext.includes('Error pattern'));
+  assert.ok(out.additionalContext.includes('Execution-phase failure is high-signal'));
+  assert.ok(out.additionalContext.includes('If this is Execution phase: REQUIRED'));
 });
 
 test('knowledge capture resets counter', (t) => {
