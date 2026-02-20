@@ -15,7 +15,7 @@ A single Lore project avoids both. Knowledge compounds in one place, work repos 
 
 ```mermaid
 flowchart TD
-    Lore["Lore Project<br/>(launch agent here)"]
+    Lore["Lore Instance<br/>(knowledge hub)"]
     Lore -->|work on| A["app-api/"]
     Lore -->|work on| B["app-frontend/"]
     Lore -->|work on| C["infra/"]
@@ -25,9 +25,9 @@ flowchart TD
     C -->|knowledge flows back| Lore
 ```
 
-1. **Launch your agent from the Lore project.** This loads hooks, skills, and context — everything the agent needs to operate with persistent memory.
+1. **Connect your agent to the Lore instance.** CLI agents launch from here directly. IDE agents use `/lore-link` to work from the code repo with hooks firing from the hub.
 
-2. **Tell it to work on other repos.** The agent reads, writes, and runs commands across repos using absolute paths.
+2. **Work on other repos.** The agent reads, writes, and runs commands across repos using absolute paths.
 
 3. **Knowledge captures back to Lore.** Gotchas become skills, endpoints go to context docs, multi-step procedures become runbooks — all stored here, available next session.
 
@@ -42,24 +42,57 @@ flowchart TD
 
 None of this pollutes your work repos.
 
-## The One Rule
+## Two Workflows
 
-**Always launch your agent from the Lore project directory.** That's what loads the operating principles, hooks, and accumulated knowledge. If you launch from a work repo instead, the agent starts without context.
+There are two equally valid ways to work with Lore, depending on your agent and tooling.
 
-## IDE Workflow: lore link
+**CLI agents (Claude Code, OpenCode):** Launch from the Lore instance. This loads instructions, hooks, and accumulated knowledge. Then reference any other repo by path.
 
-The One Rule works for CLI tools. For IDEs, opening the Lore project means losing the work repo's file tree, git, and search. `/lore-link` resolves this — run it once from the hub and hooks follow you into the work repo.
+```bash
+cd ~/projects/my-lore-project
+claude       # Claude Code
+opencode     # OpenCode
+```
+
+**IDE agents (Cursor, IDE-mode Claude Code):** Use `/lore-link` to work from your code repo. You keep full file tree, git integration, and search — hooks still fire from the hub.
+
+## IDE Workflow: lore-link
+
+For CLI agents, launching from the hub is straightforward. For IDEs like Cursor, it means losing the work repo's file tree, git integration, and search.
+
+`/lore-link` resolves this. Run it once from the hub and it generates lightweight configs in the work repo that point hooks back to the hub via `LORE_HUB`. You open the work repo in your IDE with full navigation — and hooks still fire from the hub.
+
+### Usage
 
 ```
 /lore-link ~/projects/my-app          # Link a work repo
 /lore-link --unlink ~/projects/my-app  # Remove the link
-/lore-link --list                       # Show linked repos
-/lore-link --refresh                    # Regenerate all configs
+/lore-link --list                       # Show linked repos (with stale detection)
+/lore-link --refresh                    # Regenerate configs in all linked repos
 ```
 
-This generates lightweight configs in the target repo that delegate to the hub's hooks via `LORE_HUB`. All generated files are auto-gitignored. Knowledge still captures to the hub.
+### What It Generates
 
-Run `/lore-link --refresh` after `/lore-update` to regenerate configs with the latest hooks.
+In the target repo, `/lore-link` creates:
+
+- **Claude Code** — `.claude/settings.json` with hooks pointing to the hub
+- **Cursor** — `.cursor/hooks.json` + `.cursor/mcp.json` + `.cursor/rules/lore-*.mdc` pointing to the hub
+- **OpenCode** — `.opencode/plugins/` wrappers + `.opencode/commands/` + `opencode.json` pointing to the hub
+- **Instructions** — `CLAUDE.md` rewritten from hub's `.lore/instructions.md`
+
+All generated files are added to the target repo's `.gitignore` automatically.
+
+### When to Use Which
+
+| Scenario | Approach |
+|----------|----------|
+| CLI agent (Claude Code, OpenCode) | Launch from the Lore instance |
+| IDE agent (Cursor, or IDE-mode Claude Code) | `/lore-link` — link the work repo, open it in your IDE |
+| Quick cross-repo task from the hub | Launch from the Lore instance, reference the path |
+
+### After Framework Updates
+
+Run `/lore-link --refresh` after `/lore-update` to regenerate configs in all linked repos with the latest hooks.
 
 ## Framework Updates
 
