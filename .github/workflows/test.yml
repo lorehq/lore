@@ -31,7 +31,9 @@ jobs:
       - run: npm test
       - name: Regenerate derived files
         shell: bash
-        run: bash scripts/sync-platform-skills.sh && bash scripts/generate-cursor-rules.sh
+        run: |
+          node -e "require('./lib/banner').ensureStickyFiles('.')"
+          bash scripts/sync-platform-skills.sh && bash scripts/generate-cursor-rules.sh
       - name: Validate consistency
         shell: bash
         run: bash scripts/validate-consistency.sh
