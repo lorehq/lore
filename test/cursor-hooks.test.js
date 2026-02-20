@@ -256,7 +256,9 @@ test('capture-nudge: emits nudge at threshold', (t) => {
   fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 2, lastFailure: false }));
   const { stdout } = runHook(dir, 'capture-nudge.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.agent_message.includes('3 commands in a row'));
+  assert.ok(parsed.agent_message.includes('Capture checkpoint (3 commands in a row)'));
+  assert.ok(parsed.agent_message.includes('Confirm Exploration vs Execution'));
+  assert.ok(parsed.agent_message.includes('If this is Execution phase: REQUIRED'));
 });
 
 test('capture-nudge: emits warn at warn threshold', (t) => {
@@ -266,7 +268,8 @@ test('capture-nudge: emits warn at warn threshold', (t) => {
   fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 4, lastFailure: false }));
   const { stdout } = runHook(dir, 'capture-nudge.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.agent_message.includes('5 consecutive commands'));
+  assert.ok(parsed.agent_message.includes('REQUIRED capture review (5 consecutive commands)'));
+  assert.ok(parsed.agent_message.includes('Confirm Exploration vs Execution'));
 });
 
 test('capture-nudge: emits compaction re-orientation and clears flag', (t) => {
@@ -288,7 +291,8 @@ test('capture-nudge: includes failure note and clears flag', (t) => {
   fs.writeFileSync(getStateFile(dir), JSON.stringify({ bash: 0, lastFailure: true }));
   const { stdout } = runHook(dir, 'capture-nudge.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.agent_message.includes('Error pattern worth a skill?'));
+  assert.ok(parsed.agent_message.includes('Execution-phase failure is high-signal'));
+  assert.ok(parsed.agent_message.includes('If this is Execution phase: REQUIRED'));
   // Failure flag should be cleared in state
   const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
   assert.equal(state.lastFailure, false);

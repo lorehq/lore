@@ -71,6 +71,12 @@ writeState(state);
 // ── Build condensed agent_message ──
 
 let msg;
+const baseline =
+  'Use Exploration -> Execution. Capture reusable Execution fixes -> skills. Capture new environment facts -> docs/knowledge/environment/.';
+const decision =
+  'If this is Execution phase: REQUIRED before finish choose one - (A) skill captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
+const failureReview =
+  'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a skill before completion.';
 
 if (compacted) {
   // Post-compaction re-orientation — highest priority, delivers key context
@@ -82,17 +88,17 @@ if (compacted) {
   // Normal operation — escalating nudge based on consecutive bash count
   const { nudge, warn } = getThresholds(hubDir);
   if (state.bash >= warn) {
-    msg = `>>> ${state.bash} consecutive commands \u2014 capture what you learned \u2192 lore-create-skill <<<`;
+    msg = `REQUIRED capture review (${state.bash} consecutive commands). Confirm Exploration vs Execution. ${decision}`;
   } else if (state.bash >= nudge) {
-    msg = `>>> ${state.bash} commands in a row \u2014 gotcha worth a skill? <<<`;
+    msg = `Capture checkpoint (${state.bash} commands in a row). Confirm Exploration vs Execution. ${decision}`;
   } else {
-    msg = 'Gotcha? \u2192 skill | New context? \u2192 docs/knowledge/';
+    msg = baseline;
   }
 }
 
 // Prepend failure note if a tool failed since last shell command
 if (hadFailure) {
-  msg = `Error pattern worth a skill? | ${msg}`;
+  msg = `${failureReview} ${decision}`;
 }
 
 // Append nav-dirty reminder if docs/ were edited
