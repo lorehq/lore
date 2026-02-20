@@ -36,8 +36,8 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 
 - Framework skills: `lore-capture`, `lore-create-skill`, etc.
 - Operator skills: `bash-macos-compat`, `deploy-staging`, etc.
-- Framework agents: `lore-<tool>-agent`, etc.
-- Operator agents: `git-agent`, `mkdocs-agent`, etc.
+- Framework agents: `lore-worker-agent`
+- Operator agents: `deploy-agent`, `infra-agent`, etc.
 
 Discovered gotchas are operator-owned from birth — Lore creates the file, operator owns it. If a skill already exists, warn and skip.
 
@@ -53,24 +53,25 @@ Actively map the environment as you encounter it. When you interact with a URL, 
 
 ## Agent Creation
 
-**Domain = Agent (1:1).** A domain earns an agent when multiple skills cluster around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent — it stays in Orchestrator until more skills cluster.
+**One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
 
-The domain name is the **tool name** — the specific tool at the bottom of the call stack, not a category. Examples: `git-agent`, `mkdocs-agent`, `docker-compose-agent` — not "VCS agent" or "Documentation agent".
-
-Naming: `lore-<tool-name>-agent` for framework agents, `<tool-name>-agent` for operator agents. See `.lore/skills/lore-create-agent/SKILL.md`.
-
-`lore-*` skills with `type: command` in frontmatter are framework commands (e.g., `lore-capture`, `lore-create-skill`), not domain knowledge. They always belong to Orchestrator and don't count toward domain clustering.
+Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
 
 Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
 
 ## Delegation
 
-Delegate by domain. Check `agent-registry.md` before work.
+**Orchestrate, don't execute.** Default to spawning `lore-worker-agent` for execution work — it runs on a cheaper model, gets a clean context window, and frees the orchestrator to coordinate.
 
-- Agent exists → delegate
-- If a task has independent branches, run them in parallel subagents; keep dependent steps sequential
-- Delegated subagents must load `docs/context/agent-rules.md` and relevant files under `docs/context/conventions/` before implementation
-- No agent → execute directly, create agent during capture
+Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
+Don't delegate: quick answers, single reads, clarifications, capture itself.
+
+1. Select relevant skills from `skills-registry.md`
+2. Spawn worker(s) with: task, skill paths, convention paths, scope
+3. Parallel workers for independent branches
+4. Review results, handle capture
+
+Operator agents exist? → prefer them for their purpose.
 
 ## Capture
 

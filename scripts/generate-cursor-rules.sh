@@ -213,10 +213,10 @@ writeMdc('lore-knowledge-routing.mdc',
   extractSections(instructions, ['Knowledge Routing', 'Capture'])
 );
 
-// 5. lore-skill-creation — skill naming, size limits, domain=agent rule
+// 5. lore-skill-creation — skill naming, size limits, worker agent model
 writeMdc('lore-skill-creation.mdc',
-  'description: Rules for creating skills and agents — naming, size limits, domain=agent\nglobs: .lore/skills/**',
-  extractSections(instructions, ['Skill Creation', 'Agent Creation'])
+  'description: Rules for creating skills and agents — naming, size limits, model preferences\nglobs: .lore/skills/**',
+  extractSections(instructions, ['Knowledge', 'Agent Creation'])
 );
 
 // 6. lore-docs-formatting — docs formatting standards
@@ -233,7 +233,7 @@ if (agentRegistry) {
   delegationBody += '\n\n## Agent Registry\n\n' + agentRegistry.trim();
 }
 writeMdc('lore-delegation.mdc',
-  'description: Agent delegation map — which agents handle which domains, parallel execution patterns\nalwaysApply: true',
+  'description: Worker agent delegation — how orchestrator spawns workers with curated skills\nalwaysApply: true',
   delegationBody
 );
 

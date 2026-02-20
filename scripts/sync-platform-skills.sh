@@ -50,10 +50,10 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
         .replace(/^cursor-model:.*\n?/m, '')
         .replace(/^model:.*\n?/m, '');
       if (claudeModel) {
-        // Insert model after domain line, or at end of frontmatter
-        const domainIdx = newFm.search(/^domain:.*$/m);
-        if (domainIdx >= 0) {
-          const eol = newFm.indexOf('\n', domainIdx);
+        // Insert model after description line, or at end of frontmatter
+        const descIdx = newFm.search(/^description:.*$/m);
+        if (descIdx >= 0) {
+          const eol = newFm.indexOf('\n', descIdx);
           newFm = newFm.slice(0, eol + 1) + 'model: ' + claudeModel + '\n' + newFm.slice(eol + 1);
         } else {
           newFm += 'model: ' + claudeModel + '\n';

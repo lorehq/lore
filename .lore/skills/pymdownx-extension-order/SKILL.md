@@ -1,6 +1,5 @@
 ---
 name: pymdownx-extension-order
-domain: Orchestrator
 description: pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes
 ---
 

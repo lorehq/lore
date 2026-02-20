@@ -1,7 +1,6 @@
 ---
 name: mcp-stdio-content-length-framing
 description: Cursor MCP uses newline-delimited JSON over stdio, not Content-Length framing
-domain: MCP
 user-invocable: false
 allowed-tools: Bash, Read, Edit
 ---

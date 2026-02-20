@@ -3,16 +3,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getAgentDomains } = require('./lib/parse-agents');
+const { getAgentNames } = require('./lib/parse-agents');
 const { logHookEvent } = require('../lib/hook-logger');
 
 const hubDir = process.env.LORE_HUB || path.join(__dirname, '..');
 
-// Agents — point to registry instead of listing names
-const agents = getAgentDomains();
+// Agents — nudge delegation when agents exist
+const agents = getAgentNames();
 const parts = [];
 if (agents.length > 0) {
-  parts.push('Delegate tasks to agents \u2014 see agent-registry.md');
+  parts.push('Orchestrate, don\'t execute \u2014 delegate to worker agents');
 }
 
 // Conventions — list names so the LLM can pattern-match

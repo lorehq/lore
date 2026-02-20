@@ -80,9 +80,9 @@ test('session-init: shows "(none yet)" when no agents', async (t) => {
   assert.ok(client.logs[0].message.includes('(none yet)'));
 });
 
-test('session-init: shows agent domains', async (t) => {
+test('session-init: shows agent names', async (t) => {
   const dir = setup({
-    registry: ['| Agent | Domain | Description |', '|---|---|---|', '| `doc-agent` | Documentation | Docs |'].join(
+    registry: ['| Agent | Skills |', '|---|---|', '| `doc-agent` | 2 |'].join(
       '\n',
     ),
   });
@@ -90,7 +90,7 @@ test('session-init: shows agent domains', async (t) => {
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('Documentation'));
+  assert.ok(client.logs[0].message.includes('doc-agent'));
 });
 
 test('session-init: shows active roadmaps', async (t) => {

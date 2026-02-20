@@ -1,16 +1,22 @@
 ---
-description: Rules for creating skills and agents — naming, size limits, domain=agent
+description: Rules for creating skills and agents — naming, size limits, model preferences
 globs: .lore/skills/**
 ---
 
+## Knowledge
+
+**Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
+
+One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
+
+Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands. See `.lore/skills/lore-create-skill/SKILL.md`.
+
+Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
+
 ## Agent Creation
 
-**Domain = Agent (1:1).** A domain earns an agent when multiple skills cluster around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent — it stays in Orchestrator until more skills cluster.
+**One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
 
-The domain name is the **tool name** — the specific tool at the bottom of the call stack, not a category. Examples: `git-agent`, `mkdocs-agent`, `docker-compose-agent` — not "VCS agent" or "Documentation agent".
-
-Naming: `lore-<tool-name>-agent` for framework agents, `<tool-name>-agent` for operator agents. See `.lore/skills/lore-create-agent/SKILL.md`.
-
-`lore-*` skills with `type: command` in frontmatter are framework commands (e.g., `lore-capture`, `lore-create-skill`), not domain knowledge. They always belong to Orchestrator and don't count toward domain clustering.
+Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
 
 Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.

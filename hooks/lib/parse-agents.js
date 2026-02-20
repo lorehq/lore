@@ -3,11 +3,11 @@
 // The canonical implementation lives in lib/banner.js (parameterized by directory).
 
 const path = require('path');
-const { getAgentDomains: _getAgentDomains } = require('../../lib/banner');
+const { getAgentNames: _getAgentNames } = require('../../lib/banner');
 
-function getAgentDomains() {
+function getAgentNames() {
   // Hook scripts live in hooks/lib/, so project root is two levels up
-  return _getAgentDomains(path.join(__dirname, '..', '..'));
+  return _getAgentNames(path.join(__dirname, '..', '..'));
 }
 
-module.exports = { getAgentDomains };
+module.exports = { getAgentNames };

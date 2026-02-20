@@ -18,71 +18,57 @@ for (const f of fs.readdirSync(path.join(__dirname, '..', 'lib'))) {
   fs.copyFileSync(path.join(__dirname, '..', 'lib', f), path.join(sharedLib, f));
 }
 
-const { getAgentDomains } = require(path.join(libDir, 'parse-agents.js'));
+const { getAgentNames } = require(path.join(libDir, 'parse-agents.js'));
 const registryPath = path.join(tmpDir, 'agent-registry.md');
 
 after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
 test('returns [] when no registry file exists', () => {
   if (fs.existsSync(registryPath)) fs.unlinkSync(registryPath);
-  assert.deepStrictEqual(getAgentDomains(), []);
+  assert.deepStrictEqual(getAgentNames(), []);
 });
 
 test('returns [] for empty table (headers + separator only)', () => {
-  fs.writeFileSync(registryPath, '| Agent | Domain | Description |\n|---|---|---|\n');
-  assert.deepStrictEqual(getAgentDomains(), []);
+  fs.writeFileSync(registryPath, '| Agent | Skills |\n|---|---|\n');
+  assert.deepStrictEqual(getAgentNames(), []);
 });
 
 test('parses single agent row', () => {
   fs.writeFileSync(
     registryPath,
-    ['| Agent | Domain | Description |', '|---|---|---|', '| `git-agent` | Git | Git operations |'].join('\n'),
+    ['| Agent | Skills |', '|---|---|', '| `git-agent` | 3 |'].join('\n'),
   );
-  assert.deepStrictEqual(getAgentDomains(), ['Git']);
+  assert.deepStrictEqual(getAgentNames(), ['git-agent']);
 });
 
-test('deduplicates domains from multiple agents', () => {
+test('returns multiple agent names', () => {
   fs.writeFileSync(
     registryPath,
     [
-      '| Agent | Domain | Description |',
-      '|---|---|---|',
-      '| `git-agent` | Git | Git operations |',
-      '| `git-pr-agent` | Git | PR workflows |',
+      '| Agent | Skills |',
+      '|---|---|',
+      '| `git-agent` | 3 |',
+      '| `docker-agent` | 2 |',
+      '| `gh-agent` | 1 |',
     ].join('\n'),
   );
-  assert.deepStrictEqual(getAgentDomains(), ['Git']);
-});
-
-test('returns multiple distinct domains', () => {
-  fs.writeFileSync(
-    registryPath,
-    [
-      '| Agent | Domain | Description |',
-      '|---|---|---|',
-      '| `git-agent` | Git | Git operations |',
-      '| `docker-agent` | Docker | Container ops |',
-      '| `gh-agent` | GitHub | GitHub API |',
-    ].join('\n'),
-  );
-  const domains = getAgentDomains();
-  assert.equal(domains.length, 3);
-  assert.ok(domains.includes('Git'));
-  assert.ok(domains.includes('Docker'));
-  assert.ok(domains.includes('GitHub'));
+  const names = getAgentNames();
+  assert.equal(names.length, 3);
+  assert.ok(names.includes('git-agent'));
+  assert.ok(names.includes('docker-agent'));
+  assert.ok(names.includes('gh-agent'));
 });
 
 test('skips malformed rows', () => {
   fs.writeFileSync(
     registryPath,
     [
-      '| Agent | Domain | Description |',
-      '|---|---|---|',
-      '| `good-agent` | Git | Valid row |',
-      '| | | |',
-      '| `no-domain` | | Missing domain |',
+      '| Agent | Skills |',
+      '|---|---|',
+      '| `good-agent` | 2 |',
+      '| | |',
       'not a table row',
     ].join('\n'),
   );
-  assert.deepStrictEqual(getAgentDomains(), ['Git']);
+  assert.deepStrictEqual(getAgentNames(), ['good-agent']);
 });

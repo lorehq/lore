@@ -1,6 +1,6 @@
 # Agent Registry
 
-| Agent | Domain | Skills |
-|-------|--------|--------|
-| mcp-agent | MCP | 1 |
+| Agent | Skills |
+|-------|--------|
+| lore-worker-agent | 0 |
 

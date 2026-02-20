@@ -3,7 +3,6 @@ name: node-macos-stdin-fd
 description: macOS pitfalls for Node.js subprocess stdin delivery and tmp dir symlinks
 trigger: subprocess stdin or state file issues on macOS in Node.js tests
 category: testing
-domain: Orchestrator
 ---
 
 # Node.js macOS test pitfalls: stdin, cwd symlinks, and spawnSync

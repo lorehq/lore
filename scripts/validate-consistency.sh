@@ -7,8 +7,8 @@
 #   2. Every agent file has a registry entry
 #   3. Every registry skill has a directory on disk
 #   4. Every registry agent has a file on disk
-#   5. Skill frontmatter has required fields (name, domain, description)
-#   6. Agent frontmatter has required fields (name, domain, description, model or per-platform model)
+#   5. Skill frontmatter has required fields (name, description)
+#   6. Agent frontmatter has required fields (name, description, model or per-platform model)
 #   7. Agent skill references point to existing directories
 #   8. Platform copies (.claude/) match canonical source (.lore/)
 #   9. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
@@ -80,7 +80,7 @@ for dir in "$REPO_ROOT"/.lore/skills/*/; do
   sf="$dir/SKILL.md"
   [[ -f "$sf" ]] || continue
   name=$(basename "$dir")
-  for field in name domain description; do
+  for field in name description; do
     val=$(extract_field "$field" "$sf")
     [[ -z "$val" ]] && fail "Skill '$name' missing '$field'"
   done
@@ -90,7 +90,7 @@ done
 echo "--- Agent Frontmatter ---"
 for f in "$REPO_ROOT"/.lore/agents/*.md; do
   name=$(basename "$f" .md)
-  for field in name domain description; do
+  for field in name description; do
     val=$(extract_field "$field" "$f")
     [[ -z "$val" ]] && fail "Agent '$name' missing '$field'"
   done

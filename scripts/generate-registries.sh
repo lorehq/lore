@@ -2,7 +2,7 @@
 # Regenerates agent-registry.md and skills-registry.md from filesystem.
 # Run after creating or modifying any skill or agent file.
 #
-# Reads YAML frontmatter (name, domain, description) from:
+# Reads YAML frontmatter (name, description) from:
 #   .lore/skills/*/SKILL.md  →  skills-registry.md
 #   .lore/agents/*.md        →  agent-registry.md
 
@@ -18,17 +18,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 {
   echo "# Agent Registry"
   echo ""
-  echo "| Agent | Domain | Skills |"
-  echo "|-------|--------|--------|"
+  echo "| Agent | Skills |"
+  echo "|-------|--------|"
 
   for agent_file in "$REPO_ROOT"/.lore/agents/*.md; do
     [ -f "$agent_file" ] || continue
     name=$(extract_field name "$agent_file")
     [ -z "$name" ] && continue
-    domain=$(extract_field domain "$agent_file")
     # Count skills listed under the "skills:" YAML key
     count=$(awk '/^skills:/{f=1;next} f&&/^  - /{c++} f&&/^[a-z]/{f=0} END{print c+0}' "$agent_file")
-    echo "| $name | $domain | $count |"
+    echo "| $name | $count |"
   done
   echo ""
 } > agent-registry.md
@@ -37,18 +36,17 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 {
   echo "# Skills Registry"
   echo ""
-  echo "| Skill | Domain | Type | Description |"
-  echo "|-------|--------|------|-------------|"
+  echo "| Skill | Type | Description |"
+  echo "|-------|------|-------------|"
 
   for skill_file in "$REPO_ROOT"/.lore/skills/*/SKILL.md; do
     [ -f "$skill_file" ] || continue
     name=$(extract_field name "$skill_file")
     [ -z "$name" ] && continue
-    domain=$(extract_field domain "$skill_file")
     skill_type=$(extract_field type "$skill_file")
     [ -z "$skill_type" ] && skill_type="—"
     desc=$(extract_field description "$skill_file")
-    echo "| $name | $domain | $skill_type | $desc |"
+    echo "| $name | $skill_type | $desc |"
   done
   echo ""
 } > skills-registry.md

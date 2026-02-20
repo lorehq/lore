@@ -34,8 +34,8 @@ function setup() {
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
   // Empty registry files
-  fs.writeFileSync(path.join(dir, 'skills-registry.md'), '| Skill | Domain | Description |\n|---|---|---|\n');
-  fs.writeFileSync(path.join(dir, 'agent-registry.md'), '| Agent | Domain | Description |\n|---|---|---|\n');
+  fs.writeFileSync(path.join(dir, 'skills-registry.md'), '| Skill | Description |\n|---|---|\n');
+  fs.writeFileSync(path.join(dir, 'agent-registry.md'), '| Agent | Description |\n|---|---|\n');
   return dir;
 }
 
@@ -66,7 +66,7 @@ test('fails: skill directory missing from registry', (t) => {
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: my-skill', 'domain: Testing', 'description: A test skill', '---'].join('\n'),
+    ['---', 'name: my-skill', 'description: A test skill', '---'].join('\n'),
   );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
@@ -78,30 +78,11 @@ test('fails: registry skill has no directory on disk', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(
     path.join(dir, 'skills-registry.md'),
-    ['| Skill | Domain | Description |', '|---|---|---|', '| ghost-skill | Testing | Does not exist |'].join('\n'),
+    ['| Skill | Description |', '|---|---|', '| ghost-skill | Does not exist |'].join('\n'),
   );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
   assert.ok(stdout.includes("Registry skill 'ghost-skill' has no directory"));
-});
-
-test('fails: skill missing required frontmatter field', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const skillDir = path.join(dir, '.lore', 'skills', 'bad-skill');
-  fs.mkdirSync(skillDir);
-  // Missing 'domain' field
-  fs.writeFileSync(
-    path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: bad-skill', 'description: Missing domain', '---'].join('\n'),
-  );
-  fs.writeFileSync(
-    path.join(dir, 'skills-registry.md'),
-    ['| Skill | Domain | Description |', '|---|---|---|', '| bad-skill | Testing | Bad skill |'].join('\n'),
-  );
-  const { code, stdout } = runScript(dir);
-  assert.equal(code, 1);
-  assert.ok(stdout.includes("Skill 'bad-skill' missing 'domain'"));
 });
 
 test('fails: agent references non-existent skill', (t) => {
@@ -112,7 +93,6 @@ test('fails: agent references non-existent skill', (t) => {
     [
       '---',
       'name: test-agent',
-      'domain: Testing',
       'description: A test agent',
       'model: sonnet',
       'skills:',
@@ -122,7 +102,7 @@ test('fails: agent references non-existent skill', (t) => {
   );
   fs.writeFileSync(
     path.join(dir, 'agent-registry.md'),
-    ['| Agent | Domain | Description |', '|---|---|---|', '| test-agent | Testing | Test agent |'].join('\n'),
+    ['| Agent | Description |', '|---|---|', '| test-agent | Test agent |'].join('\n'),
   );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
@@ -138,7 +118,7 @@ test('passes: fully consistent setup', (t) => {
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: test-skill', 'domain: Testing', 'description: A complete test skill', '---', '# Test Skill'].join(
+    ['---', 'name: test-skill', 'description: A complete test skill', '---', '# Test Skill'].join(
       '\n',
     ),
   );
@@ -152,7 +132,6 @@ test('passes: fully consistent setup', (t) => {
     [
       '---',
       'name: test-agent',
-      'domain: Testing',
       'description: A complete test agent',
       'model: sonnet',
       'skills:',
@@ -169,13 +148,13 @@ test('passes: fully consistent setup', (t) => {
   // Registries reference both
   fs.writeFileSync(
     path.join(dir, 'skills-registry.md'),
-    ['| Skill | Domain | Description |', '|---|---|---|', '| test-skill | Testing | A complete test skill |'].join(
+    ['| Skill | Description |', '|---|---|', '| test-skill | A complete test skill |'].join(
       '\n',
     ),
   );
   fs.writeFileSync(
     path.join(dir, 'agent-registry.md'),
-    ['| Agent | Domain | Description |', '|---|---|---|', '| test-agent | Testing | A complete test agent |'].join(
+    ['| Agent | Description |', '|---|---|', '| test-agent | A complete test agent |'].join(
       '\n',
     ),
   );
@@ -253,13 +232,13 @@ test('fails: platform copy out of sync with canonical source', (t) => {
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: sync-test', 'domain: Testing', 'description: Tests sync detection', '---'].join('\n'),
+    ['---', 'name: sync-test', 'description: Tests sync detection', '---'].join('\n'),
   );
 
   // Registry includes the skill
   fs.writeFileSync(
     path.join(dir, 'skills-registry.md'),
-    ['| Skill | Domain | Description |', '|---|---|---|', '| sync-test | Testing | Tests sync detection |'].join('\n'),
+    ['| Skill | Description |', '|---|---|', '| sync-test | Tests sync detection |'].join('\n'),
   );
 
   const { code, stdout } = runScript(dir);

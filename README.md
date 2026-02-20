@@ -37,20 +37,20 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift.
 
-**Complex work routes to domain specialists.** As your project grows, agents form around domains. When work spans multiple areas, your agent delegates to the right specialist with full project context.
+**Complex work delegates to focused workers.** When work benefits from a fresh context window, the orchestrator spawns workers loaded with curated skills and conventions. Compound tasks split across parallel workers for maximum throughput.
 
 ## Before / After
 
 **Without Lore** — Every session starts cold. You re-explain your project, the agent re-discovers API quirks, makes the same mistakes, and yesterday's debugging session is gone.
 
-**With Lore** — The agent knows your project. Skills from last week load automatically. Conventions are enforced at write-time. Active roadmaps surface at startup. Domain-specific work delegates to specialists.
+**With Lore** — The agent knows your project. Skills from last week load automatically. Conventions are enforced at write-time. Active roadmaps surface at startup. Complex work delegates to focused workers.
 
 ## How It Works
 
 Lore is a directory of markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
 - **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Loaded every session.
-- **Agents** (`.lore/agents/`) — Domain specialists that handle delegated work on configurable models.
+- **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills per-task.
 - **Docs** (`docs/`) — Project context, conventions, environment knowledge, runbooks, and work tracking.
 - **Hooks** (`hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
 - **Scripts** (`scripts/`) — Registry generation, platform sync, validation, nav building.

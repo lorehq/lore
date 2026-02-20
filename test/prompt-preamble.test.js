@@ -74,20 +74,19 @@ test('prompt-preamble: no agents — no delegation line', () => {
   }
 });
 
-test('prompt-preamble: with agents — points to registry', () => {
+test('prompt-preamble: with agents — includes delegation nudge', () => {
   const dir = setup({
     registry: [
-      '| Agent | Domain | Model |',
-      '|-------|--------|-------|',
-      '| `docs-agent` | Documentation | sonnet |',
-      '| `infra-agent` | Infrastructure | sonnet |',
+      '| Agent | Skills |',
+      '|-------|--------|',
+      '| `docs-agent` | 2 |',
+      '| `infra-agent` | 3 |',
     ].join('\n'),
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes('Delegate tasks to agents'), 'should include delegation nudge');
-    assert.ok(out.includes('agent-registry.md'), 'should point to registry');
-    assert.ok(!out.includes('Documentation, Infrastructure'), 'should not list domain names inline');
+    assert.ok(out.includes('Orchestrate, don\'t execute'), 'should include delegation nudge');
+    assert.ok(out.includes('delegate to worker agents'), 'should mention worker agents');
     assert.ok(out.includes('New context?'), 'should still include knowledge discovery nudge');
   } finally {
     cleanup(dir);

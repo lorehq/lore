@@ -1,7 +1,6 @@
 ---
 name: lore-create-agent
-description: Create a domain agent when skills cluster around a specific tool
-domain: Orchestrator
+description: Create an operator agent for recurring delegation patterns
 type: command
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
@@ -9,40 +8,40 @@ allowed-tools: Write, Edit, Read, Glob
 
 # Create Agent
 
-Domain = Agent (1:1). A domain earns an agent when multiple skills cluster around the same tool, making delegation valuable. A single skill doesn't warrant a domain or agent.
+Operator agents are optional static delegation patterns. The framework provides `lore-worker-agent` for general delegation — this skill is for creating additional operator-owned agents when a recurring task pattern benefits from a pre-packaged agent.
 
 ## When to Create
 
-- Multiple skills (2+) cluster around the same specific tool/service/platform
-- The clustering makes delegation genuinely valuable (domain-specific expertise)
+- You have a recurring delegation pattern that benefits from pre-packaged context
+- The same set of skills, conventions, and scope boundaries apply every time
+- A static agent definition is more efficient than the orchestrator assembling context each time
 
 ## Process
 
 ### Step 1: Check Existing Agents
 
-Read `agent-registry.md`. If agent exists for domain, update it. Otherwise create new.
+Read `agent-registry.md`. If agent exists for the purpose, update it. Otherwise create new.
 
 ### Step 2: Create Agent File
 
-**Location**: `.lore/agents/<domain-slug>-agent.md`
+**Location**: `.lore/agents/<purpose>-agent.md`
 
 ```markdown
 ---
-name: <domain-slug>-agent
-description: <Domain> operations specialist. Generated from skills.
-domain: <Domain Name>
+name: <purpose>-agent
+description: <Purpose> operations specialist.
 claude-model: sonnet
 opencode-model: openai/gpt-4o
 cursor-model: # not yet supported
 skills:
   - <skill-name>
 ---
-# <Domain> Agent
+# <Purpose> Agent
 
-Handles all <domain> operations. Create new skills as needed.
+Handles <purpose> operations.
 
 ## Subagent Operating Rules
-- You are a domain subagent, not the orchestrator. Stay within delegated scope and return concise results.
+- You are a delegated subagent, not the orchestrator. Stay within delegated scope and return concise results.
 - Before implementation, always load project guidance from `docs/context/agent-rules.md` and relevant files under `docs/context/conventions/`.
 - Follow repo boundaries from agent rules (Lore hub for knowledge; application code in external repos).
 - If scope has independent branches, run them in parallel subagents; keep dependency-gated steps sequential.
@@ -72,6 +71,6 @@ bash scripts/sync-platform-skills.sh
 
 ## Naming
 
-Pattern: `<tool-name>-agent` (e.g., `git-agent`, `mkdocs-agent`, `docker-compose-agent`). The domain name is the tool name — the specific tool at the bottom of the call stack, not a category. Lowercase, kebab-case.
+Pattern: `<purpose>-agent` (e.g., `deploy-agent`, `infra-agent`, `docs-agent`). Lowercase, kebab-case.
 
-**Do not use the `lore-` prefix** — that's reserved for framework agents. Operator agents use descriptive names without the prefix.
+**Do not use the `lore-` prefix** — that's reserved for framework agents (`lore-worker-agent`). Operator agents use descriptive names without the prefix.

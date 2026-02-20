@@ -1,7 +1,6 @@
 ---
 name: lore-create-todo-with-capture
 description: Append a capture checkpoint and optimize task lists for parallelism
-domain: Orchestrator
 type: command
 user-invocable: false
 allowed-tools: TaskCreate, TaskUpdate
