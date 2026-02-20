@@ -6,6 +6,8 @@ Knowledge-persistent coding agent framework.
 
 **This is a knowledge hub. All code changes happen in external repos — NEVER here.** A Lore instance contains only knowledge files (docs, skills, agents), hooks, scripts, and work tracking. The operator's application code, infrastructure, and configs live in their own repos. If a task requires writing application code, stop and ask which repo it belongs in. Do not create `src/`, `lib/`, or any application code directories in a Lore instance.
 
+For IDE-based agents (Cursor, IDE-mode Claude Code), use `/lore-link` to connect work repos to this instance. Hooks fire from the hub, knowledge captures back here, but you open and work from the code repo with full file tree and git integration. See the cross-repo workflow guide for setup.
+
 ## Core Behaviors
 
 1. Creates skills and agents as needed (not pre-emptively)
