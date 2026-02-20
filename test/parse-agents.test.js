@@ -34,23 +34,16 @@ test('returns [] for empty table (headers + separator only)', () => {
 });
 
 test('parses single agent row', () => {
-  fs.writeFileSync(
-    registryPath,
-    ['| Agent | Skills |', '|---|---|', '| `git-agent` | 3 |'].join('\n'),
-  );
+  fs.writeFileSync(registryPath, ['| Agent | Skills |', '|---|---|', '| `git-agent` | 3 |'].join('\n'));
   assert.deepStrictEqual(getAgentNames(), ['git-agent']);
 });
 
 test('returns multiple agent names', () => {
   fs.writeFileSync(
     registryPath,
-    [
-      '| Agent | Skills |',
-      '|---|---|',
-      '| `git-agent` | 3 |',
-      '| `docker-agent` | 2 |',
-      '| `gh-agent` | 1 |',
-    ].join('\n'),
+    ['| Agent | Skills |', '|---|---|', '| `git-agent` | 3 |', '| `docker-agent` | 2 |', '| `gh-agent` | 1 |'].join(
+      '\n',
+    ),
   );
   const names = getAgentNames();
   assert.equal(names.length, 3);
@@ -62,13 +55,7 @@ test('returns multiple agent names', () => {
 test('skips malformed rows', () => {
   fs.writeFileSync(
     registryPath,
-    [
-      '| Agent | Skills |',
-      '|---|---|',
-      '| `good-agent` | 2 |',
-      '| | |',
-      'not a table row',
-    ].join('\n'),
+    ['| Agent | Skills |', '|---|---|', '| `good-agent` | 2 |', '| | |', 'not a table row'].join('\n'),
   );
   assert.deepStrictEqual(getAgentNames(), ['good-agent']);
 });

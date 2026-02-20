@@ -76,16 +76,11 @@ test('prompt-preamble: no agents — no delegation line', () => {
 
 test('prompt-preamble: with agents — includes delegation nudge', () => {
   const dir = setup({
-    registry: [
-      '| Agent | Skills |',
-      '|-------|--------|',
-      '| `docs-agent` | 2 |',
-      '| `infra-agent` | 3 |',
-    ].join('\n'),
+    registry: ['| Agent | Skills |', '|-------|--------|', '| `docs-agent` | 2 |', '| `infra-agent` | 3 |'].join('\n'),
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes('Orchestrate, don\'t execute'), 'should include delegation nudge');
+    assert.ok(out.includes("Orchestrate, don't execute"), 'should include delegation nudge');
     assert.ok(out.includes('delegate to worker agents'), 'should mention worker agents');
     assert.ok(out.includes('New context?'), 'should still include knowledge discovery nudge');
   } finally {

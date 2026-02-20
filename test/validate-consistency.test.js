@@ -118,9 +118,7 @@ test('passes: fully consistent setup', (t) => {
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: test-skill', 'description: A complete test skill', '---', '# Test Skill'].join(
-      '\n',
-    ),
+    ['---', 'name: test-skill', 'description: A complete test skill', '---', '# Test Skill'].join('\n'),
   );
   const copyDir = path.join(dir, '.claude', 'skills', 'test-skill');
   fs.mkdirSync(copyDir, { recursive: true });
@@ -148,15 +146,11 @@ test('passes: fully consistent setup', (t) => {
   // Registries reference both
   fs.writeFileSync(
     path.join(dir, 'skills-registry.md'),
-    ['| Skill | Description |', '|---|---|', '| test-skill | A complete test skill |'].join(
-      '\n',
-    ),
+    ['| Skill | Description |', '|---|---|', '| test-skill | A complete test skill |'].join('\n'),
   );
   fs.writeFileSync(
     path.join(dir, 'agent-registry.md'),
-    ['| Agent | Description |', '|---|---|', '| test-agent | A complete test agent |'].join(
-      '\n',
-    ),
+    ['| Agent | Description |', '|---|---|', '| test-agent | A complete test agent |'].join('\n'),
   );
 
   const { code, stdout } = runScript(dir);

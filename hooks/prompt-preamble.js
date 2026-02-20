@@ -12,7 +12,7 @@ const hubDir = process.env.LORE_HUB || path.join(__dirname, '..');
 const agents = getAgentNames();
 const parts = [];
 if (agents.length > 0) {
-  parts.push('Orchestrate, don\'t execute \u2014 delegate to worker agents');
+  parts.push("Orchestrate, don't execute \u2014 delegate to worker agents");
 }
 
 // Conventions — list names so the LLM can pattern-match

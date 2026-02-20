@@ -82,9 +82,7 @@ test('session-init: shows "(none yet)" when no agents', async (t) => {
 
 test('session-init: shows agent names', async (t) => {
   const dir = setup({
-    registry: ['| Agent | Skills |', '|---|---|', '| `doc-agent` | 2 |'].join(
-      '\n',
-    ),
+    registry: ['| Agent | Skills |', '|---|---|', '| `doc-agent` | 2 |'].join('\n'),
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
