@@ -26,6 +26,11 @@
         "matcher": "Write|Edit",
         "hooks": [{ "type": "command", "command": "node hooks/convention-guard.js" }],
         "description": "Reinforce conventions based on target file path"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "node hooks/framework-guard.js" }],
+        "description": "Warn when writing to framework-owned or link-generated files"
       }
     ],
     "PostToolUse": [

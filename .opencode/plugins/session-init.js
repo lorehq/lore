@@ -5,7 +5,7 @@
 // OpenCode plugins are ESM but shared lib is CJS. createRequire bridges the gap.
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { buildBanner, ensureStickyFiles } = require('../../lib/banner');
+const { buildBanner, buildCompactReminder, ensureStickyFiles } = require('../../lib/banner');
 const { logHookEvent } = require('../../lib/hook-logger');
 
 export const SessionInit = async ({ directory, client }) => {
@@ -26,14 +26,23 @@ export const SessionInit = async ({ directory, client }) => {
     directory: hub,
   });
 
+  // True until the first chat.system.transform call; reset to true after compaction
+  // so the next call after a compact gets full re-orientation.
+  let needsFullBanner = true;
+
   return {
     'experimental.chat.system.transform': async (_input, output) => {
       ensureStickyFiles(hub);
-      const b = buildBanner(hub);
+      let b;
+      if (needsFullBanner) {
+        b = buildBanner(hub);
+        needsFullBanner = false;
+      } else {
+        b = buildCompactReminder(hub);
+      }
       output.system.push(b);
-      // Fires every LLM call — this is the OpenCode per-prompt injection point.
-      // Unlike Claude Code, this REPLACES the system prompt (not additive to history),
-      // so output size here is the ongoing cost, not accumulated.
+      // Fires every LLM call. First call gets full banner (~14K chars),
+      // subsequent calls get compact reminder (~200 chars). Resets after compaction.
       logHookEvent({
         platform: 'opencode',
         hook: 'session-init',
@@ -46,6 +55,8 @@ export const SessionInit = async ({ directory, client }) => {
       ensureStickyFiles(hub);
       const b = buildBanner(hub);
       output.context.push(b);
+      // Compaction rebuilds context from scratch — restore full banner on next call.
+      needsFullBanner = true;
       // Fires on context compaction — should be rare, log to confirm it works
       logHookEvent({
         platform: 'opencode',

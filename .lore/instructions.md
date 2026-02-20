@@ -83,8 +83,9 @@ Example — user asks to "write a bash deploy script":
 
 1. Always include agent rules + conventions + matched skills
 2. Always specify scope (repo path + files)
-3. Parallel workers for independent branches
-4. Review results, handle capture
+3. **CRITICAL: Verify target files belong to the scoped repo.** This is a hub — you work across multiple repos. Before delegating, confirm the files you're modifying actually live in the repo you're scoping to. If they belong elsewhere, scope the worker there instead.
+4. Parallel workers for independent branches
+5. Review results, handle capture
 
 ## Capture
 

@@ -43,6 +43,7 @@ GENERATED_FILES=(
   .opencode/plugins/session-init.js
   .opencode/plugins/protect-memory.js
   .opencode/plugins/knowledge-tracker.js
+  .opencode/plugins/framework-guard.js
   .opencode/commands/lore-capture.md
   .opencode/commands/lore-consolidate.md
   .opencode/commands/lore-status.md
@@ -89,7 +90,8 @@ do_link() {
         UserPromptSubmit: [{ matcher: '', hooks: [h('prompt-preamble.js')] }],
         PreToolUse: [
           { matcher: 'Edit|Write|Read', hooks: [h('protect-memory.js')] },
-          { matcher: 'Write', hooks: [h('context-path-guide.js')] }
+          { matcher: 'Write', hooks: [h('context-path-guide.js')] },
+          { matcher: 'Write|Edit', hooks: [h('framework-guard.js')] }
         ],
         PostToolUse: [{ matcher: '', hooks: [h('knowledge-tracker.js', ' || true')] }],
         PostToolUseFailure: [{ matcher: '', hooks: [h('knowledge-tracker.js', ' || true')] }]
@@ -149,7 +151,7 @@ do_link() {
 
   # OpenCode plugin wrappers
   local name export_name
-  for plugin in session-init:SessionInit protect-memory:ProtectMemory knowledge-tracker:KnowledgeTracker; do
+  for plugin in session-init:SessionInit protect-memory:ProtectMemory knowledge-tracker:KnowledgeTracker framework-guard:FrameworkGuard; do
     name="${plugin%%:*}"
     export_name="${plugin##*:}"
     node -e "
