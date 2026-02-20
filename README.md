@@ -49,7 +49,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 Lore is a directory of markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
-- **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Loaded every session.
+- **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Available on-demand in every session.
 - **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills per-task.
 - **Docs** (`docs/`) — Project context, conventions, environment knowledge, runbooks, and work tracking.
 - **Hooks** (`hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
