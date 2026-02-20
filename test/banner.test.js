@@ -115,14 +115,8 @@ test('getAgentEntries: skips header row and separator lines', (t) => {
   const dir = setup({ registry: AGENT_REGISTRY });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const entries = getAgentEntries(dir);
-  assert.ok(
-    !entries.some((e) => e.name.toLowerCase() === 'agent'),
-    'should skip header row',
-  );
-  assert.ok(
-    !entries.some((e) => e.name.includes('---')),
-    'should skip separator lines',
-  );
+  assert.ok(!entries.some((e) => e.name.toLowerCase() === 'agent'), 'should skip header row');
+  assert.ok(!entries.some((e) => e.name.includes('---')), 'should skip separator lines');
 });
 
 test('getAgentEntries: returns empty array when file does not exist', (t) => {
@@ -149,10 +143,7 @@ test('getOperatorSkills: filters out lore-* prefixed skills', (t) => {
   const dir = setup({ skillsRegistry: SKILLS_REGISTRY });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skills = getOperatorSkills(dir);
-  assert.ok(
-    !skills.some((s) => s.name.startsWith('lore-')),
-    'should exclude lore-* skills',
-  );
+  assert.ok(!skills.some((s) => s.name.startsWith('lore-')), 'should exclude lore-* skills');
 });
 
 test('getOperatorSkills: returns empty array when file does not exist', (t) => {
@@ -217,7 +208,7 @@ test('scanWork: skips non-active statuses (completed, draft)', (t) => {
   assert.deepEqual(labels, []);
 });
 
-test('scanWork: returns empty array when directory does not exist', (t) => {
+test('scanWork: returns empty array when directory does not exist', () => {
   const labels = scanWork('/tmp/nonexistent-lore-test-dir-xyz');
   assert.deepEqual(labels, []);
 });
@@ -317,8 +308,7 @@ test('buildBanner: includes OPERATOR PROFILE when customized', (t) => {
 
 test('buildBanner: skips default operator profile template', (t) => {
   // The default template contains the marker line the code checks for
-  const defaultTemplate =
-    '# Operator Profile\n\n## Identity\n\n- **Name:**\n- **Role:**\n\nFill this in.';
+  const defaultTemplate = '# Operator Profile\n\n## Identity\n\n- **Name:**\n- **Role:**\n\nFill this in.';
   const dir = setup({ operatorProfile: defaultTemplate });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
@@ -438,8 +428,7 @@ test('buildCursorBanner: includes operator profile when customized', (t) => {
 });
 
 test('buildCursorBanner: skips default operator profile template', (t) => {
-  const defaultTemplate =
-    '# Operator Profile\n\n## Identity\n\n- **Name:**\n- **Role:**\n\nFill this in.';
+  const defaultTemplate = '# Operator Profile\n\n## Identity\n\n- **Name:**\n- **Role:**\n\nFill this in.';
   const dir = setup({ operatorProfile: defaultTemplate });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildCursorBanner(dir);
