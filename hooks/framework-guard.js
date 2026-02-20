@@ -10,10 +10,7 @@ const { logHookEvent } = require('../lib/hook-logger');
 
 // --- Hub: framework-owned paths (synced by scripts/sync-framework.sh) ---
 
-const FRAMEWORK_PREFIXES = [
-  'hooks/', 'lib/', 'scripts/',
-  '.opencode/', '.cursor/hooks/', '.cursor/mcp/',
-];
+const FRAMEWORK_PREFIXES = ['hooks/', 'lib/', 'scripts/', '.opencode/', '.cursor/hooks/', '.cursor/mcp/'];
 
 const FRAMEWORK_PATTERNS = [
   /^\.lore\/skills\/lore-/,
@@ -41,10 +38,7 @@ function isFrameworkOwned(relative) {
 // These are NOT the same as hub framework paths. A linked work repo's lib/
 // is application code — only the specific configs that /lore-link generates.
 
-const LINK_GENERATED_PREFIXES = [
-  '.opencode/plugins/', '.opencode/commands/',
-  '.cursor/rules/lore-', '.cursor/hooks/',
-];
+const LINK_GENERATED_PREFIXES = ['.opencode/plugins/', '.opencode/commands/', '.cursor/rules/lore-', '.cursor/hooks/'];
 
 const LINK_GENERATED_PATTERNS = [
   /^\.lore$/,
