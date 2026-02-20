@@ -66,8 +66,20 @@ Per-platform model preferences go on agents (not skills). Set `claude-model`, `o
 Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
 Don't delegate: quick answers, single reads, clarifications, capture itself.
 
-1. Select relevant skills from `skills-registry.md`
-2. Spawn worker(s) with: task, skill paths, convention paths, scope
+The orchestrator selects skills by scanning the SKILLS list (in the banner) or `skills-registry.md`. Match skill names and descriptions to the task, then pass their file paths to the worker.
+
+Example — user asks to "write a bash deploy script":
+
+> Task(lore-worker-agent): Write a bash deployment script for the staging environment.
+>
+> **Load first:**
+> - `.lore/skills/bash-macos-compat/SKILL.md`
+> - `docs/context/conventions/coding.md`
+>
+> **Scope:** `/home/user/app` — only modify `scripts/deploy.sh`
+
+1. Scan skills for relevance → `bash-macos-compat` matches
+2. Spawn worker with task + skill paths + conventions + scope
 3. Parallel workers for independent branches
 4. Review results, handle capture
 
