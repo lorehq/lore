@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Cursor%20%7C%20OpenCode-purple)]()
 
-Lore captures skills, conventions, and project knowledge as you work — then loads them every session so your agent gets smarter instead of starting over. Plain files, git-versioned, zero runtime dependencies.
+Lore captures skills, conventions, and project knowledge as you work — then loads them every session so your agent starts with full context instead of starting over. Plain files, git-versioned, zero runtime dependencies.
 
 ## Quick Start
 
