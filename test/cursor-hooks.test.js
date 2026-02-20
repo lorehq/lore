@@ -81,7 +81,7 @@ test('session-init: emits full banner with version and static context', (t) => {
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
   // Full banner — .mdc rules serve as first-session fallback only
-  assert.ok(parsed.additional_context.includes('AGENTS:'), 'full banner should include agents');
+  assert.ok(parsed.additional_context.includes('DELEGATION:'), 'full banner should include delegation');
   assert.ok(parsed.additional_context.includes('CAPTURE:'), 'full banner should include capture reminder');
   assert.ok(parsed.additional_context.includes('KNOWLEDGE MAP:'), 'full banner should include knowledge map');
   assert.equal(parsed.continue, true);
