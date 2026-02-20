@@ -33,6 +33,15 @@ if [[ -f "$ROOT/SECURITY.md" ]]; then
   fi
 fi
 
+# create-lore/SECURITY.md
+CREATE_LORE_ROOT="$(cd "$ROOT/../create-lore" 2>/dev/null && pwd)" || true
+if [[ -n "$CREATE_LORE_ROOT" && -f "$CREATE_LORE_ROOT/SECURITY.md" ]]; then
+  if ! grep -q "| ${major_minor}\.x" "$CREATE_LORE_ROOT/SECURITY.md"; then
+    echo "FAIL: create-lore/SECURITY.md does not reference ${major_minor}.x (package.json=$pkg_ver)" >&2
+    failed=1
+  fi
+fi
+
 if [[ "$failed" -ne 0 ]]; then
   echo "" >&2
   echo "Fix with: bash scripts/bump-version.sh $pkg_ver" >&2

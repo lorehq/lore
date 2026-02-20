@@ -89,6 +89,12 @@ if [[ -n "$CREATE_LORE_ROOT" && -d "$CREATE_LORE_ROOT" ]]; then
       fs.writeFileSync('$CREATE_LORE_ROOT/package-lock.json', JSON.stringify(p, null, 2) + '\n');
     "
   fi
+
+  # -- create-lore/SECURITY.md --
+  if [[ -f "$CREATE_LORE_ROOT/SECURITY.md" ]]; then
+    echo "  create-lore/SECURITY.md"
+    sed -i "s/| [0-9]*\.[0-9]*\.x *| Yes/| ${MAJOR_MINOR}.x   | Yes/" "$CREATE_LORE_ROOT/SECURITY.md"
+  fi
 else
   echo "  SKIP: create-lore not found at $LORE_ROOT/../create-lore"
 fi
