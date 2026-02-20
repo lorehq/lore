@@ -35,97 +35,69 @@ if [ "$TOTAL" -eq 0 ]; then
   exit 0
 fi
 
-# Convert epoch timestamps from first and last log lines to ISO dates
-FIRST_TS=$(head -1 "$LOG" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);console.log(new Date(o.ts).toISOString())})")
-LAST_TS=$(tail -1 "$LOG" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);console.log(new Date(o.ts).toISOString())})")
-echo "Time range: $FIRST_TS → $LAST_TS"
-echo ""
-
-# High-level: which platforms are generating events? Expect only the
-# platform(s) you've been working in to show up here.
-echo "--- Fires per platform ---"
+# All analysis in a single Node process — reads log once, passes path via argv.
 node -e "
 const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
-const counts = {};
-for (const e of lines) { counts[e.platform] = (counts[e.platform]||0)+1; }
-for (const [p,c] of Object.entries(counts).sort()) console.log('  ' + p + ': ' + c);
-"
-echo ""
+const logPath = process.argv[1];
+const lines = fs.readFileSync(logPath,'utf8').trim().split('\n').map(l=>JSON.parse(l));
 
-# Drill down: which specific hooks are firing? Key for identifying
-# silent hooks (e.g., context-path-guide only fires on docs/ writes).
-echo "--- Fires per hook ---"
-node -e "
-const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
-const counts = {};
+// Time range
+console.log('Time range: ' + new Date(lines[0].ts).toISOString() + ' → ' + new Date(lines[lines.length-1].ts).toISOString());
+console.log('');
+
+// Fires per platform
+console.log('--- Fires per platform ---');
+const platCounts = {};
+for (const e of lines) platCounts[e.platform] = (platCounts[e.platform]||0)+1;
+for (const [p,c] of Object.entries(platCounts).sort()) console.log('  ' + p + ': ' + c);
+console.log('');
+
+// Fires per hook
+console.log('--- Fires per hook ---');
+const hookCounts = {};
 for (const e of lines) {
   const key = e.platform + '/' + e.hook;
-  counts[key] = (counts[key]||0)+1;
+  hookCounts[key] = (hookCounts[key]||0)+1;
 }
-for (const [k,c] of Object.entries(counts).sort()) console.log('  ' + k + ': ' + c);
-"
-echo ""
+for (const [k,c] of Object.entries(hookCounts).sort()) console.log('  ' + k + ': ' + c);
+console.log('');
 
-# Full detail: platform/hook/event triples. Useful for hooks that handle
-# multiple events (e.g., Cursor protect-memory handles beforeReadFile + preToolUse).
-echo "--- Fires per event type ---"
-node -e "
-const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
-const counts = {};
+// Fires per event type
+console.log('--- Fires per event type ---');
+const evCounts = {};
 for (const e of lines) {
   const key = e.platform + '/' + e.hook + '/' + e.event;
-  counts[key] = (counts[key]||0)+1;
+  evCounts[key] = (evCounts[key]||0)+1;
 }
-for (const [k,c] of Object.entries(counts).sort()) console.log('  ' + k + ': ' + c);
-"
-echo ""
+for (const [k,c] of Object.entries(evCounts).sort()) console.log('  ' + k + ': ' + c);
+console.log('');
 
-# Context cost analysis: output_size tracks how many characters each hook
-# injects into the agent's view. High averages on high-frequency hooks
-# (like capture-nudge) signal context accumulation pressure.
-echo "--- Average output size per hook (chars) ---"
-node -e "
-const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
+// Average output size per hook
+console.log('--- Average output size per hook (chars) ---');
 const sums = {};
-const counts = {};
+const szCounts = {};
 for (const e of lines) {
   const key = e.platform + '/' + e.hook;
   sums[key] = (sums[key]||0) + (e.output_size||0);
-  counts[key] = (counts[key]||0)+1;
+  szCounts[key] = (szCounts[key]||0)+1;
 }
 for (const [k] of Object.entries(sums).sort()) {
-  const avg = Math.round(sums[k] / counts[k]);
-  console.log('  ' + k + ': ' + avg + ' avg (' + sums[k] + ' total across ' + counts[k] + ' fires)');
+  const avg = Math.round(sums[k] / szCounts[k]);
+  console.log('  ' + k + ': ' + avg + ' avg (' + sums[k] + ' total across ' + szCounts[k] + ' fires)');
 }
-"
-echo ""
+console.log('');
 
-# Rough token estimate: ~4 chars per token. This is the cumulative context
-# cost of all hook injections across the entire logged period. Compare
-# against model context window size to gauge overhead.
-echo "--- Estimated accumulated context tokens ---"
-node -e "
-const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
+// Estimated accumulated context tokens
+console.log('--- Estimated accumulated context tokens ---');
 let totalChars = 0;
 for (const e of lines) totalChars += (e.output_size||0);
 const estTokens = Math.round(totalChars / 4);
 console.log('  Total output chars: ' + totalChars);
 console.log('  Estimated tokens (chars/4): ~' + estTokens);
-"
-echo ""
+console.log('');
 
-# Gap detection: compares observed hooks against the full expected set
-# (5 Claude Code + 6 Cursor + 4 OpenCode = 15 hooks). Missing hooks
-# indicate either the platform wasn't used or a hook isn't wired correctly.
-echo "--- Missing hooks (expected but never fired) ---"
-node -e "
-const fs = require('fs');
-const lines = fs.readFileSync('$LOG','utf8').trim().split('\n').map(l=>JSON.parse(l));
+// Missing hooks
+console.log('--- Missing hooks (expected but never fired) ---');
 const seen = new Set(lines.map(e => e.platform + '/' + e.hook));
 const expected = [
   'claude/session-init', 'claude/prompt-preamble', 'claude/knowledge-tracker',
@@ -138,6 +110,6 @@ const expected = [
 const missing = expected.filter(e => !seen.has(e));
 if (missing.length === 0) console.log('  All hooks fired at least once.');
 else for (const m of missing) console.log('  MISSING: ' + m);
-"
+" "$LOG"
 echo ""
 echo "Done."

@@ -40,10 +40,11 @@ scan_dir() {
   local title rel scaffold_title
   for subdir in ${subdirs[@]+"${subdirs[@]}"}; do
     name=$(basename "$subdir")
-    # Auto-scaffold: if dir has no index.md, create one from the dir name
+    # Auto-scaffold: if dir has no index.md, create one and warn
     if [[ ! -f "${subdir%/}/index.md" ]]; then
       scaffold_title=$(to_title "$name")
       echo "# ${scaffold_title}" > "${subdir%/}/index.md"
+      echo "Warning: created missing ${subdir%/}/index.md" >&2
     fi
 
     # Convert kebab-case dir name to Title Case for nav label
