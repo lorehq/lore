@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Lore
 
-Knowledge-persistent coding agent framework. No application code — hooks, skills, agents, and docs that persist across sessions.
+Knowledge-persistent coding agent framework.
 
 ## Repo Boundary
 
@@ -35,11 +35,10 @@ Knowledge-persistent coding agent framework. No application code — hooks, skil
 `lore-*` prefix = framework-owned (overwritten on sync). Everything else = operator-owned (never touched by sync or generation scripts).
 
 - Framework skills: `lore-capture`, `lore-create-skill`, etc.
-- Operator skills: `bash-macos-compat`, `deploy-staging`, etc.
+- Operator skills: `bash-macos-compat`, etc.
 - Framework agents: `lore-worker-agent`
-- Operator agents: `deploy-agent`, `infra-agent`, etc.
 
-Discovered gotchas are operator-owned from birth — Lore creates the file, operator owns it. If a skill already exists, warn and skip.
+Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
 ## Knowledge
 
@@ -47,7 +46,7 @@ Discovered gotchas are operator-owned from birth — Lore creates the file, oper
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
-Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands. See `.lore/skills/lore-create-skill/SKILL.md`.
+Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands.
 
 Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
 
@@ -55,35 +54,36 @@ Actively map the environment as you encounter it. When you interact with a URL, 
 
 **One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
 
-Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
+Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
 Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
 
 ## Delegation
 
-**Orchestrate, don't execute.** Default to spawning `lore-worker-agent` for execution work — it runs on a cheaper model, gets a clean context window, and frees the orchestrator to coordinate.
+**Orchestrate, don't execute.** Default to `lore-worker-agent`. If another agent exists whose name fits the task, use it instead.
 
 Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
 Don't delegate: quick answers, single reads, clarifications, capture itself.
 
-The orchestrator selects skills by scanning the SKILLS list (in the banner) or `skills-registry.md`. Match skill names and descriptions to the task, then pass their file paths to the worker.
+Every worker gets conventions (`docs/context/conventions/`) — always, no exceptions. Conventions are constraints on how to work; they apply to every task.
+
+Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `skills-registry.md`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
 
 Example — user asks to "write a bash deploy script":
 
 > Task(lore-worker-agent): Write a bash deployment script for the staging environment.
 >
 > **Load first:**
+> - `docs/context/conventions/` (all conventions)
 > - `.lore/skills/bash-macos-compat/SKILL.md`
-> - `docs/context/conventions/coding.md`
 >
 > **Scope:** `/home/user/app` — only modify `scripts/deploy.sh`
 
-1. Scan skills for relevance → `bash-macos-compat` matches
-2. Spawn worker with task + skill paths + conventions + scope
-3. Parallel workers for independent branches
-4. Review results, handle capture
-
-Operator agents exist? → prefer them for their purpose.
+1. Always include conventions
+2. Scan skills for relevance → `bash-macos-compat` matches
+3. Spawn worker with task + conventions + matched skills + scope
+4. Parallel workers for independent branches
+5. Review results, handle capture
 
 ## Capture
 

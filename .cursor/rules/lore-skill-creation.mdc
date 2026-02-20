@@ -9,7 +9,7 @@ globs: .lore/skills/**
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
-Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands. See `.lore/skills/lore-create-skill/SKILL.md`.
+Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands.
 
 Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
 
@@ -17,6 +17,6 @@ Actively map the environment as you encounter it. When you interact with a URL, 
 
 **One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
 
-Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`. See `.lore/skills/lore-create-agent/SKILL.md`.
+Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
 Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
