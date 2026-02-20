@@ -65,25 +65,29 @@ Per-platform model preferences go on agents (not skills). Set `claude-model`, `o
 Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
 Don't delegate: quick answers, single reads, clarifications, capture itself.
 
-Every worker gets conventions (`docs/context/conventions/`) — always, no exceptions. Conventions are constraints on how to work; they apply to every task.
+Every worker prompt includes three REQUIRED context items:
 
-Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `skills-registry.md`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
+1. **Agent rules** (`docs/context/agent-rules.md`) — project identity, repo boundaries, behavioral constraints. Without this, workers don't know what repo they're in or what they can modify.
+2. **Conventions** (`docs/context/conventions/`) — all convention files. Constraints on how to work; they apply to every task.
+3. **Skills** — scan the SKILLS list (in the banner) or `skills-registry.md`, match names and descriptions to the task, include relevant skill paths. If no skills match, say so explicitly.
+
+Then add **scope** — the target repo path and which files the worker may modify.
 
 Example — user asks to "write a bash deploy script":
 
 > Task(lore-worker-agent): Write a bash deployment script for the staging environment.
 >
-> **Load first:**
-> - `docs/context/conventions/` (all conventions)
+> **Read first (REQUIRED):**
+> - `docs/context/agent-rules.md`
+> - `docs/context/conventions/` (all files)
 > - `.lore/skills/bash-macos-compat/SKILL.md`
 >
 > **Scope:** `/home/user/app` — only modify `scripts/deploy.sh`
 
-1. Always include conventions
-2. Scan skills for relevance → `bash-macos-compat` matches
-3. Spawn worker with task + conventions + matched skills + scope
-4. Parallel workers for independent branches
-5. Review results, handle capture
+1. Always include agent rules + conventions + matched skills
+2. Always specify scope (repo path + files)
+3. Parallel workers for independent branches
+4. Review results, handle capture
 
 ## Capture
 
