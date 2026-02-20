@@ -15,7 +15,7 @@ Requires **Node.js 18+**. No production dependencies — `npm install` pulls lin
 ## Running Checks
 
 ```bash
-npm test                              # 156 tests (node:test)
+npm test                              # node:test
 npm run lint                          # ESLint
 npm run format:check                  # Prettier
 bash scripts/validate-consistency.sh  # 11 cross-reference checks
