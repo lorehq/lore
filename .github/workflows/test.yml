@@ -29,9 +29,15 @@ jobs:
       - name: Lint & format
         run: npx eslint . && npx prettier --check .
       - run: npm test
+      - name: Regenerate derived files
+        shell: bash
+        run: bash scripts/sync-platform-skills.sh && bash scripts/generate-cursor-rules.sh
       - name: Validate consistency
         shell: bash
         run: bash scripts/validate-consistency.sh
+      - name: Check derived files are committed
+        shell: bash
+        run: git diff --exit-code
       - name: Check version sync
         shell: bash
         run: bash scripts/check-version-sync.sh
