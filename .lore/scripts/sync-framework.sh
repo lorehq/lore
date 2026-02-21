@@ -71,6 +71,7 @@ if [ -d "$SOURCE/.lore/agents" ]; then
 fi
 
 # Single files
+[ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
