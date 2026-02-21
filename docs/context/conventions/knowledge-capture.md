@@ -1,8 +1,20 @@
+---
+required: false
+---
 # Knowledge Capture
 
 How knowledge entries should be written and organized. For routing rules (what goes where), see `.lore/instructions.md`.
 
-## 1. One Canonical Location Per Fact
+## 1. Ask Before Writing
+
+**No knowledge write happens without operator approval.**
+
+- Before creating a skill, runbook, environment doc, or work item — state the file path and a one-line description of the content.
+- Ask the operator: "Is that okay?" Proceed only after approval.
+- This applies to all writes under `docs/` and `.lore/skills/`.
+- Workers never write knowledge — they report findings to the orchestrator, who proposes writes to the operator.
+
+## 2. One Canonical Location Per Fact
 
 **If changing one fact means editing multiple files, the structure is wrong.**
 
@@ -11,7 +23,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Tables and lists consolidate naturally. Five services on the same platform belong in one table, not five pages.
 - When you find duplication, fix it: pick the canonical location, consolidate, replace copies with links.
 
-## 2. Consolidate, Don't Scatter
+## 3. Consolidate, Don't Scatter
 
 **A file should earn its existence. Thin files are overhead.**
 
@@ -20,7 +32,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Group by domain, not by when you learned it. "All backup targets" beats "backup-vaultwarden, backup-docker, backup-proxmox, backup-media, backup-offsite, backup-network."
 - Runbooks for trivial operations (single command, one config export) belong as entries in a quick-reference list.
 
-## 3. Minimize Update Cost
+## 4. Minimize Update Cost
 
 **Structure for maintainability, not comprehensiveness.**
 
@@ -29,7 +41,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Runbooks should reference inventory data by link, not by copying it inline.
 - When infrastructure changes, one file update should be sufficient.
 
-## 4. Keep It Scannable
+## 5. Keep It Scannable
 
 **Walls of prose hide information. Structure reveals it.**
 
@@ -38,7 +50,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Front-load the key insight. First sentence answers "what do I need to know?"
 - Headings should be specific enough to find by scanning. "NFS Configuration" beats "Additional Notes."
 
-## 5. Don't Capture Noise
+## 6. Don't Capture Noise
 
 **Not everything learned is worth persisting.**
 

@@ -8,40 +8,50 @@ const { getConfig } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
 const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..');
+const { getProfile } = require('../lib/config');
+if (getProfile(hubDir) === 'minimal') process.exit(0);
 const cfg = getConfig(hubDir);
+const docker = cfg.docker || {};
 const semanticSearchUrl =
-  typeof cfg.semanticSearchUrl === 'string' && cfg.semanticSearchUrl.trim() ? cfg.semanticSearchUrl.trim() : '';
+  docker.search && docker.search.address
+    ? `http://${docker.search.address}:${docker.search.port || 9185}/search`
+    : '';
 
-// Agents — nudge delegation when agents exist
 const agents = getAgentNames();
 const parts = [];
-if (agents.length > 0) {
-  parts.push(
-    "Orchestrate wisely \u2014 delegate heavy or parallel work to worker agents; keep simple lookups/calls and capture writes in the primary agent",
-  );
-}
 
-// Conventions — list names so the LLM can pattern-match
-const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
-try {
-  const files = fs
-    .readdirSync(convDir)
-    .filter((f) => f.endsWith('.md') && f !== 'index.md')
-    .map((f) => f.replace(/\.md$/, ''));
-  if (files.length > 0) {
-    parts.push(`Conventions: ${files.join(', ')}`);
-  }
-} catch {}
-
-parts.push(
-  'Vague question lookup order: Knowledge -> Work items -> Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution | Capture reusable Execution fixes -> skills | Capture new environment facts -> docs/knowledge/environment/',
-);
-parts.push(
-  'LOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.',
-);
 if (semanticSearchUrl) {
+  // Slim preamble — one unified instruction
   parts.push(
-    `SEMANTIC SEARCH: enabled (${semanticSearchUrl}). For vague asks, query semantic search first; for localhost/private endpoints use skill semantic-search-query-local; then fall back to folder lookup order.`,
+    `DO NOT EXECUTE WORK YOURSELF. Semantic search → delegate to workers. NEVER run API calls, curl, or fetch directly.`,
+  );
+} else {
+  // Full preamble — no semantic search, repeat key instructions
+  if (agents.length > 0) {
+    parts.push(
+      "Orchestrate, don\u2019t execute \u2014 delegate exploration, API discovery, and multi-step work to workers; only keep single lookups and capture writes in primary",
+    );
+  }
+
+  const { parseFrontmatter } = require('../lib/frontmatter');
+  const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
+  try {
+    const available = [];
+    for (const f of fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && f !== 'index.md')) {
+      const raw = fs.readFileSync(path.join(convDir, f), 'utf8');
+      const { attrs } = parseFrontmatter(raw);
+      if (attrs.required !== 'true') available.push(f.replace(/\.md$/, ''));
+    }
+    if (available.length > 0) {
+      parts.push(`Available conventions (load when relevant): ${available.join(', ')}`);
+    }
+  } catch {}
+
+  parts.push(
+    'Vague question lookup order: Knowledge -> Work items -> Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution | Capture reusable Execution fixes -> skills | Capture environment discoveries -> docs/knowledge/environment/ | Ask operator before writing to docs/ or creating skills',
+  );
+  parts.push(
+    'LOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.',
   );
 }
 

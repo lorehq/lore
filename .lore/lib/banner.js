@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { debug } = require('./debug');
 const { buildTree } = require('./tree');
-const { getConfig } = require('./config');
+const { getConfig, getProfile } = require('./config');
 const { ensureStickyFiles } = require('./sticky');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
 
@@ -89,40 +89,79 @@ function scanWork(dir) {
   return active;
 }
 
+// Returns skills with banner-loaded: true — content inlined into session banner.
+function getBannerLoadedSkills(directory) {
+  try {
+    const skillsDir = path.join(directory, '.lore', 'skills');
+    const loaded = [];
+    for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
+      if (!fs.existsSync(skillFile)) continue;
+      const content = fs.readFileSync(skillFile, 'utf8');
+      const { attrs } = parseFrontmatter(content);
+      if (attrs['banner-loaded'] === 'true') {
+        loaded.push({ name: attrs.name || d.name, body: stripFrontmatter(content).trim() });
+      }
+    }
+    return loaded;
+  } catch (e) {
+    debug('getBannerLoadedSkills: %s', e.message);
+    return [];
+  }
+}
+
 function buildBanner(directory) {
   const agentEntries = getAgentEntries(directory);
   const operatorSkills = getOperatorSkills(directory);
 
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
+  const profile = getProfile(directory);
+  const profileTag = profile !== 'standard' ? ` [${profile.toUpperCase()}]` : '';
   const treeDepth = cfg.treeDepth ?? 5;
+  const docker = cfg.docker || {};
   const semanticSearchUrl =
-    typeof cfg.semanticSearchUrl === 'string' && cfg.semanticSearchUrl.trim() ? cfg.semanticSearchUrl.trim() : '';
+    docker.search && docker.search.address
+      ? `http://${docker.search.address}:${docker.search.port || 9185}/search`
+      : '';
 
   const docsWork = path.join(directory, 'docs', 'work');
   const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
   const plans = scanWork(path.join(docsWork, 'plans'));
 
+  const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const delegationLine =
-    'Delegate only heavy or parallel tasks; keep simple lookups/calls and capture writes in primary agent. Workers: ' +
-    (agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)');
+    'DO NOT EXECUTE WORK YOURSELF. You are an orchestrator. Your ONLY jobs: (1) semantic search, (2) delegate ALL work to workers, (3) capture after. NEVER run curl, fetch, API calls, or multi-step exploration directly. Workers: ' + workerList;
   const skillLine =
-    operatorSkills.length > 0 ? operatorSkills.map((s) => `${s.name} \u2014 ${s.description}`).join(' | ') : '';
+    operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
 
-  let output = `=== LORE${version} ===
+  let output = `=== LORE${version}${profileTag} ===
 
 DELEGATION: ${delegationLine}
-KNOWLEDGE: Vague question lookup order -> Knowledge, then Work items, then Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution. Capture reusable Execution fixes -> skills | Capture environment discoveries (URL/endpoint/service/host/port/auth/header/redirect/base path) -> docs/knowledge/environment/
+KNOWLEDGE: Vague question lookup order -> Knowledge, then Work items, then Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution. Capture reusable Execution fixes -> skills | Capture environment discoveries (URL/endpoint/service/host/port/auth/header/redirect/base path) -> docs/knowledge/environment/ | Ask operator before writing to docs/ or creating skills
 CAPTURE: In Exploration, failures may be normal discovery. In Execution, failures require capture decision (A/B/C) before completion.`;
 
-  output +=
-    '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';
-  if (semanticSearchUrl) {
-    output +=
-      `\nSEMANTIC SEARCH: enabled -> ${semanticSearchUrl} (query first for vague asks; for localhost/private endpoints use skill semantic-search-query-local; then fall back to folder lookup).`;
+  if (profile === 'minimal') {
+    output += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
+  } else if (profile === 'discovery') {
+    output += '\nPROFILE: discovery \u2014 aggressive capture. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
   }
 
-  if (skillLine) output += `\n\nSKILLS (load relevant ones when delegating): ${skillLine}`;
+  if (semanticSearchUrl) {
+    output +=
+      `\nSEMANTIC SEARCH: ${semanticSearchUrl} — query first, read returned files, then delegate ALL work.`;
+  } else {
+    output +=
+      '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';
+  }
+
+  if (skillLine) output += `\n\nSKILLS: ${skillLine}`;
+
+  const bannerSkills = getBannerLoadedSkills(directory);
+  if (bannerSkills.length > 0) {
+    output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
+  }
 
   if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
   if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
@@ -130,7 +169,7 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
   try {
     const raw = fs.readFileSync(path.join(directory, 'docs', 'context', 'agent-rules.md'), 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    if (stripped) output += '\n\nPROJECT:\n' + stripped;
+    if (stripped && !stripped.includes('Describe your project')) output += '\n\nPROJECT:\n' + stripped;
   } catch (e) {
     debug('agent-rules: %s', e.message);
   }
@@ -150,39 +189,64 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
   try {
     const convDir = path.join(directory, 'docs', 'context', 'conventions');
     const convFile = path.join(directory, 'docs', 'context', 'conventions.md');
-    const parts = [];
-    if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
-      const files = fs
-        .readdirSync(convDir)
-        .filter((f) => f.endsWith('.md'))
-        .sort((a, b) => {
-          if (a === 'index.md') return -1;
-          if (b === 'index.md') return 1;
-          return a.localeCompare(b);
-        });
-      for (const file of files) {
-        const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
-        const stripped = stripFrontmatter(raw).trim();
-        if (stripped) parts.push(stripped);
+    if (semanticSearchUrl) {
+      // Semantic search available — list all convention names, agent finds content on demand
+      if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
+        const allNames = fs
+          .readdirSync(convDir)
+          .filter((f) => f.endsWith('.md') && f !== 'index.md')
+          .map((f) => f.replace(/\.md$/, ''))
+          .sort();
+        if (allNames.length > 0) {
+          output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + allNames.join(', ');
+        }
       }
-    } else if (fs.existsSync(convFile)) {
-      const raw = fs.readFileSync(convFile, 'utf8');
-      const stripped = stripFrontmatter(raw).trim();
-      if (stripped) parts.push(stripped);
+    } else {
+      // No semantic search — inject required conventions in full, list rest by name
+      const requiredParts = [];
+      const availableNames = [];
+      if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
+        const files = fs
+          .readdirSync(convDir)
+          .filter((f) => f.endsWith('.md'))
+          .sort((a, b) => {
+            if (a === 'index.md') return -1;
+            if (b === 'index.md') return 1;
+            return a.localeCompare(b);
+          });
+        for (const file of files) {
+          const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
+          const { attrs } = parseFrontmatter(raw);
+          const stripped = stripFrontmatter(raw).trim();
+          if (!stripped) continue;
+          if (attrs.required === 'true' || file === 'index.md') {
+            requiredParts.push(stripped);
+          } else {
+            availableNames.push(file.replace(/\.md$/, ''));
+          }
+        }
+      } else if (fs.existsSync(convFile)) {
+        const raw = fs.readFileSync(convFile, 'utf8');
+        const stripped = stripFrontmatter(raw).trim();
+        if (stripped) requiredParts.push(stripped);
+      }
+      if (requiredParts.length > 0) output += '\n\nCONVENTIONS:\n' + requiredParts.join('\n\n');
+      if (availableNames.length > 0) output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + availableNames.join(', ');
     }
-    if (parts.length > 0) output += '\n\nCONVENTIONS:\n' + parts.join('\n\n');
   } catch (e) {
     debug('conventions: %s', e.message);
   }
 
-  const trees = [];
-  const docsTree = buildTree(path.join(directory, 'docs'), '', { maxDepth: treeDepth });
-  if (docsTree.length > 0) trees.push('docs/\n' + docsTree.join('\n'));
-  const skillsTree = buildTree(path.join(directory, '.lore', 'skills'), '', { maxDepth: treeDepth });
-  if (skillsTree.length > 0) trees.push('.lore/skills/\n' + skillsTree.join('\n'));
-  const agentsTree = buildTree(path.join(directory, '.lore', 'agents'), '', { maxDepth: treeDepth });
-  if (agentsTree.length > 0) trees.push('.lore/agents/\n' + agentsTree.join('\n'));
-  if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
+  if (!semanticSearchUrl) {
+    const trees = [];
+    const docsTree = buildTree(path.join(directory, 'docs'), '', { maxDepth: treeDepth });
+    if (docsTree.length > 0) trees.push('docs/\n' + docsTree.join('\n'));
+    const skillsTree = buildTree(path.join(directory, '.lore', 'skills'), '', { maxDepth: treeDepth });
+    if (skillsTree.length > 0) trees.push('.lore/skills/\n' + skillsTree.join('\n'));
+    const agentsTree = buildTree(path.join(directory, '.lore', 'agents'), '', { maxDepth: treeDepth });
+    if (agentsTree.length > 0) trees.push('.lore/agents/\n' + agentsTree.join('\n'));
+    if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
+  }
 
   const memPath = path.join(directory, '.lore/memory.local.md');
   try {
@@ -250,6 +314,8 @@ module.exports = {
   getAgentNames,
   getAgentEntries,
   getConfig,
+  getProfile,
+  getBannerLoadedSkills,
   getOperatorSkills,
   parseFrontmatter,
   scanWork,
