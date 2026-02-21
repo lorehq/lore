@@ -7,13 +7,16 @@ banner-loaded: true
 
 ## Worker Prompt Rules
 
-**Do NOT pre-load skills or conventions.** Workers self-discover using semantic search (or grep/glob fallback). Give them task context only — not file contents.
+**Do NOT paste file contents into worker prompts.** Name what to load — workers read the files themselves.
 
 Include in every worker prompt:
 1. **Task description** — what needs doing and why
-2. **Scope** — target repo path, which files may be modified
-3. **Bail-out rule** — "If stuck after 10 tool calls, STOP and return what you have."
-4. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
+2. **Conventions to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
+3. **Scope** — target repo path, which files may be modified
+4. **Bail-out rule** — "If stuck after 10 tool calls, STOP and return what you have."
+5. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
+
+Workers self-discover skills via semantic search. You may also name specific skills to load.
 
 Workers must not create skills or update docs — they report, the orchestrator captures.
 
