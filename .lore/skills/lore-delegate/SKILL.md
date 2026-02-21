@@ -7,10 +7,13 @@ banner-loaded: true
 
 ## Worker Prompt Rules
 
-1. **Include relevant knowledge** — paste any docs/files from semantic search results that the worker needs
-2. **Scope** — specify the target repo path and which files the worker may modify
-4. **Bail-out rule** — include in every prompt: "If stuck after 10 tool calls, STOP and return what you have."
-5. **Return contract** — include in every prompt: "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
+**Do NOT pre-load skills or conventions.** Workers self-discover using semantic search (or grep/glob fallback). Give them task context only — not file contents.
+
+Include in every worker prompt:
+1. **Task description** — what needs doing and why
+2. **Scope** — target repo path, which files may be modified
+3. **Bail-out rule** — "If stuck after 10 tool calls, STOP and return what you have."
+4. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
 
 Workers must not create skills or update docs — they report, the orchestrator captures.
 

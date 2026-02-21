@@ -31,6 +31,16 @@ If semantic search fails or returns no useful matches:
 1. Perform shallow lookup in order: `docs/knowledge/` -> `docs/work/` -> `docs/context/`
 2. Use focused `Grep`/`Read` before broad scans
 
+## Checking Availability
+
+Read `.lore/config.json`. If `docker.search` exists, semantic search is available:
+
+```bash
+node -e "const c=require('./.lore/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
+```
+
+If output is `unavailable`, skip to grep/glob fallback immediately.
+
 ## Notes
 
 - Always include `q` query parameter when calling semantic search.
