@@ -8,8 +8,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
-const { buildTree, getConfig } = require('../../lib/banner');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { buildTree, getConfig } = require('../../.lore/lib/banner');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 export const ContextPathGuide = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

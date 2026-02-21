@@ -38,7 +38,7 @@ summary: [one-liner]     # optional — shown in session banner
 5. **Validate**:
 
 ```bash
-bash scripts/generate-nav.sh && bash scripts/validate-consistency.sh
+bash .lore/scripts/generate-nav.sh && bash .lore/scripts/validate-consistency.sh
 ```
 
 ## Gotchas

@@ -24,7 +24,7 @@ Manage cross-repo links so hooks fire from the hub even when the operator opens 
 Parse the operator's arguments and run the corresponding script command:
 
 ```bash
-bash scripts/lore-link.sh <arguments>
+bash .lore/scripts/lore-link.sh <arguments>
 ```
 
 Report the output to the operator.

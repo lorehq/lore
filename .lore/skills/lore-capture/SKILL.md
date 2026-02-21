@@ -1,6 +1,6 @@
 ---
 name: lore-capture
-description: Session-scoped knowledge capture — review work, create skills, update registries
+description: Session-scoped knowledge capture — review work, create skills, sync platform copies
 type: command
 user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate
@@ -21,12 +21,10 @@ Walk through every item. Report findings to the operator before making changes.
 1. **Review session work** for uncaptured knowledge
 2. **Gotchas?** → create skill (mandatory — every gotcha becomes a skill)
 3. **New environment knowledge?** (URLs, repos, services, relationships) → `docs/knowledge/environment/`
-4. **Generate agents**: `bash scripts/generate-agents.sh`
-5. **Update registries**: `bash scripts/generate-registries.sh`
-6. **Sync platform copies**: `bash scripts/sync-platform-skills.sh`
-7. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
-8. **Generate nav**: `bash scripts/generate-nav.sh`
-9. **Validate**: `bash scripts/validate-consistency.sh`
+4. **Sync platform copies**: `bash .lore/scripts/sync-platform-skills.sh`
+5. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
+6. **Generate nav**: `bash .lore/scripts/generate-nav.sh`
+7. **Validate**: `bash .lore/scripts/validate-consistency.sh`
 
 ## Process
 

@@ -18,9 +18,9 @@ Requires **Node.js 18+**. No production dependencies — `npm install` pulls lin
 npm test                              # node:test
 npm run lint                          # ESLint
 npm run format:check                  # Prettier
-bash scripts/validate-consistency.sh  # 11 cross-reference checks
-bash scripts/check-version-sync.sh   # .lore-config ↔ package.json
-bash scripts/smoke-test.sh            # Fresh-clone bootstrap simulation
+bash .lore/scripts/validate-consistency.sh  # 11 cross-reference checks
+bash .lore/scripts/check-version-sync.sh   # .lore/config.json ↔ package.json
+bash .lore/scripts/smoke-test.sh            # Fresh-clone bootstrap simulation
 ```
 
 CI runs all of these on Ubuntu + macOS, Node 18 + 20.

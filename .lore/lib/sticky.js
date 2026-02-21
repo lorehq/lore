@@ -103,8 +103,11 @@ Add your coding rules here \u2014 standards the agent should follow when writing
       );
     }
 
-    const memPath = path.join(directory, 'MEMORY.local.md');
-    if (!fs.existsSync(memPath)) fs.writeFileSync(memPath, '# Local Memory\n');
+    const memPath = path.join(directory, '.lore', 'memory.local.md');
+    if (!fs.existsSync(memPath)) {
+      fs.mkdirSync(path.join(directory, '.lore'), { recursive: true });
+      fs.writeFileSync(memPath, '# Local Memory\n');
+    }
   } catch (e) {
     debug('ensureStickyFiles: %s', e.message);
   }

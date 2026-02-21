@@ -13,9 +13,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { getThresholds, getNavFlagPath } = require('../../lib/tracker');
-const { getConfig } = require('../../lib/config');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { getThresholds, getNavFlagPath } = require('../../.lore/lib/tracker');
+const { getConfig } = require('../../.lore/lib/config');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
@@ -82,7 +82,7 @@ if (compacted) {
   // Post-compaction re-orientation — highest priority, delivers key context
   const cfg = getConfig(hubDir);
   const version = cfg.version ? `v${cfg.version}` : '';
-  msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 see agent-registry.md | Re-read .cursor/rules/ and project context`;
+  msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 scan .lore/agents/ | Re-read .cursor/rules/ and project context`;
   clearCompacted();
 } else {
   // Normal operation — escalating nudge based on consecutive bash count

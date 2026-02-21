@@ -10,10 +10,10 @@ const os = require('os');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-nav-'));
-  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'scripts'), { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', 'scripts', 'generate-nav.sh'),
-    path.join(dir, 'scripts', 'generate-nav.sh'),
+    path.join(__dirname, '..', '.lore', 'scripts', 'generate-nav.sh'),
+    path.join(dir, '.lore', 'scripts', 'generate-nav.sh'),
   );
   fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'index.md'), '# Home\n');
@@ -21,7 +21,7 @@ function setup() {
 }
 
 function runScript(dir) {
-  const out = execSync(`bash "${path.join(dir, 'scripts', 'generate-nav.sh')}"`, {
+  const out = execSync(`bash "${path.join(dir, '.lore', 'scripts', 'generate-nav.sh')}"`, {
     cwd: dir,
     encoding: 'utf8',
   });

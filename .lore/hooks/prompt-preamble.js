@@ -4,9 +4,13 @@
 const fs = require('fs');
 const path = require('path');
 const { getAgentNames } = require('./lib/parse-agents');
+const { getConfig } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
-const hubDir = process.env.LORE_HUB || path.join(__dirname, '..');
+const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..');
+const cfg = getConfig(hubDir);
+const semanticSearchUrl =
+  typeof cfg.semanticSearchUrl === 'string' && cfg.semanticSearchUrl.trim() ? cfg.semanticSearchUrl.trim() : '';
 
 // Agents — nudge delegation when agents exist
 const agents = getAgentNames();
@@ -35,6 +39,11 @@ parts.push(
 parts.push(
   'LOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.',
 );
+if (semanticSearchUrl) {
+  parts.push(
+    `SEMANTIC SEARCH: enabled (${semanticSearchUrl}). For vague asks, query semantic search first; for localhost/private endpoints use skill semantic-search-query-local; then fall back to folder lookup order.`,
+  );
+}
 
 const msg = `[${parts.join(' | ')}]`;
 console.log(msg);

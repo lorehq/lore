@@ -25,7 +25,7 @@ created: [today's date]
 ---
 ```
 
-4. **Validate**: `bash scripts/generate-nav.sh`
+4. **Validate**: `bash .lore/scripts/generate-nav.sh`
 
 ## Gotchas
 

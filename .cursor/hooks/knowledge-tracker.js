@@ -7,8 +7,8 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { isDocsWrite, getNavFlagPath, setNavDirty } = require('../../lib/tracker');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { isDocsWrite, getNavFlagPath, setNavDirty } = require('../../.lore/lib/tracker');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 let input = {};
 try {

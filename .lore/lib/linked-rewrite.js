@@ -8,12 +8,10 @@ function rewriteForLinkedRepo(content, hubPath) {
   const prefixes = [
     'docs/',
     '.lore/',
-    '.lore-config',
-    'agent-registry.md',
-    'skills-registry.md',
-    'scripts/',
-    'hooks/',
-    'MEMORY.local.md',
+    '.lore/config.json',
+    '.lore/scripts/',
+    '.lore/hooks/',
+    '.lore/memory.local.md',
   ];
   for (const prefix of prefixes) {
     content = content.replaceAll('`' + prefix, '`' + hubPath + '/' + prefix);

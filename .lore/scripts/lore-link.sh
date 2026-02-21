@@ -3,15 +3,15 @@
 # Generates lightweight configs in the target repo that delegate to hub hooks.
 #
 # Usage:
-#   scripts/lore-link.sh <target>          — link a work repo
-#   scripts/lore-link.sh --unlink <target> — remove link
-#   scripts/lore-link.sh --list            — show linked repos
-#   scripts/lore-link.sh --refresh         — regenerate all linked configs
+#   .lore/scripts/lore-link.sh <target>          — link a work repo
+#   .lore/scripts/lore-link.sh --unlink <target> — remove link
+#   .lore/scripts/lore-link.sh --list            — show linked repos
+#   .lore/scripts/lore-link.sh --refresh         — regenerate all linked configs
 
 set -euo pipefail
 
-HUB="$(cd "$(dirname "$0")/.." && pwd)"
-LINKS_FILE="$HUB/.lore-links"
+HUB="$(cd "$(dirname "$0")/../.." && pwd)"
+LINKS_FILE="$HUB/.lore/links"
 
 die() { echo "Error: $1" >&2; exit 1; }
 
@@ -57,7 +57,7 @@ do_link() {
   local target
   target="$(cd "$1" && pwd)"
 
-  [[ -f "$target/.lore-config" ]] && die "Target is a Lore instance — cannot link to itself"
+  [[ -f "$target/.lore/config.json" ]] && die "Target is a Lore instance — cannot link to itself"
 
   echo "Linking: $target → $HUB"
 
@@ -82,7 +82,7 @@ do_link() {
     const hub = process.argv[1];
     const h = (script, extra) => ({
       type: 'command',
-      command: 'LORE_HUB=' + JSON.stringify(hub) + ' node ' + JSON.stringify(hub + '/hooks/' + script) + (extra || '')
+      command: 'LORE_HUB=' + JSON.stringify(hub) + ' node ' + JSON.stringify(hub + '/.lore/hooks/' + script) + (extra || '')
     });
     const settings = {
       hooks: {
@@ -139,7 +139,7 @@ do_link() {
 
   # Instructions copy (Claude Code) — rewrite paths for linked repo
   node -e "
-    const { rewriteForLinkedRepo } = require(process.argv[1] + '/lib/linked-rewrite');
+    const { rewriteForLinkedRepo } = require(process.argv[1] + '/.lore/lib/linked-rewrite');
     const fs = require('fs');
     const hub = process.argv[1];
     const content = fs.readFileSync(hub + '/.lore/instructions.md', 'utf8');
@@ -147,7 +147,7 @@ do_link() {
   " "$HUB" "$target/CLAUDE.md"
 
   # Cursor rules — generate linked-repo-specific .mdc files with rewritten paths
-  bash "$HUB/scripts/generate-cursor-rules.sh" --hub "$HUB" --target "$target" --linked "$HUB"
+  bash "$HUB/.lore/scripts/generate-cursor-rules.sh" --hub "$HUB" --target "$target" --linked "$HUB"
 
   # OpenCode plugin wrappers
   local name export_name
@@ -294,10 +294,10 @@ case "${1:-}" in
   --refresh) do_refresh ;;
   -h|--help)
     echo "Usage:"
-    echo "  scripts/lore-link.sh <target>          Link a work repo"
-    echo "  scripts/lore-link.sh --unlink <target> Remove link"
-    echo "  scripts/lore-link.sh --list            Show linked repos"
-    echo "  scripts/lore-link.sh --refresh         Regenerate all configs"
+    echo "  .lore/scripts/lore-link.sh <target>          Link a work repo"
+    echo "  .lore/scripts/lore-link.sh --unlink <target> Remove link"
+    echo "  .lore/scripts/lore-link.sh --list            Show linked repos"
+    echo "  .lore/scripts/lore-link.sh --refresh         Regenerate all configs"
     ;;
   "") die "Missing target. Use --help for usage." ;;
   *)  do_link "$1" ;;

@@ -5,8 +5,8 @@
 // OpenCode plugins are ESM but shared lib is CJS. createRequire bridges the gap.
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { buildBanner, buildCompactReminder, ensureStickyFiles } = require('../../lib/banner');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { buildBanner, buildCompactReminder, ensureStickyFiles } = require('../../.lore/lib/banner');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 export const SessionInit = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

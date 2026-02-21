@@ -2,19 +2,19 @@
 # Scans markdown files for hardcoded version strings that may go stale.
 # Run before releases to catch references that should be generic.
 #
-# Usage: bash scripts/check-version-refs.sh [old-version]
+# Usage: bash .lore/scripts/check-version-refs.sh [old-version]
 #   With argument: greps for the specific old version (e.g., "0.6.0")
 #   Without argument: greps for any 0.x.y pattern and reports for review
 #
-# Excludes: package.json, .lore-config, package-lock.json, CHANGELOG.md,
+# Excludes: package.json, .lore/config.json, package-lock.json, CHANGELOG.md,
 #           node_modules/, archive/ directories (historical records)
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OLD_VER="${1:-}"
 
-EXCLUDE_PATHS="node_modules/|package\.json|package-lock\.json|\.lore-config|CHANGELOG\.md|/archive/|/\.claude/"
+EXCLUDE_PATHS="node_modules/|package\.json|package-lock\.json|config\.json|CHANGELOG\.md|/archive/|/\.claude/"
 
 if [[ -n "$OLD_VER" ]]; then
   echo "Scanning for stale version: $OLD_VER"

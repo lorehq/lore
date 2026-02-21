@@ -6,36 +6,43 @@ const path = require('path');
 const os = require('os');
 
 // prompt-preamble.js requires ./lib/parse-agents which requires ../../lib/banner.
-// Temp structure: tmp/hooks/prompt-preamble.js, tmp/hooks/lib/parse-agents.js,
-// tmp/lib/banner.js (+ other lib files).
+// Temp structure: tmp/.lore/hooks/prompt-preamble.js, tmp/.lore/hooks/lib/parse-agents.js,
+// tmp/.lore/lib/banner.js (+ other lib files).
 
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-preamble-'));
   // Copy hooks
-  const hooksDir = path.join(dir, 'hooks', 'lib');
+  const hooksDir = path.join(dir, '.lore', 'hooks', 'lib');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', 'hooks', 'prompt-preamble.js'),
-    path.join(dir, 'hooks', 'prompt-preamble.js'),
+    path.join(__dirname, '..', '.lore', 'hooks', 'prompt-preamble.js'),
+    path.join(dir, '.lore', 'hooks', 'prompt-preamble.js'),
   );
   fs.copyFileSync(
-    path.join(__dirname, '..', 'hooks', 'lib', 'parse-agents.js'),
-    path.join(dir, 'hooks', 'lib', 'parse-agents.js'),
+    path.join(__dirname, '..', '.lore', 'hooks', 'lib', 'parse-agents.js'),
+    path.join(dir, '.lore', 'hooks', 'lib', 'parse-agents.js'),
   );
   // Shared lib
-  const libDir = path.join(dir, 'lib');
+  const libDir = path.join(dir, '.lore', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  for (const f of fs.readdirSync(path.join(__dirname, '..', 'lib'))) {
-    fs.copyFileSync(path.join(__dirname, '..', 'lib', f), path.join(libDir, f));
+  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'lib'))) {
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(libDir, f));
   }
-  if (opts.registry) {
-    fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
+  // Create .lore/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  if (opts.agents) {
+    for (const [filename, content] of Object.entries(opts.agents)) {
+      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+    }
+  }
+  if (opts.config) {
+    fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
   return dir;
 }
 
 function run(dir) {
-  return execSync(`node hooks/prompt-preamble.js`, { cwd: dir, encoding: 'utf8' }).trim();
+  return execSync(`node .lore/hooks/prompt-preamble.js`, { cwd: dir, encoding: 'utf8' }).trim();
 }
 
 function cleanup(dir) {
@@ -79,7 +86,10 @@ test('prompt-preamble: no agents — no delegation line', () => {
 
 test('prompt-preamble: with agents — includes delegation nudge', () => {
   const dir = setup({
-    registry: ['| Agent | Skills |', '|-------|--------|', '| `docs-agent` | 2 |', '| `infra-agent` | 3 |'].join('\n'),
+    agents: {
+      'docs-agent.md': '---\nname: docs-agent\n---\n',
+      'infra-agent.md': '---\nname: infra-agent\n---\n',
+    },
   });
   try {
     const out = run(dir);
@@ -105,6 +115,17 @@ test('prompt-preamble: with conventions — lists names', () => {
     assert.ok(out.includes('coding'), 'should list coding convention');
     assert.ok(out.includes('security'), 'should list security convention');
     assert.ok(!/Conventions:[^|\]]*\bindex\b/.test(out), 'should exclude index.md from conventions list');
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test('prompt-preamble: includes semantic search hint when configured', () => {
+  const dir = setup({ config: { semanticSearchUrl: 'http://localhost:8080/search' } });
+  try {
+    const out = run(dir);
+    assert.ok(out.includes('SEMANTIC SEARCH: enabled'), 'should include semantic search enabled note');
+    assert.ok(out.includes('http://localhost:8080/search'), 'should include configured semantic search URL');
   } finally {
     cleanup(dir);
   }

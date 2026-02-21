@@ -15,33 +15,26 @@ const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
 
 function getAgentNames(directory) {
   try {
-    const content = fs.readFileSync(path.join(directory, 'agent-registry.md'), 'utf8');
-    const names = [];
-    for (const line of content.split(/\r?\n/)) {
-      if (!line.startsWith('|') || line.includes('|---')) continue;
-      const parts = line.split('|').map((p) => p.trim());
-      const agent = (parts[1] || '').replace(/`/g, '').trim();
-      if (!agent || agent.toLowerCase() === 'agent') continue;
-      names.push(agent);
-    }
-    return names;
+    const agentsDir = path.join(directory, '.lore', 'agents');
+    return fs
+      .readdirSync(agentsDir)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => f.replace(/\.md$/, ''));
   } catch (e) {
     debug('getAgentNames: %s', e.message);
     return [];
   }
 }
 
-// Returns [{name}] entries for banner output.
+// Returns [{name}] entries for banner output (from agent frontmatter).
 function getAgentEntries(directory) {
   try {
-    const content = fs.readFileSync(path.join(directory, 'agent-registry.md'), 'utf8');
+    const agentsDir = path.join(directory, '.lore', 'agents');
     const entries = [];
-    for (const line of content.split(/\r?\n/)) {
-      if (!line.startsWith('|') || line.includes('|---')) continue;
-      const parts = line.split('|').map((p) => p.trim());
-      const name = (parts[1] || '').replace(/`/g, '').trim();
-      if (!name || name.toLowerCase() === 'agent') continue;
-      entries.push({ name });
+    for (const f of fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md'))) {
+      const content = fs.readFileSync(path.join(agentsDir, f), 'utf8');
+      const { attrs } = parseFrontmatter(content);
+      if (attrs.name) entries.push({ name: attrs.name });
     }
     return entries;
   } catch (e) {
@@ -50,19 +43,18 @@ function getAgentEntries(directory) {
   }
 }
 
-// Returns operator skills (non-lore-* prefix) with descriptions from skills-registry.md.
+// Returns operator skills (non-lore-* prefix) with descriptions from .lore/skills/*/SKILL.md.
 function getOperatorSkills(directory) {
   try {
-    const content = fs.readFileSync(path.join(directory, 'skills-registry.md'), 'utf8');
+    const skillsDir = path.join(directory, '.lore', 'skills');
     const skills = [];
-    for (const line of content.split(/\r?\n/)) {
-      if (!line.startsWith('|') || line.includes('|---')) continue;
-      const parts = line.split('|').map((p) => p.trim());
-      const name = (parts[1] || '').replace(/`/g, '').trim();
-      const desc = (parts[3] || '').trim();
-      if (!name || name.toLowerCase() === 'skill') continue;
-      if (name.startsWith('lore-')) continue;
-      skills.push({ name, description: desc });
+    for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (!d.isDirectory() || d.name.startsWith('lore-')) continue;
+      const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
+      if (!fs.existsSync(skillFile)) continue;
+      const content = fs.readFileSync(skillFile, 'utf8');
+      const { attrs } = parseFrontmatter(content);
+      if (attrs.name) skills.push({ name: attrs.name, description: attrs.description || '' });
     }
     return skills;
   } catch (e) {
@@ -104,6 +96,8 @@ function buildBanner(directory) {
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
   const treeDepth = cfg.treeDepth ?? 5;
+  const semanticSearchUrl =
+    typeof cfg.semanticSearchUrl === 'string' && cfg.semanticSearchUrl.trim() ? cfg.semanticSearchUrl.trim() : '';
 
   const docsWork = path.join(directory, 'docs', 'work');
   const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
@@ -123,6 +117,10 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
 
   output +=
     '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';
+  if (semanticSearchUrl) {
+    output +=
+      `\nSEMANTIC SEARCH: enabled -> ${semanticSearchUrl} (query first for vague asks; for localhost/private endpoints use skill semantic-search-query-local; then fall back to folder lookup).`;
+  }
 
   if (skillLine) output += `\n\nSKILLS (load relevant ones when delegating): ${skillLine}`;
 
@@ -186,7 +184,7 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
   if (agentsTree.length > 0) trees.push('.lore/agents/\n' + agentsTree.join('\n'));
   if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
 
-  const memPath = path.join(directory, 'MEMORY.local.md');
+  const memPath = path.join(directory, '.lore/memory.local.md');
   try {
     const mem = fs.readFileSync(memPath, 'utf8').trim();
     if (mem && mem !== '# Local Memory') output += `\n\nLOCAL MEMORY:\n${mem}`;
@@ -203,7 +201,7 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
 // This banner provides only what changes between sessions:
 //   - Version header
 //   - Active roadmaps/plans (scanned from docs/work/ frontmatter)
-//   - Local memory (MEMORY.local.md, gitignored)
+//   - Local memory (.lore/memory.local.md, gitignored)
 function buildCursorBanner(directory) {
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
@@ -231,7 +229,7 @@ function buildCursorBanner(directory) {
   }
 
   // Local memory — gitignored, can't be in .mdc rules
-  const memPath = path.join(directory, 'MEMORY.local.md');
+  const memPath = path.join(directory, '.lore/memory.local.md');
   try {
     const mem = fs.readFileSync(memPath, 'utf8').trim();
     if (mem && mem !== '# Local Memory') output += `\n\nLOCAL MEMORY:\n${mem}`;

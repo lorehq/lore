@@ -20,7 +20,7 @@ Operator agents are optional static delegation patterns. The framework provides 
 
 ### Step 1: Check Existing Agents
 
-Read `agent-registry.md`. If agent exists for the purpose, update it. Otherwise create new.
+Scan `.lore/agents/`. If an agent exists for the purpose, update it. Otherwise create new.
 
 ### Step 2: Create Agent File
 
@@ -55,18 +55,12 @@ Handles <purpose> operations.
 - `<skill-name>`
 ```
 
-Model fields are per-platform. Instance defaults in `.lore-config` under `subagentDefaults` — agent frontmatter overrides those defaults.
+Model fields are per-platform. Instance defaults in `.lore/config.json` under `subagentDefaults` — agent frontmatter overrides those defaults.
 
-### Step 3: Update Registries
-
-```bash
-bash scripts/generate-registries.sh
-```
-
-### Step 4: Sync Platform Copies
+### Step 3: Sync Platform Copies
 
 ```bash
-bash scripts/sync-platform-skills.sh
+bash .lore/scripts/sync-platform-skills.sh
 ```
 
 ## Naming

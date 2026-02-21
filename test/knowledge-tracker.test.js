@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const hookPath = path.join(__dirname, '..', 'hooks', 'knowledge-tracker.js');
+const hookPath = path.join(__dirname, '..', '.lore', 'hooks', 'knowledge-tracker.js');
 
 function setup() {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
@@ -105,7 +105,7 @@ test('MEMORY.local.md write: scratch notes warning', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, {
     tool_name: 'Write',
-    tool_input: { file_path: path.join(dir, 'MEMORY.local.md') },
+    tool_input: { file_path: path.join(dir, '.lore', 'memory.local.md') },
     hook_event_name: 'PostToolUse',
   });
   assert.ok(out.additionalContext.includes('scratch notes'));

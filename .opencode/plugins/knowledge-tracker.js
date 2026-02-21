@@ -15,8 +15,8 @@ const {
   getNavFlagPath,
   setNavDirty,
   navReminder,
-} = require('../../lib/tracker');
-const { logHookEvent } = require('../../lib/hook-logger');
+} = require('../../.lore/lib/tracker');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 export const KnowledgeTracker = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

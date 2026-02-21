@@ -10,14 +10,14 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
-const libSrc = path.join(__dirname, '..', 'lib');
+const libSrc = path.join(__dirname, '..', '.lore', 'lib');
 
 function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-cursor-')));
 
-  // Shared lib — hooks resolve ../../lib/ from .cursor/hooks/
-  const libDir = path.join(dir, 'lib');
+  // Shared lib — hooks resolve ../../.lore/lib/ from .cursor/hooks/
+  const libDir = path.join(dir, '.lore', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
   for (const f of fs.readdirSync(libSrc)) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
@@ -37,10 +37,14 @@ function setup(opts = {}) {
   fs.mkdirSync(path.join(dir, '.git'));
 
   if (opts.config) {
-    fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config));
+    fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  if (opts.registry) {
-    fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
+  // Create .lore/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  if (opts.agents) {
+    for (const [filename, content] of Object.entries(opts.agents)) {
+      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+    }
   }
   return dir;
 }
@@ -92,7 +96,7 @@ test('session-init: creates sticky files', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir, 'session-init.js');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
 test('session-init: includes active roadmaps in dynamic banner', (t) => {
@@ -120,7 +124,7 @@ test('protect-memory: blocks MEMORY.md reads with deny permission', (t) => {
   });
   const parsed = JSON.parse(stdout);
   assert.equal(parsed.permission, 'deny');
-  assert.ok(parsed.user_message.includes('MEMORY.local.md'));
+  assert.ok(parsed.user_message.includes('.lore/memory.local.md'));
 });
 
 test('protect-memory: allows MEMORY.local.md', (t) => {
@@ -222,7 +226,7 @@ test('protect-memory: blocks MEMORY.md writes via preToolUse', (t) => {
   });
   const parsed = JSON.parse(stdout);
   assert.equal(parsed.decision, 'deny');
-  assert.ok(parsed.reason.includes('MEMORY.local.md'));
+  assert.ok(parsed.reason.includes('.lore/memory.local.md'));
 });
 
 test('protect-memory: allows non-MEMORY writes via preToolUse', (t) => {

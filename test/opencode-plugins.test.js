@@ -9,13 +9,13 @@ const path = require('path');
 const os = require('os');
 
 const pluginsSrc = path.join(__dirname, '..', '.opencode', 'plugins');
-const libSrc = path.join(__dirname, '..', 'lib');
+const libSrc = path.join(__dirname, '..', '.lore', 'lib');
 
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-opencode-'));
 
-  // Shared lib — plugins resolve ../../lib/ via createRequire(import.meta.url)
-  const libDir = path.join(dir, 'lib');
+  // Shared lib — plugins resolve ../../.lore/lib/ via createRequire(import.meta.url)
+  const libDir = path.join(dir, '.lore', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
   for (const f of fs.readdirSync(libSrc)) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
@@ -36,10 +36,14 @@ function setup(opts = {}) {
   fs.mkdirSync(path.join(dir, '.git'));
 
   if (opts.config) {
-    fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config));
+    fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  if (opts.registry) {
-    fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
+  // Create .lore/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  if (opts.agents) {
+    for (const [filename, content] of Object.entries(opts.agents)) {
+      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+    }
   }
   if (opts.agentRules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
@@ -82,7 +86,9 @@ test('session-init: shows "(none yet)" when no agents', async (t) => {
 
 test('session-init: shows agent names', async (t) => {
   const dir = setup({
-    registry: ['| Agent | Skills |', '|---|---|', '| `doc-agent` | 2 |'].join('\n'),
+    agents: {
+      'doc-agent.md': '---\nname: doc-agent\n---\n',
+    },
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
@@ -124,7 +130,7 @@ test('session-init: creates sticky files', async (t) => {
   await SessionInit({ directory: dir, client });
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
 test('session-init: compaction pushes banner to context', async (t) => {
@@ -226,7 +232,7 @@ test('knowledge-tracker: MEMORY.local.md scratch notes warning', async (t) => {
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
-  await hooks['tool.execute.after']({ tool: 'Write', args: { file_path: '/proj/MEMORY.local.md' } });
+  await hooks['tool.execute.after']({ tool: 'Write', args: { file_path: '/proj/.lore/memory.local.md' } });
   assert.ok(client.logs.at(-1).message.includes('scratch notes'));
 });
 
@@ -262,7 +268,7 @@ test('protect-memory: blocks writes to MEMORY.md at project root', async (t) => 
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
     () => hooks['tool.execute.before']({ tool: 'Write' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
-    /MEMORY\.local\.md/,
+    /memory\.local\.md/,
   );
 });
 
@@ -273,7 +279,7 @@ test('protect-memory: blocks reads to MEMORY.md at project root', async (t) => {
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
     () => hooks['tool.execute.before']({ tool: 'Read' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
-    /MEMORY\.local\.md/,
+    /memory\.local\.md/,
   );
 });
 

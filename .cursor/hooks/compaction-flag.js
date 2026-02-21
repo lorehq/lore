@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 // Write flag to .git/ (repo-local, gitignored) or tmpdir as fallback
 const gitDir = path.join(process.cwd(), '.git');

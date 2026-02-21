@@ -12,7 +12,7 @@ globs: docs/knowledge/**, docs/context/**
 | Rules, conventions | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
 | Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
-| Scratch notes (temporary) | `MEMORY.local.md` (gitignored) |
+| Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked. Use the routes above.
 
@@ -23,7 +23,7 @@ After substantive work:
 2. Hit gotchas? → create skill
 3. Multi-step procedure? → `docs/knowledge/runbooks/`
 4. Skills over 80 lines or mixing methods? → split
-5. Run `scripts/validate-consistency.sh`
+5. Run `.lore/scripts/validate-consistency.sh`
 6. Active plan or roadmap? → update progress
 
 Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.

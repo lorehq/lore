@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Bump version across ALL files in both repos at once.
 #
-# Usage: bash scripts/bump-version.sh <version>
+# Usage: bash .lore/scripts/bump-version.sh <version>
 #
 # Updates:
 #   lore/package.json
 #   lore/package-lock.json
-#   lore/.lore-config
+#   lore/.lore/config.json
 #   lore/SECURITY.md (supported versions table)
 #   create-lore/package.json  (if sibling repo exists)
 #
@@ -14,13 +14,13 @@
 
 set -euo pipefail
 
-LORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LORE_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CREATE_LORE_ROOT="$(cd "$LORE_ROOT/../create-lore" 2>/dev/null && pwd)" || true
 
 VERSION="${1:-}"
 if [[ -z "$VERSION" ]]; then
-  echo "Usage: bash scripts/bump-version.sh <version>"
-  echo "Example: bash scripts/bump-version.sh 0.9.0"
+  echo "Usage: bash .lore/scripts/bump-version.sh <version>"
+  echo "Example: bash .lore/scripts/bump-version.sh 0.9.0"
   exit 1
 fi
 
@@ -55,13 +55,13 @@ if [[ -f "$LORE_ROOT/package-lock.json" ]]; then
   "
 fi
 
-# -- lore/.lore-config --
-echo "  lore/.lore-config"
+# -- lore/.lore/config.json --
+echo "  lore/.lore/config.json"
 node -e "
   const fs = require('fs');
-  const c = JSON.parse(fs.readFileSync('$LORE_ROOT/.lore-config', 'utf8'));
+  const c = JSON.parse(fs.readFileSync('$LORE_ROOT/.lore/config.json', 'utf8'));
   c.version = '$VERSION';
-  fs.writeFileSync('$LORE_ROOT/.lore-config', JSON.stringify(c, null, 2) + '\n');
+  fs.writeFileSync('$LORE_ROOT/.lore/config.json', JSON.stringify(c, null, 2) + '\n');
 "
 
 # -- lore/SECURITY.md --
@@ -100,9 +100,9 @@ else
 fi
 
 echo ""
-echo "=== Done. Verify with: bash scripts/check-version-sync.sh ==="
+echo "=== Done. Verify with: bash .lore/scripts/check-version-sync.sh ==="
 echo ""
 echo "Next steps:"
 echo "  1. Review changes: git diff (in both repos)"
 echo "  2. Commit version bumps in both repos"
-echo "  3. Release: bash scripts/release.sh $VERSION"
+echo "  3. Release: bash .lore/scripts/release.sh $VERSION"

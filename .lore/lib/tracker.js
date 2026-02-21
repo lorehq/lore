@@ -37,7 +37,7 @@ function isDocsWrite(tool, filePath, rootDir) {
 // Read escalation thresholds from .lore-config (defaults: nudge=3, warn=5)
 function getThresholds(directory) {
   try {
-    const cfg = JSON.parse(fs.readFileSync(path.join(directory, '.lore-config'), 'utf8'));
+    const cfg = JSON.parse(fs.readFileSync(path.join(directory, '.lore', 'config.json'), 'utf8'));
     return {
       nudge: cfg.nudgeThreshold ?? 3,
       warn: cfg.warnThreshold ?? 5,
@@ -82,7 +82,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
     level = 'warn';
   } else if (isBashTool(tool)) {
     message = baseline;
-  } else if (isWriteTool(tool) && filePath.replace(/\\/g, '/').includes('MEMORY.local.md')) {
+  } else if (isWriteTool(tool) && filePath.replace(/\\/g, '/').includes('.lore/memory.local.md')) {
     message = '>>> Gotcha buried in scratch notes? Move to /lore-create-skill <<<';
   } else {
     message = baseline;
@@ -112,7 +112,7 @@ function setNavDirty(flagPath) {
 
 function navReminder(flagPath, msg) {
   if (flagPath && fs.existsSync(flagPath)) {
-    const nav = 'docs/ changed \u2014 run `bash scripts/generate-nav.sh` in background';
+    const nav = 'docs/ changed \u2014 run `bash .lore/scripts/generate-nav.sh` in background';
     return msg ? `${msg} | ${nav}` : nav;
   }
   return msg;

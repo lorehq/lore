@@ -23,7 +23,7 @@ const cwd = process.cwd();
 // ── Shared lib imports ──────────────────────────────────────────────────────
 
 const { getThresholds, getNavFlagPath } = require(path.join(hubDir, 'lib', 'tracker'));
-const { getAgentDomains, scanWork, buildTree } = require(path.join(hubDir, 'lib', 'banner'));
+const { getAgentNames, scanWork, buildTree } = require(path.join(hubDir, 'lib', 'banner'));
 const { getConfig } = require(path.join(hubDir, 'lib', 'config'));
 
 // ── State file resolution (same algorithm as capture-nudge.js) ──────────────
@@ -61,7 +61,7 @@ function loreCheckIn() {
     // Post-compaction re-orientation — highest priority, delivers key context
     const cfg = getConfig(hubDir);
     const version = cfg.version ? `v${cfg.version}` : '';
-    msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 see agent-registry.md | Re-read .cursor/rules/ and project context`;
+    msg = `[COMPACTED] Lore ${version} | Delegate tasks to agents \u2014 scan .lore/agents/ | Re-read .cursor/rules/ and project context`;
     // Clear flag — both MCP and hook race to clear; harmless if already gone
     try {
       fs.unlinkSync(compactedPath);
@@ -92,13 +92,13 @@ function loreCheckIn() {
 }
 
 // Full knowledge context — heavier call for navigation and post-compaction recovery.
-// Reuses the same scanWork/buildTree/getAgentDomains from lib/banner.js that the
+// Reuses the same scanWork/buildTree/getAgentNames from lib/banner.js that the
 // session banner uses, so output stays consistent across platforms.
 function loreContext() {
   const cfg = getConfig(hubDir);
   const version = cfg.version ? `v${cfg.version}` : '(unknown)';
   const treeDepth = cfg.treeDepth ?? 5;
-  const domains = getAgentDomains(hubDir);
+  const agents = getAgentNames(hubDir);
 
   // Scan active roadmaps and plans from docs/work/ frontmatter
   const docsWork = path.join(hubDir, 'docs', 'work');
@@ -120,13 +120,13 @@ function loreContext() {
   // Local memory — gitignored scratch notes that persist across sessions
   let memory = '';
   try {
-    const mem = fs.readFileSync(path.join(hubDir, 'MEMORY.local.md'), 'utf8').trim();
+    const mem = fs.readFileSync(path.join(hubDir, '.lore', 'memory.local.md'), 'utf8').trim();
     if (mem && mem !== '# Local Memory') memory = mem;
   } catch {}
 
   // Assemble output — version and delegation always present, rest conditional
   const parts = [`Lore ${version}`];
-  parts.push(`Delegation domains: ${domains.length > 0 ? domains.join(', ') : '(none)'}`);
+  parts.push(`Agents: ${agents.length > 0 ? agents.join(', ') : '(none)'}`);
   if (roadmaps.length > 0) parts.push(`Active roadmaps: ${roadmaps.join('; ')}`);
   if (plans.length > 0) parts.push(`Active plans: ${plans.join('; ')}`);
   if (trees.length > 0) parts.push(`\nKnowledge map:\n${trees.join('\n')}`);

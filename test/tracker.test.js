@@ -14,7 +14,7 @@ const {
   getNavFlagPath,
   setNavDirty,
   navReminder,
-} = require('../lib/tracker');
+} = require('../.lore/lib/tracker');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tracker-'));
@@ -85,7 +85,8 @@ test('isDocsWrite: matches write tool + docs/ path', (t) => {
 test('getThresholds: reads from .lore-config', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify({ nudgeThreshold: 2, warnThreshold: 4 }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 2, warnThreshold: 4 }));
   const t2 = getThresholds(dir);
   assert.equal(t2.nudge, 2);
   assert.equal(t2.warn, 4);
@@ -230,7 +231,7 @@ test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const result = processToolUse({
     tool: 'Write',
-    filePath: path.join(dir, 'MEMORY.local.md'),
+    filePath: path.join(dir, '.lore', 'memory.local.md'),
     isFailure: false,
     bashCount: 0,
     thresholds: defaultThresholds,

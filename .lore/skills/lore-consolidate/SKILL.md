@@ -21,7 +21,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 | Brainstorms | 21 days since `created` |
 | Knowledge docs | 30 days since last git commit |
 | Archived work items | 60 days since `updated` |
-| MEMORY.local.md | >50 lines |
+| `.lore/memory.local.md` | >50 lines |
 
 ## Process
 
@@ -35,7 +35,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 
 4. **Archive cleanup**: Glob `archive/` directories under `docs/work/`. Check `updated` field. Flag items older than 60 days as deletion candidates. Archives exist for visibility — not permanent storage.
 
-5. **MEMORY.local.md hygiene**: Flag if >50 lines.
+5. **`.lore/memory.local.md` hygiene**: Flag if >50 lines.
 
 ### Tier 2: Deep Content Analysis
 
@@ -72,8 +72,8 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 ## After the Report
 
 1. Operator selects items to address
-2. Execute approved changes: archive stale items, merge overlapping docs, route MEMORY.local.md content
-3. Run `bash scripts/validate-consistency.sh`
+2. Execute approved changes: archive stale items, merge overlapping docs, route `.lore/memory.local.md` content
+3. Run `bash .lore/scripts/validate-consistency.sh`
 
 ## Gotchas
 

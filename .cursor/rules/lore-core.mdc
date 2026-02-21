@@ -26,7 +26,7 @@ Knowledge-persistent coding agent framework.
 | Rules, conventions | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
 | Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
-| Scratch notes (temporary) | `MEMORY.local.md` (gitignored) |
+| Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked. Use the routes above.
 
@@ -69,7 +69,7 @@ Capture rules:
 
 Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
-Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
+Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore/config.json` under `subagentDefaults`.
 
 ## Delegation
 
@@ -82,13 +82,16 @@ Never delegate capture writes. Environment docs, runbooks, and skills must be wr
 
 For vague asks, perform a quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep lookup shallow (first 2 levels) before asking clarifying questions.
 
+If `.lore/config.json` sets `semanticSearchUrl`, treat it as enabled and query semantic search first for vague asks, then fall back to local folder lookup.
+For localhost/private semantic URLs, use skill `semantic-search-query-local` instead of Fetch/WebFetch, which may block private endpoints.
+
 Conventions are selective for worker delegation:
 
 - Always include core safety/capture conventions: `security.md`, `knowledge-capture.md`.
 - Add only task-relevant conventions from `docs/context/conventions/` (for example: `coding.md` for code edits, `docs.md` for documentation work, `work-items.md` for roadmap/plan updates).
 - If uncertain, include one extra likely-relevant convention rather than the entire directory.
 
-Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `skills-registry.md`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
+Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `.lore/skills/`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
 
 Example — user asks to "write a bash deploy script":
 
@@ -116,7 +119,7 @@ After substantive work:
 2. Hit gotchas? → create skill
 3. Multi-step procedure? → `docs/knowledge/runbooks/`
 4. Skills over 80 lines or mixing methods? → split
-5. Run `scripts/validate-consistency.sh`
+5. Run `.lore/scripts/validate-consistency.sh`
 6. Active plan or roadmap? → update progress
 
 Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.
@@ -136,11 +139,10 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Instructions: `.lore/instructions.md` (canonical), `CLAUDE.md` (generated), `.cursor/rules/lore-*.mdc` (generated)
 - Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
 - Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
-- Registries: `agent-registry.md`, `skills-registry.md` (auto-generated via `scripts/generate-registries.sh`)
 - Context: `docs/context/` (rules, conventions — injected every session)
 - Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
-- Hooks: `hooks/`
+- Hooks: `.lore/hooks/`
 - Docs UI: `Dockerfile`, `docker-compose.yml` (optional — `/lore-ui`)
 
 

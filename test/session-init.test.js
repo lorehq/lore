@@ -6,21 +6,21 @@ const path = require('path');
 const os = require('os');
 
 // session-init.js uses __dirname:
-//   require('../lib/banner') → lib/banner.js
-//   root = path.join(__dirname, '..') → parent of hooks/
-// So temp structure needs: tmp/hooks/session-init.js + tmp/lib/banner.js
+//   require('../lib/banner') → .lore/lib/banner.js
+//   root = path.join(__dirname, '../..') → parent of .lore/
+// So temp structure needs: tmp/.lore/hooks/session-init.js + tmp/.lore/lib/banner.js
 // and all data files under tmp/
 
 function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-')));
-  fs.mkdirSync(path.join(dir, 'hooks'), { recursive: true });
-  fs.copyFileSync(path.join(__dirname, '..', 'hooks', 'session-init.js'), path.join(dir, 'hooks', 'session-init.js'));
-  // Shared lib — hook resolves ../lib/ relative to hooks/
-  const libDir = path.join(dir, 'lib');
+  fs.mkdirSync(path.join(dir, '.lore', 'hooks'), { recursive: true });
+  fs.copyFileSync(path.join(__dirname, '..', '.lore', 'hooks', 'session-init.js'), path.join(dir, '.lore', 'hooks', 'session-init.js'));
+  // Shared lib — hook resolves ../lib/ relative to .lore/hooks/
+  const libDir = path.join(dir, '.lore', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  for (const f of fs.readdirSync(path.join(__dirname, '..', 'lib'))) {
-    fs.copyFileSync(path.join(__dirname, '..', 'lib', f), path.join(libDir, f));
+  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'lib'))) {
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(libDir, f));
   }
 
   // Minimal structure so the hook doesn't error
@@ -29,10 +29,14 @@ function setup(opts = {}) {
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
 
   if (opts.config) {
-    fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config));
+    fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  if (opts.registry) {
-    fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
+  // Create .lore/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  if (opts.agents) {
+    for (const [filename, content] of Object.entries(opts.agents)) {
+      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+    }
   }
   if (opts.agentRules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
@@ -50,7 +54,7 @@ function setup(opts = {}) {
     }
   }
   if (opts.memory) {
-    fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
+    fs.writeFileSync(path.join(dir, '.lore', 'memory.local.md'), opts.memory);
   }
   if (opts.operatorProfile) {
     fs.mkdirSync(path.join(dir, 'docs', 'knowledge', 'local'), { recursive: true });
@@ -61,7 +65,7 @@ function setup(opts = {}) {
 }
 
 function runHook(dir) {
-  return execSync(`node "${path.join(dir, 'hooks', 'session-init.js')}"`, {
+  return execSync(`node "${path.join(dir, '.lore', 'hooks', 'session-init.js')}"`, {
     cwd: dir,
     encoding: 'utf8',
   });
@@ -120,7 +124,7 @@ test('reads PROJECT from docs/context/agent-rules.md', (t) => {
 test('creates MEMORY.local.md if missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const memPath = path.join(dir, 'MEMORY.local.md');
+  const memPath = path.join(dir, '.lore', 'memory.local.md');
   assert.ok(!fs.existsSync(memPath), 'should not exist before hook runs');
   runHook(dir);
   assert.ok(fs.existsSync(memPath), 'should be created by hook');

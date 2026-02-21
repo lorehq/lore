@@ -6,5 +6,7 @@
     "claude-model": "sonnet",
     "opencode-model": "openai/gpt-4o",
     "cursor-model": null
-  }
+  },
+  "semanticSearchUrl": null,
+  "docsPort": null
 }

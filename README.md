@@ -53,7 +53,7 @@ Lore is a directory of markdown files, hooks that shape agent behavior, and scri
 - **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills per-task.
 - **Docs** (`docs/`) — Project context, conventions, environment knowledge, runbooks, and work tracking.
 - **Hooks** (`hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
-- **Scripts** (`scripts/`) — Registry generation, platform sync, validation, nav building.
+- **Scripts** (`scripts/`) — Platform sync, validation, nav building.
 
 All hooks are plain JavaScript you can read in minutes. They don't make network requests, execute shell commands, or access anything outside your project directory.
 

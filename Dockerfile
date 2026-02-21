@@ -1,9 +1,0 @@
-# MkDocs docs server — used by /lore-ui (Docker mode)
-# Serves the knowledge base at http://localhost:8000 with live reload
-FROM python:3.12-slim
-COPY requirements-docs.txt /tmp/requirements-docs.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-docs.txt
-WORKDIR /docs
-EXPOSE 8000
-ENTRYPOINT ["mkdocs"]
-CMD ["serve", "--dev-addr=0.0.0.0:8000", "--livereload"]

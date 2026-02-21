@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Default: read and write within the same repo
 SOURCE="$REPO_ROOT"
@@ -103,7 +103,7 @@ function extractSections(content, headings) {
 
 let instructions = readOr(path.join(SOURCE, '.lore', 'instructions.md'));
 if (LINKED) {
-  const { rewriteForLinkedRepo } = require(path.join(SOURCE, 'lib', 'linked-rewrite'));
+  const { rewriteForLinkedRepo } = require(path.join(SOURCE, '.lore', 'lib', 'linked-rewrite'));
   instructions = rewriteForLinkedRepo(instructions, LINKED);
 }
 
@@ -112,8 +112,21 @@ const agentRules = stripFrontmatter(
   readOr(path.join(SOURCE, 'docs', 'context', 'agent-rules.md'))
 );
 
-// Agent registry — raw markdown table
-const agentRegistry = readOr(path.join(SOURCE, 'agent-registry.md'));
+// Agent list — scan .lore/agents/ filesystem for frontmatter names
+const { parseFrontmatter } = require(path.join(SOURCE, '.lore', 'lib', 'frontmatter'));
+let agentTable = '';
+try {
+  const agentsDir = path.join(SOURCE, '.lore', 'agents');
+  const rows = [];
+  for (const f of fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'))) {
+    const content = fs.readFileSync(path.join(agentsDir, f), 'utf8');
+    const { attrs } = parseFrontmatter(content);
+    if (attrs.name) rows.push(`| ${attrs.name} | ${attrs.description || ''} |`);
+  }
+  if (rows.length > 0) {
+    agentTable = '| Agent | Description |\n|-------|-------------|\n' + rows.join('\n');
+  }
+} catch (_) {}
 
 // Conventions: prefer directory of .md files (index.md first), fall back to single file.
 // Mirrors the same logic in lib/banner.js buildBanner().
@@ -145,8 +158,8 @@ const docsFormatting = stripFrontmatter(
 
 // ── Tree building (reuses framework lib) ─────────────────────────────────────
 
-const { buildTree } = require(path.join(SOURCE, 'lib', 'tree'));
-const { getConfig } = require(path.join(SOURCE, 'lib', 'config'));
+const { buildTree } = require(path.join(SOURCE, '.lore', 'lib', 'tree'));
+const { getConfig } = require(path.join(SOURCE, '.lore', 'lib', 'config'));
 const treeDepth = getConfig(SOURCE).treeDepth ?? 5;
 
 // Build the same knowledge-map tree that the session banner produces.
@@ -227,10 +240,10 @@ writeMdc('lore-docs-formatting.mdc',
 
 // -- Tier 3: Agent-requested (agent decides based on description) -------------
 
-// 7. lore-delegation — delegation procedures + full agent registry table
+// 7. lore-delegation — delegation procedures + agent list
 let delegationBody = extractSection(instructions, 'Delegation');
-if (agentRegistry) {
-  delegationBody += '\n\n## Agent Registry\n\n' + agentRegistry.trim();
+if (agentTable) {
+  delegationBody += '\n\n## Agents\n\n' + agentTable;
 }
 writeMdc('lore-delegation.mdc',
   'description: Worker agent delegation — how orchestrator spawns workers with curated skills\nalwaysApply: true',

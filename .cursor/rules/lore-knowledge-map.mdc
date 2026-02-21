@@ -38,4 +38,5 @@ docs/
 ├── mcp-stdio-content-length-framing/
 ├── node-macos-stdin-fd/
 ├── platform-command-collisions/
-└── pymdownx-extension-order/
+├── pymdownx-extension-order/
+└── semantic-search-query-local/

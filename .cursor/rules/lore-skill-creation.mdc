@@ -19,4 +19,4 @@ Actively map the environment as you encounter it. When you interact with a URL, 
 
 Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
-Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore-config` under `subagentDefaults`.
+Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore/config.json` under `subagentDefaults`.

@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 function extractPrinciples(hubDir, filename) {
   const convPath = path.join(hubDir, 'docs', 'context', 'conventions', filename);

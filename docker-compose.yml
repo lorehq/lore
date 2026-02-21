@@ -1,13 +1,21 @@
-# Docs server — run with: docker compose up -d
-# LORE_DOCS_PORT is set by /lore-ui for multi-instance support
-# Only mounts docs/ and mkdocs.yml — no hooks, settings, or credentials exposed
+# Lore runtime — docs UI + semantic search + maintenance watcher.
+# Pulls the published image. Run with: docker compose up -d
+# LORE_DOCS_PORT and LORE_SEMANTIC_PORT set by /lore-ui for multi-instance support.
 services:
-  docs:
-    build: .
+  lore-runtime:
+    image: lorehq/lore-docker:latest
     ports:
       - '${LORE_DOCS_PORT:-8000}:8000'
+      - '${LORE_SEMANTIC_PORT:-8080}:8080'
     volumes:
-      - ./docs:/docs/docs
-      - ./mkdocs.yml:/docs/mkdocs.yml
-    stdin_open: true
-    tty: true
+      - ./docs:/data/docs
+      - .:/repo:ro
+      - runtime_data:/runtime-data
+      - runtime_cache:/runtime-cache
+    environment:
+      - VALIDATE_SCRIPT=/repo/scripts/validate-consistency.sh
+    restart: unless-stopped
+
+volumes:
+  runtime_data:
+  runtime_cache:

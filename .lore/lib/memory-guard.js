@@ -17,16 +17,16 @@ function checkMemoryAccess(tool, filePath, rootDir) {
 
   if (t === 'read') {
     return {
-      reason: 'Memory relocated to MEMORY.local.md in repo root. Read that file instead.',
+      reason: 'Memory relocated to .lore/memory.local.md in repo root. Read that file instead.',
     };
   }
 
   return {
     reason:
-      'Memory relocated to MEMORY.local.md. Route your knowledge:\n' +
+      'Memory relocated to .lore/memory.local.md. Route your knowledge:\n' +
       '  GOTCHA \u2192 /lore-create-skill (no exceptions)\n' +
       '  KNOWLEDGE \u2192 docs/knowledge/environment/\n' +
-      '  TEMPORARY \u2192 MEMORY.local.md',
+      '  TEMPORARY \u2192 .lore/memory.local.md',
   };
 }
 

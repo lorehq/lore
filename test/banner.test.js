@@ -11,25 +11,12 @@ const {
   scanWork,
   buildBanner,
   buildCursorBanner,
-} = require('../lib/banner');
+} = require('../.lore/lib/banner');
 
 // ---------------------------------------------------------------------------
 // Setup helper — creates a minimal temp directory for testing banner functions
 // directly (no subprocess, so c8 can instrument).
 // ---------------------------------------------------------------------------
-
-const AGENT_REGISTRY = `| Agent | Type | Description |
-|-------|------|-------------|
-| \`lore-worker-agent\` | framework | General worker |
-| \`deploy-agent\` | operator | Deployment tasks |
-`;
-
-const SKILLS_REGISTRY = `| Skill | Type | Description |
-|-------|------|-------------|
-| \`lore-capture\` | framework | Session capture |
-| \`bash-macos-compat\` | operator | macOS Bash compat |
-| \`docker-build-image\` | operator | Build Docker images |
-`;
 
 function setup(opts = {}) {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-banner-')));
@@ -38,15 +25,22 @@ function setup(opts = {}) {
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
 
   if (opts.config) {
-    fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config));
+    fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  if (opts.registry) {
-    fs.writeFileSync(path.join(dir, 'agent-registry.md'), opts.registry);
+  if (opts.agents) {
+    for (const [filename, content] of Object.entries(opts.agents)) {
+      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+    }
   }
-  if (opts.skillsRegistry) {
-    fs.writeFileSync(path.join(dir, 'skills-registry.md'), opts.skillsRegistry);
+  if (opts.skills) {
+    for (const [name, content] of Object.entries(opts.skills)) {
+      const skillDir = path.join(dir, '.lore', 'skills', name);
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
+    }
   }
   if (opts.agentRules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
@@ -64,7 +58,7 @@ function setup(opts = {}) {
     }
   }
   if (opts.memory) {
-    fs.writeFileSync(path.join(dir, 'MEMORY.local.md'), opts.memory);
+    fs.writeFileSync(path.join(dir, '.lore', 'memory.local.md'), opts.memory);
   }
   if (opts.operatorProfile) {
     fs.mkdirSync(path.join(dir, 'docs', 'knowledge', 'local'), { recursive: true });
@@ -78,22 +72,19 @@ function setup(opts = {}) {
 // getAgentNames
 // ---------------------------------------------------------------------------
 
-test('getAgentNames: parses agent-registry.md table correctly', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
+test('getAgentNames: returns filenames without .md extension', (t) => {
+  const dir = setup({
+    agents: {
+      'lore-worker-agent.md': '---\nname: lore-worker-agent\n---\n',
+      'deploy-agent.md': '---\nname: deploy-agent\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const names = getAgentNames(dir);
-  assert.deepEqual(names, ['lore-worker-agent', 'deploy-agent']);
+  assert.deepEqual(names.sort(), ['deploy-agent', 'lore-worker-agent']);
 });
 
-test('getAgentNames: skips header row and separator lines', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const names = getAgentNames(dir);
-  assert.ok(!names.includes('Agent'), 'should skip header "Agent"');
-  assert.ok(!names.some((n) => n.includes('---')), 'should skip separator lines');
-});
-
-test('getAgentNames: returns empty array when file does not exist', (t) => {
+test('getAgentNames: returns empty array when no agents exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const names = getAgentNames(dir);
@@ -104,22 +95,20 @@ test('getAgentNames: returns empty array when file does not exist', (t) => {
 // getAgentEntries
 // ---------------------------------------------------------------------------
 
-test('getAgentEntries: returns array of {name} objects', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
+test('getAgentEntries: returns array of {name} objects from frontmatter', (t) => {
+  const dir = setup({
+    agents: {
+      'lore-worker-agent.md': '---\nname: lore-worker-agent\n---\n',
+      'deploy-agent.md': '---\nname: deploy-agent\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const entries = getAgentEntries(dir);
-  assert.deepEqual(entries, [{ name: 'lore-worker-agent' }, { name: 'deploy-agent' }]);
+  const names = entries.map((e) => e.name).sort();
+  assert.deepEqual(names, ['deploy-agent', 'lore-worker-agent']);
 });
 
-test('getAgentEntries: skips header row and separator lines', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const entries = getAgentEntries(dir);
-  assert.ok(!entries.some((e) => e.name.toLowerCase() === 'agent'), 'should skip header row');
-  assert.ok(!entries.some((e) => e.name.includes('---')), 'should skip separator lines');
-});
-
-test('getAgentEntries: returns empty array when file does not exist', (t) => {
+test('getAgentEntries: returns empty array when no agents exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const entries = getAgentEntries(dir);
@@ -130,23 +119,36 @@ test('getAgentEntries: returns empty array when file does not exist', (t) => {
 // getOperatorSkills
 // ---------------------------------------------------------------------------
 
-test('getOperatorSkills: parses skills-registry.md table', (t) => {
-  const dir = setup({ skillsRegistry: SKILLS_REGISTRY });
+test('getOperatorSkills: reads name and description from SKILL.md frontmatter', (t) => {
+  const dir = setup({
+    skills: {
+      'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
+      'docker-build-image': '---\nname: docker-build-image\ndescription: Build Docker images\n---\n',
+      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skills = getOperatorSkills(dir);
   assert.equal(skills.length, 2);
-  assert.deepEqual(skills[0], { name: 'bash-macos-compat', description: 'macOS Bash compat' });
-  assert.deepEqual(skills[1], { name: 'docker-build-image', description: 'Build Docker images' });
+  const names = skills.map((s) => s.name).sort();
+  assert.deepEqual(names, ['bash-macos-compat', 'docker-build-image']);
+  const bmc = skills.find((s) => s.name === 'bash-macos-compat');
+  assert.equal(bmc.description, 'macOS Bash compat');
 });
 
 test('getOperatorSkills: filters out lore-* prefixed skills', (t) => {
-  const dir = setup({ skillsRegistry: SKILLS_REGISTRY });
+  const dir = setup({
+    skills: {
+      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
+      'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skills = getOperatorSkills(dir);
   assert.ok(!skills.some((s) => s.name.startsWith('lore-')), 'should exclude lore-* skills');
 });
 
-test('getOperatorSkills: returns empty array when file does not exist', (t) => {
+test('getOperatorSkills: returns empty array when no skills exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const skills = getOperatorSkills(dir);
@@ -237,6 +239,13 @@ test('buildBanner: includes version from .lore-config', (t) => {
   assert.ok(out.includes('=== LORE v2.0.0 ==='));
 });
 
+test('buildBanner: includes semantic search line when configured', (t) => {
+  const dir = setup({ config: { semanticSearchUrl: 'http://localhost:8080/search' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('SEMANTIC SEARCH: enabled -> http://localhost:8080/search'));
+});
+
 test('buildBanner: shows "(none yet)" when no agents', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -244,8 +253,13 @@ test('buildBanner: shows "(none yet)" when no agents', (t) => {
   assert.ok(out.includes('(none yet)'));
 });
 
-test('buildBanner: shows agent names when registry exists', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
+test('buildBanner: shows agent names when agents exist', (t) => {
+  const dir = setup({
+    agents: {
+      'lore-worker-agent.md': '---\nname: lore-worker-agent\n---\n',
+      'deploy-agent.md': '---\nname: deploy-agent\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
   assert.ok(out.includes('lore-worker-agent'));
@@ -254,13 +268,22 @@ test('buildBanner: shows agent names when registry exists', (t) => {
 });
 
 test('buildBanner: includes SKILLS section when operator skills exist', (t) => {
-  const dir = setup({ skillsRegistry: SKILLS_REGISTRY });
+  const dir = setup({
+    skills: {
+      'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
+      'docker-build-image': '---\nname: docker-build-image\ndescription: Build Docker images\n---\n',
+      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
   assert.ok(out.includes('SKILLS'));
   assert.ok(out.includes('bash-macos-compat'));
   assert.ok(out.includes('docker-build-image'));
-  assert.ok(!out.includes('lore-capture'), 'should not include lore-* skills');
+  // Check the SKILLS line specifically (not the whole output which includes the knowledge map tree)
+  const skillsLine = out.split('\n').find((l) => l.startsWith('SKILLS'));
+  assert.ok(skillsLine, 'SKILLS line should exist');
+  assert.ok(!skillsLine.includes('lore-capture'), 'SKILLS line should not include lore-* skills');
 });
 
 test('buildBanner: includes ACTIVE ROADMAPS when active roadmaps exist', (t) => {
@@ -460,7 +483,11 @@ test('buildCursorBanner: does not include CONVENTIONS section', (t) => {
 });
 
 test('buildCursorBanner: does not include DELEGATION section', (t) => {
-  const dir = setup({ registry: AGENT_REGISTRY });
+  const dir = setup({
+    agents: {
+      'lore-worker-agent.md': '---\nname: lore-worker-agent\n---\n',
+    },
+  });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildCursorBanner(dir);
   assert.ok(!out.includes('DELEGATION:'));

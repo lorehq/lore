@@ -2,14 +2,14 @@
 # Coordinated release: tags lore first, then create-lore.
 # Both repos' release.yml workflows fire automatically on tag push.
 #
-# Usage: bash scripts/release.sh [version]
+# Usage: bash .lore/scripts/release.sh [version]
 #
 # If version is omitted, reads from package.json.
 # Expects create-lore repo at ../create-lore (sibling directory).
 
 set -euo pipefail
 
-LORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LORE_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CREATE_LORE_ROOT="$(cd "$LORE_ROOT/../create-lore" 2>/dev/null && pwd)" || true
 
 # -- Resolve version --
@@ -49,7 +49,7 @@ done
 
 # 3. Verify versions match across both repos
 lore_ver="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/package.json','utf8')).version")"
-lore_cfg="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/.lore-config','utf8')).version")"
+lore_cfg="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/.lore/config.json','utf8')).version")"
 create_ver="$(node -p "JSON.parse(require('fs').readFileSync('$CREATE_LORE_ROOT/package.json','utf8')).version")"
 
 if [[ "$lore_ver" != "$VERSION" ]]; then
@@ -58,7 +58,7 @@ if [[ "$lore_ver" != "$VERSION" ]]; then
   exit 1
 fi
 if [[ "$lore_cfg" != "$VERSION" ]]; then
-  echo "FAIL: lore .lore-config is $lore_cfg, expected $VERSION"
+  echo "FAIL: lore .lore/config.json is $lore_cfg, expected $VERSION"
   exit 1
 fi
 if [[ "$create_ver" != "$VERSION" ]]; then

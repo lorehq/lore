@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # -- Claude Code --
 if [ -d "$REPO_ROOT/.lore/skills" ]; then
@@ -23,7 +23,7 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
     const fs = require('fs');
     const path = require('path');
     const root = process.argv[1];
-    const configPath = path.join(root, '.lore-config');
+    const configPath = path.join(root, '.lore', 'config.json');
     let defaults = {};
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -74,6 +74,6 @@ fi
 # -- Cursor rules --
 # Generate tiered .cursor/rules/lore-*.mdc files from canonical sources.
 # These replace .cursorrules with always-on, glob-based, and agent-requested rules.
-bash "$REPO_ROOT/scripts/generate-cursor-rules.sh"
+bash "$REPO_ROOT/.lore/scripts/generate-cursor-rules.sh"
 
 echo "Platform copies synced from .lore/"

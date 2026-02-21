@@ -2,36 +2,36 @@
 # Syncs framework-owned files from a source directory into the current Lore instance.
 # Overwrites framework files, never deletes operator content.
 #
-# Usage: scripts/sync-framework.sh <source-dir>
+# Usage: .lore/scripts/sync-framework.sh <source-dir>
 #
 # Framework-owned (synced):
-#   hooks/, lib/, scripts/, .opencode/, .cursor/, opencode.json,
+#   .lore/hooks/, .lore/lib/, .lore/scripts/, .opencode/, .cursor/, opencode.json,
 #   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
 #   .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
-#   docs/, non-lore-* skills/agents, mkdocs.yml, .lore-config,
-#   MEMORY.local.md, *-registry.md
+#   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
+#   .lore/memory.local.md
 
 set -euo pipefail
 
 SOURCE="${1:?Usage: sync-framework.sh <source-dir>}"
 TARGET="$(pwd)"
 
-if [ ! -f "$TARGET/.lore-config" ]; then
-  echo "Error: not a Lore instance (no .lore-config found)" >&2
+if [ ! -f "$TARGET/.lore/config.json" ]; then
+  echo "Error: not a Lore instance (no .lore/config.json found)" >&2
   exit 1
 fi
 
-if [ ! -d "$SOURCE/hooks" ]; then
-  echo "Error: source doesn't look like a Lore template (no hooks/)" >&2
+if [ ! -d "$SOURCE/.lore/hooks" ]; then
+  echo "Error: source doesn't look like a Lore template (no .lore/hooks/)" >&2
   exit 1
 fi
 
 # Framework directories — overwrite contents, don't delete operator extras
-cp -Rf "$SOURCE/hooks/." "$TARGET/hooks/"
-cp -Rf "$SOURCE/lib/." "$TARGET/lib/"
-cp -Rf "$SOURCE/scripts/." "$TARGET/scripts/"
+cp -Rf "$SOURCE/.lore/hooks/." "$TARGET/.lore/hooks/"
+cp -Rf "$SOURCE/.lore/lib/." "$TARGET/.lore/lib/"
+cp -Rf "$SOURCE/.lore/scripts/." "$TARGET/.lore/scripts/"
 cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Selective .cursor/ sync — hooks and hooks.json are framework-owned,
 # but .cursor/rules/ contains both framework and instance-specific .mdc files.
@@ -77,10 +77,10 @@ cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
 
 # Generate platform copies from canonical .lore/ source
-bash "$TARGET/scripts/sync-platform-skills.sh"
+bash "$TARGET/.lore/scripts/sync-platform-skills.sh"
 
 echo "Framework synced from $SOURCE"
 
-if [ -f "$TARGET/.lore-links" ]; then
-  echo "Note: Run 'bash scripts/lore-link.sh --refresh' to update linked repos."
+if [ -f "$TARGET/.lore/links" ]; then
+  echo "Note: Run 'bash .lore/scripts/lore-link.sh --refresh' to update linked repos."
 fi

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { ensureStickyFiles } = require('../lib/sticky');
+const { ensureStickyFiles } = require('../.lore/lib/sticky');
 
 function setup() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-sticky-'));
@@ -18,7 +18,7 @@ test('ensureStickyFiles: creates all sticky files from scratch', (t) => {
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'coding.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'MEMORY.local.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
 test('ensureStickyFiles: idempotent — does not overwrite existing files', (t) => {
@@ -70,6 +70,6 @@ test('ensureStickyFiles: MEMORY.local.md has header', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   ensureStickyFiles(dir);
-  const content = fs.readFileSync(path.join(dir, 'MEMORY.local.md'), 'utf8');
+  const content = fs.readFileSync(path.join(dir, '.lore', 'memory.local.md'), 'utf8');
   assert.ok(content.startsWith('# Local Memory'));
 });

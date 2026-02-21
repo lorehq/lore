@@ -6,7 +6,7 @@ const { debug } = require('./debug');
 
 function getConfig(directory) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(directory, '.lore-config'), 'utf8'));
+    return JSON.parse(fs.readFileSync(path.join(directory, '.lore', 'config.json'), 'utf8'));
   } catch (e) {
     debug('getConfig: %s', e.message);
     return {};

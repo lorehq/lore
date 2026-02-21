@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 // State file path — same location and naming as knowledge-tracker.js
 const cwd = process.cwd();

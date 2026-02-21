@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { logHookEvent, getLogPath } = require('../lib/hook-logger');
+const { logHookEvent, getLogPath } = require('../.lore/lib/hook-logger');
 
 // Create an isolated temp workspace with .git/ for log file resolution
 function setup() {

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { buildTree, SKIP_DIRS } = require('../lib/tree');
+const { buildTree, SKIP_DIRS } = require('../.lore/lib/tree');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tree-'));

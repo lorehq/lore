@@ -9,9 +9,9 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '..');
-const hookPath = (name) => path.join(repoRoot, 'hooks', name);
+const hookPath = (name) => path.join(repoRoot, '.lore', 'hooks', name);
 const cursorHookPath = (name) => path.join(repoRoot, '.cursor', 'hooks', name);
-const scriptPath = path.join(repoRoot, 'scripts', 'lore-link.sh');
+const scriptPath = path.join(repoRoot, '.lore', 'scripts', 'lore-link.sh');
 const isWindows = process.platform === 'win32';
 
 // -- Hub setup: minimal Lore instance structure --
@@ -23,7 +23,7 @@ function setupHub(opts = {}) {
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.lore-config'), JSON.stringify(opts.config || { version: '0.4.0' }));
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config || { version: '0.4.0' }));
   return dir;
 }
 
@@ -238,7 +238,7 @@ test('.lore-links in hub contains the target path', { skip: isWindows && 'bash p
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   runScript(`"${work}"`);
 
-  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
+  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore', 'links'), 'utf8'));
   assert.ok(links.some((l) => l.path === work));
 
   runScript(`--unlink "${work}"`);
@@ -254,7 +254,7 @@ test('lore-link --unlink removes generated files', (t) => {
   assert.ok(!fs.existsSync(path.join(work, '.claude', 'settings.json')));
   assert.ok(!fs.existsSync(path.join(work, 'CLAUDE.md')));
 
-  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore-links'), 'utf8'));
+  const links = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lore', 'links'), 'utf8'));
   assert.ok(!links.some((l) => l.path === work));
 });
 
@@ -287,7 +287,8 @@ test('lore-link --refresh regenerates configs', { skip: isWindows && 'bash paths
 test('refuses to link a Lore instance', (t) => {
   const work = setupWorkRepo();
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(work, '.lore-config'), '{}');
+  fs.mkdirSync(path.join(work, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(work, '.lore', 'config.json'), '{}');
 
   const { code, stderr } = runScript(`"${work}"`);
   assert.equal(code, 1);

@@ -14,13 +14,16 @@ Never delegate capture writes. Environment docs, runbooks, and skills must be wr
 
 For vague asks, perform a quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep lookup shallow (first 2 levels) before asking clarifying questions.
 
+If `.lore/config.json` sets `semanticSearchUrl`, treat it as enabled and query semantic search first for vague asks, then fall back to local folder lookup.
+For localhost/private semantic URLs, use skill `semantic-search-query-local` instead of Fetch/WebFetch, which may block private endpoints.
+
 Conventions are selective for worker delegation:
 
 - Always include core safety/capture conventions: `security.md`, `knowledge-capture.md`.
 - Add only task-relevant conventions from `docs/context/conventions/` (for example: `coding.md` for code edits, `docs.md` for documentation work, `work-items.md` for roadmap/plan updates).
 - If uncertain, include one extra likely-relevant convention rather than the entire directory.
 
-Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `skills-registry.md`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
+Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `.lore/skills/`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
 
 Example — user asks to "write a bash deploy script":
 
@@ -41,10 +44,8 @@ Example — user asks to "write a bash deploy script":
 5. Parallel workers for independent branches
 6. Review results, handle capture
 
-## Agent Registry
+## Agents
 
-# Agent Registry
-
-| Agent | Skills |
-|-------|--------|
-| lore-worker-agent | 0 |
+| Agent | Description |
+|-------|-------------|
+| lore-worker-agent | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |

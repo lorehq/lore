@@ -5,8 +5,8 @@
 // fallback only — when this hook fires, it provides the complete, dynamic view.
 
 const path = require('path');
-const { buildBanner, ensureStickyFiles } = require('../../lib/banner');
-const { logHookEvent } = require('../../lib/hook-logger');
+const { buildBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
+const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 const hub = process.env.LORE_HUB || path.join(__dirname, '..', '..');
 

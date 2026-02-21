@@ -7,7 +7,7 @@ const { buildBanner, ensureStickyFiles } = require('../lib/banner');
 const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
 
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '..', '..');
 debug('session-init: root=%s', root);
 ensureStickyFiles(root);
 const banner = buildBanner(root);

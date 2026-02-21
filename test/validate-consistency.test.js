@@ -5,19 +5,19 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// validate-consistency.sh uses: REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-// So: tmp/scripts/validate-consistency.sh → REPO_ROOT=tmp/
+// validate-consistency.sh uses: REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+// So: tmp/.lore/scripts/validate-consistency.sh → REPO_ROOT=tmp/
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-validate-'));
-  fs.mkdirSync(path.join(dir, 'scripts', 'lib'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'scripts', 'lib'), { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', 'scripts', 'validate-consistency.sh'),
-    path.join(dir, 'scripts', 'validate-consistency.sh'),
+    path.join(__dirname, '..', '.lore', 'scripts', 'validate-consistency.sh'),
+    path.join(dir, '.lore', 'scripts', 'validate-consistency.sh'),
   );
   fs.copyFileSync(
-    path.join(__dirname, '..', 'scripts', 'lib', 'common.sh'),
-    path.join(dir, 'scripts', 'lib', 'common.sh'),
+    path.join(__dirname, '..', '.lore', 'scripts', 'lib', 'common.sh'),
+    path.join(dir, '.lore', 'scripts', 'lib', 'common.sh'),
   );
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
@@ -33,15 +33,12 @@ function setup() {
     path.join(dir, '.cursor', 'rules', 'lore-core.mdc'),
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
-  // Empty registry files
-  fs.writeFileSync(path.join(dir, 'skills-registry.md'), '| Skill | Description |\n|---|---|\n');
-  fs.writeFileSync(path.join(dir, 'agent-registry.md'), '| Agent | Description |\n|---|---|\n');
   return dir;
 }
 
 function runScript(dir) {
   try {
-    const out = execSync(`bash "${path.join(dir, 'scripts', 'validate-consistency.sh')}"`, {
+    const out = execSync(`bash "${path.join(dir, '.lore', 'scripts', 'validate-consistency.sh')}"`, {
       cwd: dir,
       encoding: 'utf8',
     });
@@ -59,32 +56,6 @@ test('passes with empty repo', (t) => {
   assert.ok(stdout.includes('PASSED'));
 });
 
-test('fails: skill directory missing from registry', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const skillDir = path.join(dir, '.lore', 'skills', 'my-skill');
-  fs.mkdirSync(skillDir);
-  fs.writeFileSync(
-    path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: my-skill', 'description: A test skill', '---'].join('\n'),
-  );
-  const { code, stdout } = runScript(dir);
-  assert.equal(code, 1);
-  assert.ok(stdout.includes("Skill 'my-skill' not in skills-registry.md"));
-});
-
-test('fails: registry skill has no directory on disk', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(
-    path.join(dir, 'skills-registry.md'),
-    ['| Skill | Description |', '|---|---|', '| ghost-skill | Does not exist |'].join('\n'),
-  );
-  const { code, stdout } = runScript(dir);
-  assert.equal(code, 1);
-  assert.ok(stdout.includes("Registry skill 'ghost-skill' has no directory"));
-});
-
 test('fails: agent references non-existent skill', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -100,9 +71,9 @@ test('fails: agent references non-existent skill', (t) => {
       '---',
     ].join('\n'),
   );
-  fs.writeFileSync(
-    path.join(dir, 'agent-registry.md'),
-    ['| Agent | Description |', '|---|---|', '| test-agent | Test agent |'].join('\n'),
+  fs.copyFileSync(
+    path.join(dir, '.lore', 'agents', 'test-agent.md'),
+    path.join(dir, '.claude', 'agents', 'test-agent.md'),
   );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
@@ -141,16 +112,6 @@ test('passes: fully consistent setup', (t) => {
   fs.copyFileSync(
     path.join(dir, '.lore', 'agents', 'test-agent.md'),
     path.join(dir, '.claude', 'agents', 'test-agent.md'),
-  );
-
-  // Registries reference both
-  fs.writeFileSync(
-    path.join(dir, 'skills-registry.md'),
-    ['| Skill | Description |', '|---|---|', '| test-skill | A complete test skill |'].join('\n'),
-  );
-  fs.writeFileSync(
-    path.join(dir, 'agent-registry.md'),
-    ['| Agent | Description |', '|---|---|', '| test-agent | A complete test agent |'].join('\n'),
   );
 
   const { code, stdout } = runScript(dir);
@@ -227,12 +188,6 @@ test('fails: platform copy out of sync with canonical source', (t) => {
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
     ['---', 'name: sync-test', 'description: Tests sync detection', '---'].join('\n'),
-  );
-
-  // Registry includes the skill
-  fs.writeFileSync(
-    path.join(dir, 'skills-registry.md'),
-    ['| Skill | Description |', '|---|---|', '| sync-test | Tests sync detection |'].join('\n'),
   );
 
   const { code, stdout } = runScript(dir);

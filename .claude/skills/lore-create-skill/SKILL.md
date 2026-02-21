@@ -42,13 +42,13 @@ allowed-tools: Bash, Read, etc
 ### Step 2: Update Registries
 
 ```bash
-bash scripts/generate-registries.sh
+bash .lore/scripts/generate-registries.sh
 ```
 
 ### Step 3: Sync Platform Copies
 
 ```bash
-bash scripts/sync-platform-skills.sh
+bash .lore/scripts/sync-platform-skills.sh
 ```
 
 ## Splitting Rules
