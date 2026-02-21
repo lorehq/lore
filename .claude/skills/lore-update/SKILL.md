@@ -43,13 +43,13 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 
 **Never touched (operator-owned):**
 - `docs/`, `.lore/agents/`, `mkdocs.yml`
-- `.lore/config.json`, `.lore/memory.local.md`
+- `.lore/config.json`, `.lore/memory.local.md`, `.lore/operator.gitignore`
 
 ## Gotchas
 
 - Always show the version diff and file list before syncing — never auto-update
 - The sync script uses rsync semantics: overwrite existing, never delete operator files
 - If the operator has modified a framework file (e.g., edited CLAUDE.md), the update will overwrite it — warn about this
-- `.gitignore` is framework-owned and gets overwritten on sync — operator-specific ignores (like `.env`) must be re-added after update, or added to the framework template
+- Operator-specific ignores go in `.lore/operator.gitignore` (never overwritten). The sync script appends them after framework rules automatically — no manual re-adding needed
 - If `.lore/links` exists, remind the operator to run `/lore-link --refresh` to update linked repos with the new hooks
 - Always clean up the temp clone (`rm -rf "$tmp"`) even if sync fails — otherwise a `lore/` directory persists in the project root

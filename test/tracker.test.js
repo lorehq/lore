@@ -82,8 +82,8 @@ test('getThresholds: returns defaults when file missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const t2 = getThresholds(dir);
-  assert.equal(t2.nudge, 3);
-  assert.equal(t2.warn, 5);
+  assert.equal(t2.nudge, 15);
+  assert.equal(t2.warn, 30);
 });
 
 test('getThresholds: uses discovery defaults when profile is discovery', (t) => {
@@ -92,8 +92,8 @@ test('getThresholds: uses discovery defaults when profile is discovery', (t) => 
   fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'discovery' }));
   const t2 = getThresholds(dir);
-  assert.equal(t2.nudge, 1);
-  assert.equal(t2.warn, 3);
+  assert.equal(t2.nudge, 5);
+  assert.equal(t2.warn, 10);
 });
 
 test('getThresholds: uses standard defaults when profile is standard', (t) => {
@@ -102,8 +102,8 @@ test('getThresholds: uses standard defaults when profile is standard', (t) => {
   fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'standard' }));
   const t2 = getThresholds(dir);
-  assert.equal(t2.nudge, 3);
-  assert.equal(t2.warn, 5);
+  assert.equal(t2.nudge, 15);
+  assert.equal(t2.warn, 30);
 });
 
 test('getThresholds: explicit values override discovery defaults', (t) => {
@@ -160,7 +160,7 @@ test('processToolUse: bash increments counter', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 1);
-  assert.ok(!result.silent);
+  assert.ok(result.silent); // below threshold — no message emitted
 });
 
 test('processToolUse: nudge at threshold', (t) => {
@@ -239,7 +239,7 @@ test('processToolUse: non-bash write resets counter', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 0);
-  assert.ok(!result.silent);
+  assert.ok(result.silent); // non-knowledge write outside knowledge paths — silent
 });
 
 test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {

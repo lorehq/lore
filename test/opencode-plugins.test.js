@@ -177,21 +177,20 @@ test('knowledge-tracker: silent on read-only tools', async (t) => {
   assert.equal(client.logs.length, 0, 'no logs for read-only tools');
 });
 
-test('knowledge-tracker: gentle reminder on first bash', async (t) => {
+test('knowledge-tracker: first bash silent below threshold', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.equal(client.logs[0].level, 'info');
-  assert.ok(client.logs[0].message.includes('Use Exploration -> Execution'));
-  assert.ok(client.logs[0].message.includes('Capture reusable Execution fixes -> skills'));
+  assert.equal(client.logs.length, 0, 'first bash should be silent below default threshold');
 });
 
 test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -207,6 +206,7 @@ test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
 test('knowledge-tracker: strong warning at 5 consecutive bash', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
@@ -229,9 +229,9 @@ test('knowledge-tracker: resets counter on knowledge capture', async (t) => {
   // Knowledge capture resets
   await hooks['tool.execute.after']({ tool: 'Write', args: { file_path: '/proj/docs/foo.md' } });
   client.logs.length = 0;
-  // Next bash should be count=1 (gentle, not "in a row")
+  // Next bash should be count=1 — silent (below threshold), not "in a row"
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.ok(!client.logs[0].message.includes('in a row'));
+  assert.ok(!client.logs[0]?.message.includes('in a row'));
 });
 
 test('knowledge-tracker: MEMORY.local.md scratch notes warning', async (t) => {

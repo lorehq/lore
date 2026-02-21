@@ -219,11 +219,8 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
           const { attrs } = parseFrontmatter(raw);
           const stripped = stripFrontmatter(raw).trim();
           if (!stripped) continue;
-          if (attrs.required === 'true' || file === 'index.md') {
-            requiredParts.push(stripped);
-          } else {
-            availableNames.push(file.replace(/\.md$/, ''));
-          }
+          // Without semantic search, inject all conventions so the model has them available
+          requiredParts.push(stripped);
         }
       } else if (fs.existsSync(convFile)) {
         const raw = fs.readFileSync(convFile, 'utf8');

@@ -40,22 +40,23 @@ test('resets bash counter after read-only tool', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   // Read resets counter
   runHook(dir, { tool_name: 'Read', hook_event_name: 'PostToolUse' });
-  // Next bash should be count=1 (gentle reminder, not "3 in a row")
+  // Next bash should be count=1 — silent (below threshold), not "in a row"
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset');
+  assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset');
 });
 
-test('first bash: gentle reminder', (t) => {
+test('first bash: silent below threshold', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('Use Exploration -> Execution'));
-  assert.ok(out.additionalContext.includes('Capture reusable Execution fixes -> skills'));
+  assert.equal(out.additionalContext, undefined, 'first bash should be silent below default threshold');
 });
 
 test('3rd consecutive bash: nudge', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
@@ -67,6 +68,8 @@ test('3rd consecutive bash: nudge', (t) => {
 test('5th consecutive bash: strong warning', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
   for (let i = 0; i < 4; i++) {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
@@ -95,9 +98,9 @@ test('knowledge capture resets counter', (t) => {
     tool_input: { file_path: path.join(dir, 'docs', 'env.md') },
     hook_event_name: 'PostToolUse',
   });
-  // Next bash should be count=1
+  // Next bash should be count=1 — silent (below threshold), not "in a row"
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset after capture');
+  assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset after capture');
 });
 
 test('MEMORY.local.md write: scratch notes warning', (t) => {
@@ -123,7 +126,7 @@ test('non-bash tool resets bash counter', (t) => {
     tool_input: { file_path: path.join(dir, 'src', 'app.js') },
     hook_event_name: 'PostToolUse',
   });
-  // Next bash should be count=1
+  // Next bash should be count=1 — silent (below threshold), not "in a row"
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(!out.additionalContext.includes('in a row'), 'counter should have reset after non-bash tool');
+  assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset after non-bash tool');
 });

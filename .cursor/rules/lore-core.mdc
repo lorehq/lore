@@ -42,13 +42,13 @@ Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
 ## Knowledge
 
-**Every gotcha becomes a skill. No exceptions.** 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
+**Every gotcha becomes a skill. No exceptions.** Propose the skill name and a one-line summary to the operator. Create it after they approve. 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
 
 One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
 
 Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands.
 
-Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, add it to `docs/knowledge/environment/`. Don't wait for capture.
+Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, propose adding it to `docs/knowledge/environment/` and describe what you want to capture. Write after operator approval.
 
 ## Exploration vs Execution
 
@@ -82,6 +82,8 @@ Don't delegate: quick answers, single reads, clarifications, or capture writes.
 **Use `/lore-delegate` for the delegation recipe.** It covers what to load, how to scope, and what to require in the response. Do not construct worker prompts without it.
 
 ## Capture
+
+Before writing to `docs/`, creating skills, or updating work items — state what you want to write and where, then ask the operator. Proceed only after approval.
 
 After substantive work:
 1. New environment knowledge? → `docs/knowledge/environment/`

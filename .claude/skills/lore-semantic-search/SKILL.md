@@ -1,8 +1,9 @@
 ---
-name: semantic-search-query-local
+name: lore-semantic-search
 description: Query local semantic search endpoints reliably when Fetch/WebFetch blocks localhost or private URLs
 user-invocable: false
 allowed-tools: Bash, Read, Grep
+banner-loaded: true
 ---
 
 # Semantic Search Query (Local)

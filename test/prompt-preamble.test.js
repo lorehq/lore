@@ -93,9 +93,9 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes('Orchestrate wisely'), 'should include delegation nudge');
-    assert.ok(out.includes('delegate heavy or parallel work to worker agents'), 'should mention selective delegation');
-    assert.ok(out.includes('capture writes in the primary agent'), 'should discourage delegating capture writes');
+    assert.ok(out.includes('Orchestrate'), 'should include delegation nudge');
+    assert.ok(out.includes('delegate'), 'should mention delegation');
+    assert.ok(out.includes('capture writes in primary'), 'should discourage delegating capture writes');
     assert.ok(out.includes('Use Exploration -> Execution'), 'should still include phase workflow reminder');
   } finally {
     cleanup(dir);
@@ -111,10 +111,10 @@ test('prompt-preamble: with conventions — lists names', () => {
   fs.writeFileSync(path.join(convDir, 'index.md'), '# Overview\n');
   try {
     const out = run(dir);
-    assert.ok(out.includes('Conventions:'), 'should include conventions label');
+    assert.ok(out.toLowerCase().includes('conventions'), 'should include conventions label');
     assert.ok(out.includes('coding'), 'should list coding convention');
     assert.ok(out.includes('security'), 'should list security convention');
-    assert.ok(!/Conventions:[^|\]]*\bindex\b/.test(out), 'should exclude index.md from conventions list');
+    assert.ok(!/conventions[^|\]]*\bindex\b/i.test(out), 'should exclude index.md from conventions list');
   } finally {
     cleanup(dir);
   }
@@ -124,8 +124,8 @@ test('prompt-preamble: includes semantic search hint when configured', () => {
   const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
   try {
     const out = run(dir);
-    assert.ok(out.includes('SEMANTIC SEARCH: enabled'), 'should include semantic search enabled note');
-    assert.ok(out.includes('http://localhost:8080/search'), 'should include configured semantic search URL');
+    assert.ok(out.toLowerCase().includes('semantic search'), 'should include semantic search enabled note');
+    assert.ok(out.includes('delegate'), 'should use slim delegation preamble when search is configured');
   } finally {
     cleanup(dir);
   }

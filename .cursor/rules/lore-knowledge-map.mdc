@@ -33,10 +33,10 @@ docs/
 ├── lore-delegate/
 ├── lore-docker/
 ├── lore-link/
+├── lore-semantic-search/
 ├── lore-status/
 ├── lore-update/
 ├── mcp-stdio-content-length-framing/
 ├── node-macos-stdin-fd/
 ├── platform-command-collisions/
-├── pymdownx-extension-order/
-└── semantic-search-query-local/
+└── pymdownx-extension-order/

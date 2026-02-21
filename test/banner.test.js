@@ -243,7 +243,7 @@ test('buildBanner: includes semantic search line when configured', (t) => {
   const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
-  assert.ok(out.includes('SEMANTIC SEARCH: enabled -> http://localhost:8080/search'));
+  assert.ok(out.includes('SEMANTIC SEARCH: http://localhost:8080/search'));
 });
 
 test('buildBanner: shows "(none yet)" when no agents', (t) => {

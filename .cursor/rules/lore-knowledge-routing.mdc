@@ -18,6 +18,8 @@ globs: docs/knowledge/**, docs/context/**
 
 ## Capture
 
+Before writing to `docs/`, creating skills, or updating work items — state what you want to write and where, then ask the operator. Proceed only after approval.
+
 After substantive work:
 1. New environment knowledge? → `docs/knowledge/environment/`
 2. Hit gotchas? → create skill
