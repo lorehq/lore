@@ -39,6 +39,8 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Complex work delegates to focused workers.** When work benefits from a fresh context window, the orchestrator spawns workers loaded with curated skills and conventions. Compound tasks split across parallel workers for maximum throughput.
 
+**Semantic search and a live docs UI — optional but recommended.** Run `/lore-docker` to start a local Docker sidecar that gives agents semantic search over the full knowledge base and opens a MkDocs site at `localhost` for browsing it visually. Without Docker, agents fall back to Grep/Glob search.
+
 ## Before / After
 
 **Without Lore** — Every session starts cold. You re-explain your project, the agent re-discovers API quirks, makes the same mistakes, and yesterday's debugging session is gone.
@@ -52,8 +54,8 @@ Lore is a directory of markdown files, hooks that shape agent behavior, and scri
 - **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Available on-demand in every session.
 - **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills per-task.
 - **Docs** (`docs/`) — Project context, conventions, environment knowledge, runbooks, and work tracking.
-- **Hooks** (`hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
-- **Scripts** (`scripts/`) — Platform sync, validation, nav building.
+- **Hooks** (`.lore/hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce conventions before writes, nudge knowledge capture during work.
+- **Scripts** (`.lore/scripts/`) — Platform sync, validation, nav building.
 
 All hooks are plain JavaScript you can read in minutes. They don't make network requests, execute shell commands, or access anything outside your project directory.
 
@@ -74,7 +76,7 @@ One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq
 | `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-link <path>` | Link a work repo to this hub |
-| `/lore-ui` | Start/stop the docs UI (Docker or local mkdocs) |
+| `/lore-docker` | Start/stop the local Docker sidecar — semantic search + live MkDocs UI |
 
 ## Platforms
 
