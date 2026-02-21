@@ -1,5 +1,4 @@
 // Hook: afterFileEdit
-// Detects docs/ and skills/ writes, sets nav-dirty flag.
 // Resets consecutive bash counter (file edits break the streak).
 // No output — Cursor ignores afterFileEdit output.
 // Bash counting and nudge delivery moved to capture-nudge.js (beforeShellExecution).
@@ -7,7 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { isDocsWrite, getNavFlagPath, setNavDirty } = require('../../.lore/lib/tracker');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 let input = {};
@@ -23,10 +21,6 @@ try {
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
 const filePath = input.filePath || input.file_path || '';
-
-// Nav-dirty flag — signal that docs/ changed and nav needs regenerating
-const navFlag = getNavFlagPath(hubDir);
-if (isDocsWrite('write', filePath, hubDir)) setNavDirty(navFlag);
 
 // Reset bash counter — a file edit breaks the "consecutive bash" streak.
 // Also clears failure flag since a productive edit suggests the agent moved on.

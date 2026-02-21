@@ -39,13 +39,7 @@ allowed-tools: Bash, Read, etc
 [The actual value — what surprised you]
 ```
 
-### Step 2: Update Registries
-
-```bash
-bash .lore/scripts/generate-registries.sh
-```
-
-### Step 3: Sync Platform Copies
+### Step 2: Sync Platform Copies
 
 ```bash
 bash .lore/scripts/sync-platform-skills.sh

@@ -48,7 +48,7 @@ GENERATED_FILES=(
   .opencode/commands/lore-consolidate.md
   .opencode/commands/lore-status.md
   .opencode/commands/lore-update.md
-  .opencode/commands/lore-ui.md
+  .opencode/commands/lore-docker.md
   opencode.json
 )
 
@@ -169,7 +169,7 @@ do_link() {
   cp "$HUB/.opencode/commands/lore-consolidate.md" "$target/.opencode/commands/lore-consolidate.md"
   cp "$HUB/.opencode/commands/lore-status.md" "$target/.opencode/commands/lore-status.md"
   cp "$HUB/.opencode/commands/lore-update.md" "$target/.opencode/commands/lore-update.md"
-  cp "$HUB/.opencode/commands/lore-ui.md" "$target/.opencode/commands/lore-ui.md"
+  cp "$HUB/.opencode/commands/lore-docker.md" "$target/.opencode/commands/lore-docker.md"
 
   # opencode.json
   node -e "

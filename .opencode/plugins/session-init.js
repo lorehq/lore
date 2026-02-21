@@ -4,15 +4,24 @@
 
 // OpenCode plugins are ESM but shared lib is CJS. createRequire bridges the gap.
 import { createRequire } from 'node:module';
+import { execSync } from 'node:child_process';
+import { join } from 'node:path';
 const require = createRequire(import.meta.url);
 const { buildBanner, buildCompactReminder, ensureStickyFiles } = require('../../.lore/lib/banner');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
+
+function runEnsureStructure(hub) {
+  try {
+    execSync(`bash "${join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, { stdio: 'pipe' });
+  } catch { /* non-critical */ }
+}
 
 export const SessionInit = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
   // Scaffold missing files before first banner build so PROJECT section
   // picks up the agent-rules.md template on first run.
   ensureStickyFiles(hub);
+  runEnsureStructure(hub);
   const banner = buildBanner(hub);
   await client.app.log({
     body: { service: 'session-init', level: 'info', message: banner },
@@ -33,6 +42,7 @@ export const SessionInit = async ({ directory, client }) => {
   return {
     'experimental.chat.system.transform': async (_input, output) => {
       ensureStickyFiles(hub);
+      runEnsureStructure(hub);
       let b;
       if (needsFullBanner) {
         b = buildBanner(hub);
@@ -53,6 +63,7 @@ export const SessionInit = async ({ directory, client }) => {
     },
     'experimental.session.compacting': async (_input, output) => {
       ensureStickyFiles(hub);
+      runEnsureStructure(hub);
       const b = buildBanner(hub);
       output.context.push(b);
       // Compaction rebuilds context from scratch — restore full banner on next call.

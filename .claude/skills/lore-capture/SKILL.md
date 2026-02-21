@@ -23,7 +23,7 @@ Walk through every item. Report findings to the operator before making changes.
 3. **New environment knowledge?** (URLs, repos, services, relationships) → `docs/knowledge/environment/`
 4. **Sync platform copies**: `bash .lore/scripts/sync-platform-skills.sh`
 5. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
-6. **Generate nav**: `bash .lore/scripts/generate-nav.sh`
+6. **Ensure structure**: `bash .lore/scripts/ensure-structure.sh`
 7. **Validate**: `bash .lore/scripts/validate-consistency.sh`
 
 ## Process

@@ -6,47 +6,24 @@ const fs = require('fs');
 const path = require('path');
 const { debug } = require('./debug');
 
+function readTemplate(directory, templateName) {
+  return fs.readFileSync(
+    path.join(directory, '.lore', 'templates', templateName), 'utf8'
+  );
+}
+
 function ensureStickyFiles(directory) {
   try {
     const localIndex = path.join(directory, 'docs', 'knowledge', 'local', 'index.md');
     if (!fs.existsSync(localIndex)) {
       fs.mkdirSync(path.join(directory, 'docs', 'knowledge', 'local'), { recursive: true });
-      fs.writeFileSync(
-        localIndex,
-        `# Local Notes
-
-This folder is gitignored — anything here stays local to your machine.
-
-Use it for scratch notes, credentials references, personal bookmarks, or
-anything you don't want committed to the shared repo.
-
-This folder shows up in nav and the knowledge path guide like any other
-section, but git won't track its contents.
-`,
-      );
+      fs.writeFileSync(localIndex, readTemplate(directory, 'local-index.md'));
     }
 
     const operatorProfile = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
     if (!fs.existsSync(operatorProfile)) {
       fs.mkdirSync(path.join(directory, 'docs', 'knowledge', 'local'), { recursive: true });
-      fs.writeFileSync(
-        operatorProfile,
-        `# Operator Profile
-
-<!-- Injected into every session as OPERATOR PROFILE context. -->
-<!-- This file is gitignored — it stays local to your machine. -->
-
-## Identity
-
-- **Name:**
-- **Role:**
-
-## Preferences
-
-Add any preferences, working style notes, or context that should be
-available to the agent in every session.
-`,
-      );
+      fs.writeFileSync(operatorProfile, readTemplate(directory, 'operator-profile.md'));
     }
 
     const agentRulesPath = path.join(directory, 'docs', 'context', 'agent-rules.md');
@@ -106,7 +83,7 @@ Add your coding rules here \u2014 standards the agent should follow when writing
     const memPath = path.join(directory, '.lore', 'memory.local.md');
     if (!fs.existsSync(memPath)) {
       fs.mkdirSync(path.join(directory, '.lore'), { recursive: true });
-      fs.writeFileSync(memPath, '# Local Memory\n');
+      fs.writeFileSync(memPath, readTemplate(directory, 'memory-local.md'));
     }
   } catch (e) {
     debug('ensureStickyFiles: %s', e.message);

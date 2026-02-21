@@ -1,13 +1,14 @@
 ---
-name: semantic-search-query-local
+name: lore-semantic-search
 description: Query local semantic search endpoints reliably when Fetch/WebFetch blocks localhost or private URLs
 user-invocable: false
 allowed-tools: Bash, Read, Grep
+banner-loaded: true
 ---
 
 # Semantic Search Query (Local)
 
-When `semanticSearchUrl` points to localhost or a private network URL, `Fetch`/`WebFetch` may fail due to URL restrictions.
+When `docker.search` in `.lore/config.json` points to localhost or a private network, `Fetch`/`WebFetch` may fail due to URL restrictions.
 
 ## Reliable Query Pattern
 

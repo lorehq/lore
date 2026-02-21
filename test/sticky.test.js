@@ -6,7 +6,14 @@ const os = require('os');
 const { ensureStickyFiles } = require('../.lore/lib/sticky');
 
 function setup() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-sticky-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-sticky-'));
+  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
+  const tplDst = path.join(dir, '.lore', 'templates');
+  fs.mkdirSync(tplDst, { recursive: true });
+  for (const f of fs.readdirSync(tplSrc)) {
+    fs.copyFileSync(path.join(tplSrc, f), path.join(tplDst, f));
+  }
+  return dir;
 }
 
 test('ensureStickyFiles: creates all sticky files from scratch', (t) => {

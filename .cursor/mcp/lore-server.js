@@ -22,9 +22,9 @@ const cwd = process.cwd();
 
 // ── Shared lib imports ──────────────────────────────────────────────────────
 
-const { getThresholds, getNavFlagPath } = require(path.join(hubDir, 'lib', 'tracker'));
+const { getThresholds } = require(path.join(hubDir, 'lib', 'tracker'));
 const { getAgentNames, scanWork, buildTree } = require(path.join(hubDir, 'lib', 'banner'));
-const { getConfig } = require(path.join(hubDir, 'lib', 'config'));
+const { getConfig, getProfile } = require(path.join(hubDir, 'lib', 'config'));
 
 // ── State file resolution (same algorithm as capture-nudge.js) ──────────────
 
@@ -52,7 +52,6 @@ function readState() {
 // Compaction flag is the exception — both MCP and hook clear it (whoever reads first wins).
 function loreCheckIn() {
   const state = readState();
-  const navDirty = fs.existsSync(getNavFlagPath(hubDir));
   const compacted = fs.existsSync(compactedPath);
 
   let msg;
@@ -81,11 +80,6 @@ function loreCheckIn() {
   // Prepend failure note if a tool failed since last shell command
   if (state.lastFailure) {
     msg = `Error pattern worth a skill? | ${msg}`;
-  }
-
-  // Append nav-dirty reminder if docs/ were edited without regenerating nav
-  if (navDirty) {
-    msg += ' | docs/ changed \u2014 run generate-nav.sh';
   }
 
   return msg;
@@ -212,7 +206,9 @@ const SERVER_INFO = {
   version: getConfig(hubDir).version || '0.0.0',
 };
 
-const TOOLS = [
+const profile = getProfile(hubDir);
+
+const ALL_TOOLS = [
   {
     name: 'lore_check_in',
     description: 'Check for capture nudges, failure notes, and compaction state. Call after every 2-3 shell commands.',
@@ -237,6 +233,10 @@ const TOOLS = [
     },
   },
 ];
+
+const TOOLS = profile === 'minimal'
+  ? ALL_TOOLS.filter(t => t.name === 'lore_context')
+  : ALL_TOOLS;
 
 // Route JSON-RPC requests to the appropriate handler.
 // Only 4 methods needed: initialize handshake, post-init notification (no-op),
@@ -271,7 +271,11 @@ function handleRequest(req) {
   if (method === 'tools/call') {
     const toolName = req.params?.name;
     let text;
-    if (toolName === 'lore_check_in') {
+    if (toolName === 'lore_check_in' && profile === 'minimal') {
+      text = 'Profile: minimal — capture nudges suppressed. Use /lore-capture when ready.';
+    } else if (toolName === 'lore_write_guard' && profile === 'minimal') {
+      text = 'Profile: minimal — write guard suppressed.';
+    } else if (toolName === 'lore_check_in') {
       text = loreCheckIn();
     } else if (toolName === 'lore_context') {
       text = loreContext();

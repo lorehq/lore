@@ -75,42 +75,11 @@ Per-platform model preferences go on agents (not skills). Set `claude-model`, `o
 
 **Orchestrate, don't execute.** Default to `lore-worker-agent`. If another agent exists whose name fits the task, use it instead.
 
-Delegate when: parallel subtasks, long execution, context is getting heavy, or a cheaper model suffices.
-Don't delegate: quick answers, single reads, single API calls, clarifications, or capture writes.
+Delegate when: parallel subtasks, endpoint/API exploration, multi-step execution, context is getting heavy, or a cheaper model suffices. API discovery (probing unknown endpoints) is always a delegation target — never burn Opus tokens on serial trial-and-error.
 
-Never delegate capture writes. Environment docs, runbooks, and skills must be written by the primary orchestrator after reviewing results.
+Don't delegate: quick answers, single reads, clarifications, or capture writes.
 
-For vague asks, perform a quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep lookup shallow (first 2 levels) before asking clarifying questions.
-
-If `.lore/config.json` sets `semanticSearchUrl`, treat it as enabled and query semantic search first for vague asks, then fall back to local folder lookup.
-For localhost/private semantic URLs, use skill `semantic-search-query-local` instead of Fetch/WebFetch, which may block private endpoints.
-
-Conventions are selective for worker delegation:
-
-- Always include core safety/capture conventions: `security.md`, `knowledge-capture.md`.
-- Add only task-relevant conventions from `docs/context/conventions/` (for example: `coding.md` for code edits, `docs.md` for documentation work, `work-items.md` for roadmap/plan updates).
-- If uncertain, include one extra likely-relevant convention rather than the entire directory.
-
-Skills are selective. The orchestrator scans the SKILLS list (in the banner) or `.lore/skills/`, matches skill names and descriptions to the task, and passes relevant skill paths to the worker.
-
-Example — user asks to "write a bash deploy script":
-
-> Task(lore-worker-agent): Write a bash deployment script for the staging environment.
->
-> **Load first:**
-> - `docs/context/conventions/security.md`
-> - `docs/context/conventions/knowledge-capture.md`
-> - `docs/context/conventions/coding.md`
-> - `.lore/skills/bash-macos-compat/SKILL.md`
->
-> **Scope:** `/home/user/app` — only modify `scripts/deploy.sh`
-
-1. Always include core safety/capture conventions
-2. Add task-relevant conventions only
-3. Scan skills for relevance → `bash-macos-compat` matches
-4. Spawn worker with task + selected conventions + matched skills + scope
-5. Parallel workers for independent branches
-6. Review results, handle capture
+**Use `/lore-delegate` for the delegation recipe.** It covers what to load, how to scope, and what to require in the response. Do not construct worker prompts without it.
 
 ## Capture
 
@@ -123,6 +92,16 @@ After substantive work:
 6. Active plan or roadmap? → update progress
 
 Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.
+
+## Hook Profiles
+
+Configure via `profile` in `.lore/config.json`:
+
+- **minimal** — Banner at session start. Safety hooks only. No per-tool nudges. Use `/lore-capture` manually.
+- **standard** — Default. All hooks active (nudge=15, warn=30).
+- **discovery** — All hooks active, lower thresholds (nudge=5, warn=10), aggressive capture instructions in banner.
+
+Safety hooks (protect-memory, framework-guard) always fire regardless of profile.
 
 ## Work Management
 
@@ -143,7 +122,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 - Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
 - Hooks: `.lore/hooks/`
-- Docs UI: `.lore/docker-compose.yml` (optional — `/lore-ui`)
+- Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
 
 
 ## MCP Tools

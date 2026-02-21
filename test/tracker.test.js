@@ -6,14 +6,10 @@ const os = require('os');
 const {
   processToolUse,
   getThresholds,
-  isDocsWrite,
   isKnowledgePath,
   isWriteTool,
   isBashTool,
   isReadOnly,
-  getNavFlagPath,
-  setNavDirty,
-  navReminder,
 } = require('../.lore/lib/tracker');
 
 function setup() {
@@ -70,16 +66,6 @@ test('isKnowledgePath: rejects paths outside rootDir', (t) => {
   assert.ok(!isKnowledgePath(path.join(dir, 'src', 'app.js'), dir));
 });
 
-test('isDocsWrite: matches write tool + docs/ path', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  assert.ok(isDocsWrite('Write', path.join(dir, 'docs', 'foo.md'), dir));
-  assert.ok(isDocsWrite('edit', path.join(dir, 'docs', 'context', 'bar.md'), dir));
-  assert.ok(!isDocsWrite('Bash', path.join(dir, 'docs', 'foo.md'), dir));
-  assert.ok(!isDocsWrite('Write', path.join(dir, 'src', 'foo.js'), dir));
-  assert.ok(!isDocsWrite('Write', '/other/docs/foo.md', dir));
-});
-
 // ── Thresholds ──
 
 test('getThresholds: reads from .lore-config', (t) => {
@@ -98,6 +84,36 @@ test('getThresholds: returns defaults when file missing', (t) => {
   const t2 = getThresholds(dir);
   assert.equal(t2.nudge, 3);
   assert.equal(t2.warn, 5);
+});
+
+test('getThresholds: uses discovery defaults when profile is discovery', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'discovery' }));
+  const t2 = getThresholds(dir);
+  assert.equal(t2.nudge, 1);
+  assert.equal(t2.warn, 3);
+});
+
+test('getThresholds: uses standard defaults when profile is standard', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'standard' }));
+  const t2 = getThresholds(dir);
+  assert.equal(t2.nudge, 3);
+  assert.equal(t2.warn, 5);
+});
+
+test('getThresholds: explicit values override discovery defaults', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'discovery', nudgeThreshold: 10, warnThreshold: 20 }));
+  const t2 = getThresholds(dir);
+  assert.equal(t2.nudge, 10);
+  assert.equal(t2.warn, 20);
 });
 
 // ── processToolUse ──
@@ -240,64 +256,3 @@ test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {
   assert.ok(result.message.includes('scratch notes'));
 });
 
-// ── Nav helpers ──
-
-test('getNavFlagPath: uses .git dir when present', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = getNavFlagPath(dir);
-  assert.ok(flagPath.includes('.git'));
-  assert.ok(flagPath.includes('lore-nav-dirty'));
-});
-
-test('getNavFlagPath: falls back to tmpdir when no .git', (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tracker-nogit-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = getNavFlagPath(dir);
-  assert.ok(flagPath.includes(os.tmpdir()));
-});
-
-test('setNavDirty: creates flag file', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
-  assert.ok(!fs.existsSync(flagPath));
-  setNavDirty(flagPath);
-  assert.ok(fs.existsSync(flagPath));
-});
-
-test('setNavDirty: does not overwrite existing flag', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
-  fs.writeFileSync(flagPath, 'original');
-  setNavDirty(flagPath);
-  assert.equal(fs.readFileSync(flagPath, 'utf8'), 'original');
-});
-
-test('navReminder: appends nav message when flag exists', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
-  fs.writeFileSync(flagPath, '1');
-  const msg = navReminder(flagPath, 'base message');
-  assert.ok(msg.includes('base message'));
-  assert.ok(msg.includes('generate-nav.sh'));
-});
-
-test('navReminder: returns base message when no flag', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
-  const msg = navReminder(flagPath, 'base message');
-  assert.equal(msg, 'base message');
-});
-
-test('navReminder: returns nav only when flag exists and no base', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const flagPath = path.join(dir, '.git', 'lore-nav-dirty');
-  fs.writeFileSync(flagPath, '1');
-  const msg = navReminder(flagPath, null);
-  assert.ok(msg.includes('generate-nav.sh'));
-});

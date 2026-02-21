@@ -13,12 +13,18 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { getThresholds, getNavFlagPath } = require('../../.lore/lib/tracker');
-const { getConfig } = require('../../.lore/lib/config');
+const { getThresholds } = require('../../.lore/lib/tracker');
+const { getConfig, getProfile } = require('../../.lore/lib/config');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
+
+if (getProfile(hubDir) === 'minimal') {
+  console.log(JSON.stringify({ permission: 'allow' }));
+  logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: 0, state: { profileSkip: true }, directory: hubDir });
+  process.exit(0);
+}
 
 // ── State file (shared with knowledge-tracker.js and failure-tracker.js) ──
 
@@ -59,7 +65,6 @@ function clearCompacted() {
 
 const state = readState();
 const hadFailure = state.lastFailure;
-const navDirty = fs.existsSync(getNavFlagPath(hubDir));
 const compacted = wasCompacted();
 
 // Increment bash counter (moved here from afterShellExecution so the nudge
@@ -101,11 +106,6 @@ if (hadFailure) {
   msg = `${failureReview} ${decision}`;
 }
 
-// Append nav-dirty reminder if docs/ were edited
-if (navDirty) {
-  msg += ' | docs/ changed \u2014 run generate-nav.sh';
-}
-
 // Output — permission: allow lets the command proceed, agent_message reaches the agent
 const out = JSON.stringify({ permission: 'allow', agent_message: msg });
 console.log(out);
@@ -116,6 +116,6 @@ logHookEvent({
   hook: 'capture-nudge',
   event: 'beforeShellExecution',
   outputSize: msg.length,
-  state: { bash: state.bash, compacted, hadFailure, navDirty },
+  state: { bash: state.bash, compacted, hadFailure },
   directory: hubDir,
 });

@@ -41,11 +41,9 @@ banner=$(node -e "const { buildBanner } = require('./.lore/lib/banner'); console
 echo "$banner" | grep -q "=== LORE" || { echo "FAIL: banner missing header"; exit 1; }
 echo "OK"
 
-# 3. Nav generates
-echo "--- Nav generation ---"
-bash .lore/scripts/generate-nav.sh
-[[ -f mkdocs.yml ]] || { echo "FAIL: mkdocs.yml not generated"; exit 1; }
-grep -q "^nav:" mkdocs.yml || { echo "FAIL: mkdocs.yml missing nav section"; exit 1; }
+# 3. Ensure structure
+echo "--- Ensure structure ---"
+bash .lore/scripts/ensure-structure.sh
 echo "OK"
 
 # 4. Consistency validation

@@ -24,6 +24,8 @@ try {
 
 const filePath = (input.tool_input || {}).file_path || '';
 const hubDir = process.env.LORE_HUB || process.cwd();
+const { getProfile } = require('../lib/config');
+if (getProfile(hubDir) === 'minimal') process.exit(0);
 
 // Resolve to absolute so we match against the actual project root,
 // not just any path that happens to contain "docs/context/".

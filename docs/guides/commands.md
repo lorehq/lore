@@ -9,7 +9,7 @@ These appear in the TUI menu. Type the command name to invoke.
 | `/lore-capture` | Review session work, capture skills, update registries |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-link <target>` | Link a work repo so hooks fire from the hub in IDE workflows |
-| `/lore-ui` | Start, stop, or check docs UI status (prefers Docker, falls back to local mkdocs) |
+| `/lore-docker` | Start, stop, or check docs UI status (prefers Docker, falls back to local mkdocs) |
 | `/lore-update` | Pull latest framework files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 

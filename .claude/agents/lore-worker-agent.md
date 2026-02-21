@@ -21,13 +21,18 @@ If you encounter something the orchestrator didn't anticipate — a gotcha, a mi
 
 ## Capture Behavior
 
-**Don't create skills or update docs.** You're an executor, not the orchestrator. Instead:
+**Don't create skills or update docs.** You're an executor, not the orchestrator.
 
-- Hit a non-obvious gotcha? → Describe it in your response so the orchestrator can create a skill.
-- Discovered environment facts? → Note them for the orchestrator to capture.
-- Found a multi-step procedure? → Document the steps in your response.
+## Required Response Format
 
-The orchestrator handles all knowledge capture after reviewing your results.
+End every response with a Captures section:
+
+### Captures
+- (A) Gotchas: <describe each reusable fix, or "none">
+- (B) Environment: <new URLs, endpoints, auth, services, headers, or "none">
+- (C) Procedures: <multi-step operations worth a runbook, or "none">
+
+This is not optional. The orchestrator uses this to decide what to persist.
 
 ## Repo Boundaries
 

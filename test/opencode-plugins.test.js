@@ -21,6 +21,14 @@ function setup(opts = {}) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
   }
 
+  // Templates — sticky files read from .lore/templates/
+  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
+  const tplDir = path.join(dir, '.lore', 'templates');
+  fs.mkdirSync(tplDir, { recursive: true });
+  for (const f of fs.readdirSync(tplSrc)) {
+    fs.copyFileSync(path.join(tplSrc, f), path.join(tplDir, f));
+  }
+
   // Copy plugins with ESM package.json so .js files resolve as modules
   const pluginsDir = path.join(dir, '.opencode', 'plugins');
   fs.mkdirSync(pluginsDir, { recursive: true });

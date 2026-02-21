@@ -8,21 +8,15 @@
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const {
-  processToolUse,
-  getThresholds,
-  isDocsWrite,
-  getNavFlagPath,
-  setNavDirty,
-  navReminder,
-} = require('../../.lore/lib/tracker');
+const { processToolUse, getThresholds } = require('../../.lore/lib/tracker');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { getProfile } = require('../../.lore/lib/config');
 
 export const KnowledgeTracker = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
   let consecutiveBash = 0;
   const thresholds = getThresholds(hub);
-  const navFlag = getNavFlagPath(hub);
+  const profile = getProfile(hub);
 
   return {
     'tool.execute.after': async (input) => {
@@ -30,9 +24,10 @@ export const KnowledgeTracker = async ({ directory, client }) => {
       const filePath = input?.args?.file_path || input?.args?.path || '';
       const isFailure = !!input?.error;
 
-      // Nav-dirty must fire before the silent-exit paths below,
-      // because docs/ writes hit the knowledge-capture path and would skip it.
-      if (isDocsWrite(tool, filePath, hub)) setNavDirty(navFlag);
+      if (profile === 'minimal') {
+        logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: 0, state: { profileSkip: true }, directory: hub });
+        return;
+      }
 
       const result = processToolUse({
         tool,
@@ -45,25 +40,18 @@ export const KnowledgeTracker = async ({ directory, client }) => {
       consecutiveBash = result.bashCount;
 
       if (result.silent) {
-        const extra = navReminder(navFlag, null);
-        if (extra) {
-          await client.app.log({
-            body: { service: 'knowledge-tracker', level: 'info', message: extra },
-          });
-        }
-        // Silent events (read-only, knowledge writes) — still log to track fire rate
         logHookEvent({
           platform: 'opencode',
           hook: 'knowledge-tracker',
           event: 'tool.execute.after',
-          outputSize: extra ? extra.length : 0,
+          outputSize: 0,
           state: { bash: consecutiveBash, silent: true },
           directory: hub,
         });
         return;
       }
 
-      const msg = navReminder(navFlag, result.message);
+      const msg = result.message;
       await client.app.log({
         body: { service: 'knowledge-tracker', level: result.level, message: msg },
       });

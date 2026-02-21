@@ -11,6 +11,7 @@ const { execSync } = require('child_process');
 
 const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
 const libSrc = path.join(__dirname, '..', '.lore', 'lib');
+const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
 
 function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
@@ -21,6 +22,13 @@ function setup(opts = {}) {
   fs.mkdirSync(libDir, { recursive: true });
   for (const f of fs.readdirSync(libSrc)) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
+  }
+
+  // Templates — sticky files read from .lore/templates/
+  const tplDir = path.join(dir, '.lore', 'templates');
+  fs.mkdirSync(tplDir, { recursive: true });
+  for (const f of fs.readdirSync(tplSrc)) {
+    fs.copyFileSync(path.join(tplSrc, f), path.join(tplDir, f));
   }
 
   // Copy hooks
@@ -157,17 +165,6 @@ test('protect-memory: allows non-MEMORY files', (t) => {
 
 // ── Knowledge Tracker ──
 
-test('knowledge-tracker: detects docs/ write and sets nav-dirty', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
-  assert.ok(!fs.existsSync(navFlag));
-  runHook(dir, 'knowledge-tracker.js', {
-    filePath: path.join(dir, 'docs', 'context', 'new-page.md'),
-  });
-  assert.ok(fs.existsSync(navFlag));
-});
-
 test('knowledge-tracker: silent on knowledge path writes', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -186,16 +183,6 @@ test('knowledge-tracker: silent on all writes (output moved to capture-nudge)', 
   });
   // knowledge-tracker no longer emits output — nudges delivered via capture-nudge.js
   assert.equal(stdout, '');
-});
-
-test('knowledge-tracker: no nav-dirty on non-docs writes', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
-  runHook(dir, 'knowledge-tracker.js', {
-    filePath: path.join(dir, 'README.md'),
-  });
-  assert.ok(!fs.existsSync(navFlag));
 });
 
 test('knowledge-tracker: file edit resets bash counter', (t) => {
@@ -300,15 +287,6 @@ test('capture-nudge: includes failure note and clears flag', (t) => {
   // Failure flag should be cleared in state
   const state = JSON.parse(fs.readFileSync(getStateFile(dir), 'utf8'));
   assert.equal(state.lastFailure, false);
-});
-
-test('capture-nudge: appends nav-dirty reminder', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(dir, '.git', 'lore-nav-dirty'), '');
-  const { stdout } = runHook(dir, 'capture-nudge.js');
-  const parsed = JSON.parse(stdout);
-  assert.ok(parsed.agent_message.includes('docs/ changed'));
 });
 
 // ── Compaction Flag ──

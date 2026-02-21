@@ -23,6 +23,14 @@ function setup(opts = {}) {
     fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(libDir, f));
   }
 
+  // Templates — sticky files read from .lore/templates/
+  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
+  const tplDir = path.join(dir, '.lore', 'templates');
+  fs.mkdirSync(tplDir, { recursive: true });
+  for (const f of fs.readdirSync(tplSrc)) {
+    fs.copyFileSync(path.join(tplSrc, f), path.join(tplDir, f));
+  }
+
   // Minimal structure so the hook doesn't error
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });

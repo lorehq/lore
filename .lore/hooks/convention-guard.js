@@ -32,6 +32,8 @@ const filePath = (input.tool_input || {}).file_path || '';
 if (!filePath) process.exit(0);
 
 const hubDir = process.env.LORE_HUB || process.cwd();
+const { getProfile } = require('../lib/config');
+if (getProfile(hubDir) === 'minimal') process.exit(0);
 const resolved = path.resolve(filePath);
 const repoPrefix = path.resolve(hubDir) + path.sep;
 

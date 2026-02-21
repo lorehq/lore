@@ -5,14 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const {
-  processToolUse,
-  getThresholds,
-  isDocsWrite,
-  getNavFlagPath,
-  setNavDirty,
-  navReminder,
-} = require('../lib/tracker');
+const { processToolUse, getThresholds } = require('../lib/tracker');
 const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
 
@@ -59,9 +52,8 @@ const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
 debug('knowledge-tracker: tool=%s file=%s event=%s', tool, filePath, event);
 
-// -- Nav-dirty flag --
-const navFlag = getNavFlagPath(hubDir);
-if (isDocsWrite(tool, filePath, hubDir)) setNavDirty(navFlag);
+const { getProfile } = require('../lib/config');
+if (getProfile(hubDir) === 'minimal') process.exit(0);
 
 // -- Process tool use --
 const state = readState();
@@ -77,12 +69,8 @@ state.bash = result.bashCount;
 writeState(state);
 
 if (result.silent) {
-  const extra = navReminder(navFlag, null);
-  const output = { hookEventName: event };
-  if (extra) output.additionalContext = extra;
-  const out = JSON.stringify({ hookSpecificOutput: output });
+  const out = JSON.stringify({ hookSpecificOutput: { hookEventName: event } });
   console.log(out);
-  // Track silent events (read-only tools, knowledge writes) separately from nudges
   logHookEvent({
     platform: 'claude',
     hook: 'knowledge-tracker',
@@ -93,10 +81,9 @@ if (result.silent) {
   });
 } else {
   const out = JSON.stringify({
-    hookSpecificOutput: { hookEventName: event, additionalContext: navReminder(navFlag, result.message) },
+    hookSpecificOutput: { hookEventName: event, additionalContext: result.message },
   });
   console.log(out);
-  // Track nudge delivery — bash counter shows escalation level
   logHookEvent({
     platform: 'claude',
     hook: 'knowledge-tracker',

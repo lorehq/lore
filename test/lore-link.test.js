@@ -293,7 +293,7 @@ test('refuses to link a Lore instance', (t) => {
   const { code, stderr } = runScript(`"${work}"`);
   assert.equal(code, 1);
   // stderr or stdout should mention the error
-  assert.ok((stderr || '').includes('Lore instance') || true);
+  assert.ok((stderr || '').includes('Lore instance'));
 });
 
 test('unlink preserves user .gitignore entries after Lore block', (t) => {

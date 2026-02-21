@@ -1,3 +1,6 @@
+---
+required: true
+---
 # Coding
 
 ## 1. Surface Confusion Early

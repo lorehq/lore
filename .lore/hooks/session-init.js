@@ -10,6 +10,14 @@ const { logHookEvent } = require('../lib/hook-logger');
 const root = path.join(__dirname, '..', '..');
 debug('session-init: root=%s', root);
 ensureStickyFiles(root);
+try {
+  require('child_process').execSync(
+    `bash "${path.join(root, '.lore', 'scripts', 'ensure-structure.sh')}"`,
+    { stdio: 'pipe' },
+  );
+} catch (e) {
+  debug('ensure-structure: %s', e.message);
+}
 const banner = buildBanner(root);
 console.log(banner);
 // Log banner size to track one-time session start context cost

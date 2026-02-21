@@ -9,7 +9,6 @@ docs/
 ├── context/
 │   └── conventions/
 ├── guides/
-├── javascripts/
 ├── knowledge/
 │   ├── environment/
 │   │   ├── decisions/
@@ -31,9 +30,10 @@ docs/
 ├── lore-create-roadmap/
 ├── lore-create-skill/
 ├── lore-create-todo-with-capture/
+├── lore-delegate/
+├── lore-docker/
 ├── lore-link/
 ├── lore-status/
-├── lore-ui/
 ├── lore-update/
 ├── mcp-stdio-content-length-framing/
 ├── node-macos-stdin-fd/

@@ -10,16 +10,19 @@ const path = require('path');
 const fs = require('fs');
 const { buildTree, getConfig } = require('../../.lore/lib/banner');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { getProfile } = require('../../.lore/lib/config');
 
 export const ContextPathGuide = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
   const cfg = getConfig(hub);
   const treeDepth = cfg.treeDepth ?? 5;
+  const profile = getProfile(hub);
 
   return {
     'tool.execute.before': async (input, output) => {
       const tool = (input?.tool || '').toLowerCase();
       if (tool !== 'write' && tool !== 'edit') return;
+      if (profile === 'minimal') return;
 
       const filePath = output?.args?.file_path || output?.args?.path || '';
       const resolved = path.resolve(filePath);

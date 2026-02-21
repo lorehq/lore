@@ -240,7 +240,7 @@ test('buildBanner: includes version from .lore-config', (t) => {
 });
 
 test('buildBanner: includes semantic search line when configured', (t) => {
-  const dir = setup({ config: { semanticSearchUrl: 'http://localhost:8080/search' } });
+  const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
   assert.ok(out.includes('SEMANTIC SEARCH: enabled -> http://localhost:8080/search'));
@@ -406,6 +406,53 @@ test('buildBanner: includes KNOWLEDGE MAP', (t) => {
   assert.ok(out.includes('KNOWLEDGE MAP:'));
   assert.ok(out.includes('.lore/skills/'));
   assert.ok(out.includes('test-skill/'));
+});
+
+test('buildBanner: shows [MINIMAL] tag when profile is minimal', (t) => {
+  const dir = setup({ config: { version: '1.0.0', profile: 'minimal' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('=== LORE v1.0.0 [MINIMAL] ==='));
+});
+
+test('buildBanner: shows [DISCOVERY] tag when profile is discovery', (t) => {
+  const dir = setup({ config: { version: '1.0.0', profile: 'discovery' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('=== LORE v1.0.0 [DISCOVERY] ==='));
+});
+
+test('buildBanner: no profile tag for standard', (t) => {
+  const dir = setup({ config: { version: '1.0.0', profile: 'standard' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('=== LORE v1.0.0 ==='));
+  assert.ok(!out.includes('[STANDARD]'));
+  assert.ok(!out.includes('[MINIMAL]'));
+  assert.ok(!out.includes('[DISCOVERY]'));
+});
+
+test('buildBanner: minimal profile shows PROFILE line', (t) => {
+  const dir = setup({ config: { profile: 'minimal' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('PROFILE: minimal'));
+  assert.ok(out.includes('/lore-capture'));
+});
+
+test('buildBanner: discovery profile shows PROFILE line', (t) => {
+  const dir = setup({ config: { profile: 'discovery' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(out.includes('PROFILE: discovery'));
+  assert.ok(out.includes('aggressive capture'));
+});
+
+test('buildBanner: standard profile has no PROFILE line', (t) => {
+  const dir = setup({ config: { profile: 'standard' } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const out = buildBanner(dir);
+  assert.ok(!out.includes('PROFILE:'));
 });
 
 // ---------------------------------------------------------------------------

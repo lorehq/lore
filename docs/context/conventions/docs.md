@@ -1,3 +1,6 @@
+---
+required: false
+---
 # Docs
 
 ## 1. Don't Duplicate

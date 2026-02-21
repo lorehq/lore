@@ -111,19 +111,6 @@ test('MEMORY.local.md write: scratch notes warning', (t) => {
   assert.ok(out.additionalContext.includes('scratch notes'));
 });
 
-test('nav-dirty flag set on docs/ write', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const navFlag = path.join(dir, '.git', 'lore-nav-dirty');
-  assert.ok(!fs.existsSync(navFlag), 'flag should not exist before');
-  runHook(dir, {
-    tool_name: 'Write',
-    tool_input: { file_path: path.join(dir, 'docs', 'foo.md') },
-    hook_event_name: 'PostToolUse',
-  });
-  assert.ok(fs.existsSync(navFlag), 'flag should be set after docs/ write');
-});
-
 test('non-bash tool resets bash counter', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

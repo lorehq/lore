@@ -1,0 +1,27 @@
+{
+  "name": "{{name}}",
+  "version": "{{version}}",
+  "created": "{{created}}",
+
+  // Hook verbosity: "minimal" | "standard" | "discovery"
+  //   minimal   — safety hooks only, no per-tool nudges
+  //   standard  — all hooks active (nudge at 15, warn at 30)
+  //   discovery — lower thresholds (nudge at 5, warn at 10), aggressive capture
+  // "profile": "standard",
+
+  // Max directory depth for ASCII trees in banner and knowledge map
+  // "treeDepth": 5,
+
+  // Per-platform model preferences for delegated workers
+  // "subagentDefaults": {
+  //   "claude-model": "sonnet",
+  //   "opencode-model": null,
+  //   "cursor-model": null
+  // },
+
+  // Docker services — set by /lore-docker on start, cleared on stop
+  // "docker": {
+  //   "site": { "address": "localhost", "port": 9184 },
+  //   "search": { "address": "localhost", "port": 9185 }
+  // }
+}

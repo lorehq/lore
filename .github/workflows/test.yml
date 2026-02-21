@@ -43,13 +43,6 @@ jobs:
       - name: Check version sync
         shell: bash
         run: bash scripts/check-version-sync.sh
-      - name: Nav staleness check
-        if: runner.os != 'Windows'
-        run: |
-          # Create sticky dirs that are gitignored but present on dev machines.
-          # Without this, generate-nav.sh output differs from committed mkdocs.yml.
-          node -e "require('./lib/banner').ensureStickyFiles('.')"
-          bash scripts/generate-nav.sh && git diff --exit-code mkdocs.yml
       - name: Fresh-clone smoke test
         shell: bash
         run: bash scripts/smoke-test.sh

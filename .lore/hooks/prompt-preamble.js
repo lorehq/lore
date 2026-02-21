@@ -4,11 +4,10 @@
 const fs = require('fs');
 const path = require('path');
 const { getAgentNames } = require('./lib/parse-agents');
-const { getConfig } = require('../lib/config');
+const { getConfig, getProfile } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
 const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..');
-const { getProfile } = require('../lib/config');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
 const cfg = getConfig(hubDir);
 const docker = cfg.docker || {};

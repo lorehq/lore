@@ -1,3 +1,6 @@
+---
+required: true
+---
 # Security
 
 ## 1. No Secrets in the Repo

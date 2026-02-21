@@ -121,7 +121,7 @@ test('prompt-preamble: with conventions — lists names', () => {
 });
 
 test('prompt-preamble: includes semantic search hint when configured', () => {
-  const dir = setup({ config: { semanticSearchUrl: 'http://localhost:8080/search' } });
+  const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
   try {
     const out = run(dir);
     assert.ok(out.includes('SEMANTIC SEARCH: enabled'), 'should include semantic search enabled note');

@@ -1,5 +1,5 @@
 ---
-name: lore-ui
+name: lore-docker
 description: Start, stop, or inspect the local docs UI. Prefers Docker and falls back to local mkdocs.
 type: command
 user-invocable: true
@@ -21,7 +21,7 @@ Interpret intent from user input:
 ### Start
 
 1. Compute deterministic ports:
-   - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 8001 ))`
+   - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
    - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
 2. Prefer Docker when available:
     - Check Docker is running: `docker info > /dev/null 2>&1`
@@ -30,7 +30,7 @@ Interpret intent from user input:
     - Wait up to 15 seconds for docs port to respond (semantic search takes longer to load models)
     - Verify docs: `curl -s -o /dev/null -w '%{http_code}' http://localhost:$LORE_DOCS_PORT`
     - If HTTP 200, write config and report:
-      - Write `semanticSearchUrl` to `.lore/config.json`: `node -e "const c=JSON.parse(require('fs').readFileSync('.lore/config.json','utf8'));c.semanticSearchUrl='http://localhost:'+process.env.LORE_SEMANTIC_PORT+'/search';c.docsPort=+process.env.LORE_DOCS_PORT;require('fs').writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
+      - Write docker config to `.lore/config.json`: `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');c.docker={site:{address:'localhost',port:+process.env.LORE_DOCS_PORT},search:{address:'localhost',port:+process.env.LORE_SEMANTIC_PORT}};fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
       - Report docs URL and mode: Docker
     - Check semantic health (non-blocking — may still be loading): `curl -s http://localhost:$LORE_SEMANTIC_PORT/health`
 3. Fall back to local mkdocs when Docker is unavailable or verification fails:
@@ -50,7 +50,7 @@ Interpret intent from user input:
 2. Then stop local mkdocs if running:
    - `pgrep -f 'mkdocs serve'`
    - If running: `kill $(pgrep -f 'mkdocs serve')`
-3. Clear config: `node -e "const c=JSON.parse(require('fs').readFileSync('.lore/config.json','utf8'));c.semanticSearchUrl=null;c.docsPort=null;require('fs').writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
+3. Clear config: `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');delete c.docker;fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
 4. Report what was stopped, or "No docs UI is running".
 
 ### Status

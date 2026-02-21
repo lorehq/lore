@@ -14,6 +14,7 @@ const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { getProfile } = require('../../.lore/lib/config');
 
 function extractPrinciples(hubDir, filename) {
   const convPath = path.join(hubDir, 'docs', 'context', 'conventions', filename);
@@ -32,11 +33,13 @@ function extractPrinciples(hubDir, filename) {
 
 export const ConventionGuard = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
+  const profile = getProfile(hub);
 
   return {
     'tool.execute.before': async (input, output) => {
       const tool = (input?.tool || '').toLowerCase();
       if (tool !== 'write' && tool !== 'edit') return;
+      if (profile === 'minimal') return;
 
       const filePath = output?.args?.file_path || output?.args?.path || '';
       if (!filePath) return;
