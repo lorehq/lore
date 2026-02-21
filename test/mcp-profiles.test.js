@@ -85,8 +85,11 @@ async function startServer(dir) {
 }
 
 function stopServer(proc) {
-  proc.stdin.end();
-  proc.kill();
+  return new Promise((resolve) => {
+    proc.once('exit', resolve);
+    proc.stdin.end();
+    proc.kill();
+  });
 }
 
 // ── tools/list ──
@@ -100,7 +103,7 @@ test('mcp: minimal profile only exposes lore_context', async () => {
     const names = res.result.tools.map((t) => t.name);
     assert.deepEqual(names, ['lore_context'], 'minimal should only expose lore_context');
   } finally {
-    if (proc) stopServer(proc);
+    if (proc) await stopServer(proc);
     cleanup(dir);
   }
 });
@@ -114,7 +117,7 @@ test('mcp: standard profile exposes all 3 tools', async () => {
     const names = res.result.tools.map((t) => t.name);
     assert.deepEqual(names, ['lore_check_in', 'lore_context', 'lore_write_guard']);
   } finally {
-    if (proc) stopServer(proc);
+    if (proc) await stopServer(proc);
     cleanup(dir);
   }
 });
@@ -137,7 +140,7 @@ test('mcp: lore_check_in returns graceful response in minimal', async () => {
     assert.ok(text.includes('/lore-capture'), 'should suggest /lore-capture');
     assert.equal(res.result.isError, undefined, 'should not be an error');
   } finally {
-    if (proc) stopServer(proc);
+    if (proc) await stopServer(proc);
     cleanup(dir);
   }
 });
@@ -156,7 +159,7 @@ test('mcp: lore_context works in minimal profile', async () => {
     const text = res.result.content[0].text;
     assert.ok(text.includes('Lore v0.9.0'));
   } finally {
-    if (proc) stopServer(proc);
+    if (proc) await stopServer(proc);
     cleanup(dir);
   }
 });
