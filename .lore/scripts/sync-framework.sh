@@ -11,7 +11,10 @@
 #
 # Operator-owned (never touched):
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
-#   .lore/memory.local.md
+#   .lore/memory.local.md, .lore/operator.gitignore
+#
+# .gitignore is framework-owned but merged: framework rules are written first,
+# then .lore/operator.gitignore contents are appended (if non-empty).
 
 set -euo pipefail
 
@@ -74,7 +77,12 @@ fi
 [ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
+# Merge .gitignore: always inject framework rules, then append operator additions
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
+if [ -s "$TARGET/.lore/operator.gitignore" ]; then
+  printf '\n# --- operator rules (from .lore/operator.gitignore) ---\n' >> "$TARGET/.gitignore"
+  cat "$TARGET/.lore/operator.gitignore" >> "$TARGET/.gitignore"
+fi
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
 
 # Generate platform copies from canonical .lore/ source
