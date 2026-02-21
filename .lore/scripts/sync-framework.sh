@@ -77,6 +77,8 @@ fi
 [ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
+# Bootstrap operator.gitignore on first sync — never overwrite if it exists
+[ -f "$TARGET/.lore/operator.gitignore" ] || cp "$SOURCE/.lore/operator.gitignore" "$TARGET/.lore/operator.gitignore"
 # Merge .gitignore: always inject framework rules, then append operator additions
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
 if [ -s "$TARGET/.lore/operator.gitignore" ]; then
