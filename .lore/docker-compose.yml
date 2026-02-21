@@ -1,5 +1,5 @@
 # Lore runtime — docs UI + semantic search + maintenance watcher.
-# Pulls the published image. Run with: docker compose up -d
+# Pulls the published image. Run with: docker compose -f .lore/docker-compose.yml up -d
 # LORE_DOCS_PORT and LORE_SEMANTIC_PORT set by /lore-ui for multi-instance support.
 services:
   lore-runtime:
@@ -8,12 +8,12 @@ services:
       - '${LORE_DOCS_PORT:-8000}:8000'
       - '${LORE_SEMANTIC_PORT:-8080}:8080'
     volumes:
-      - ./docs:/data/docs
-      - .:/repo:ro
+      - ../docs:/data/docs
+      - ..:/repo:ro
       - runtime_data:/runtime-data
       - runtime_cache:/runtime-cache
     environment:
-      - VALIDATE_SCRIPT=/repo/scripts/validate-consistency.sh
+      - VALIDATE_SCRIPT=/repo/.lore/scripts/validate-consistency.sh
     restart: unless-stopped
 
 volumes:

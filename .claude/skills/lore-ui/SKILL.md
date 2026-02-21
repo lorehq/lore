@@ -26,7 +26,7 @@ Interpret intent from user input:
 2. Prefer Docker when available:
     - Check Docker is running: `docker info > /dev/null 2>&1`
     - Pull image if needed: `docker pull lorehq/lore-docker:latest`
-    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT && docker compose up -d`
+    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT && docker compose -f .lore/docker-compose.yml up -d`
     - Wait up to 15 seconds for docs port to respond (semantic search takes longer to load models)
     - Verify docs: `curl -s -o /dev/null -w '%{http_code}' http://localhost:$LORE_DOCS_PORT`
     - If HTTP 200, write config and report:
@@ -46,7 +46,7 @@ Interpret intent from user input:
 ### Stop
 
 1. Try Docker first:
-   - If container is running: `docker compose down`
+   - If container is running: `docker compose -f .lore/docker-compose.yml down`
 2. Then stop local mkdocs if running:
    - `pgrep -f 'mkdocs serve'`
    - If running: `kill $(pgrep -f 'mkdocs serve')`
