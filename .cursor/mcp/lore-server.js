@@ -234,9 +234,7 @@ const ALL_TOOLS = [
   },
 ];
 
-const TOOLS = profile === 'minimal'
-  ? ALL_TOOLS.filter(t => t.name === 'lore_context')
-  : ALL_TOOLS;
+const TOOLS = profile === 'minimal' ? ALL_TOOLS.filter((t) => t.name === 'lore_context') : ALL_TOOLS;
 
 // Route JSON-RPC requests to the appropriate handler.
 // Only 4 methods needed: initialize handshake, post-init notification (no-op),

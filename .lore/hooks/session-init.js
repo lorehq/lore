@@ -11,10 +11,9 @@ const root = path.join(__dirname, '..', '..');
 debug('session-init: root=%s', root);
 ensureStickyFiles(root);
 try {
-  require('child_process').execSync(
-    `bash "${path.join(root, '.lore', 'scripts', 'ensure-structure.sh')}"`,
-    { stdio: 'pipe' },
-  );
+  require('child_process').execSync(`bash "${path.join(root, '.lore', 'scripts', 'ensure-structure.sh')}"`, {
+    stdio: 'pipe',
+  });
 } catch (e) {
   debug('ensure-structure: %s', e.message);
 }

@@ -12,11 +12,10 @@ const hub = process.env.LORE_HUB || path.join(__dirname, '..', '..');
 
 ensureStickyFiles(hub);
 try {
-  require('child_process').execSync(
-    `bash "${require('path').join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`,
-    { stdio: 'pipe' },
-  );
-} catch (e) {
+  require('child_process').execSync(`bash "${require('path').join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, {
+    stdio: 'pipe',
+  });
+} catch {
   /* non-critical */
 }
 const banner = buildBanner(hub);

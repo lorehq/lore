@@ -26,19 +26,19 @@ jobs:
         run: brew install shellcheck
       - name: ShellCheck
         if: runner.os != 'Windows'
-        run: shellcheck -x scripts/*.sh scripts/lib/*.sh
+        run: shellcheck -x .lore/scripts/*.sh .lore/scripts/lib/*.sh
       - name: Lint & format
         run: npx eslint . && npx prettier --check .
       - run: npm test
       - name: Validate consistency
         shell: bash
-        run: bash scripts/validate-consistency.sh
+        run: bash .lore/scripts/validate-consistency.sh
       - name: Check version sync
         shell: bash
-        run: bash scripts/check-version-sync.sh
+        run: bash .lore/scripts/check-version-sync.sh
       - name: Fresh-clone smoke test
         shell: bash
-        run: bash scripts/smoke-test.sh
+        run: bash .lore/scripts/smoke-test.sh
       - name: Audit dependencies
         run: npm audit --omit=dev
 

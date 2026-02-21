@@ -5,14 +5,7 @@ function rewriteForLinkedRepo(content, hubPath) {
   // Rewrite backtick-quoted relative paths to absolute hub paths FIRST,
   // before replacing Repo Boundary (whose replacement text uses backtick paths
   // that should NOT be rewritten).
-  const prefixes = [
-    'docs/',
-    '.lore/',
-    '.lore/config.json',
-    '.lore/scripts/',
-    '.lore/hooks/',
-    '.lore/memory.local.md',
-  ];
+  const prefixes = ['docs/', '.lore/', '.lore/config.json', '.lore/scripts/', '.lore/hooks/', '.lore/memory.local.md'];
   for (const prefix of prefixes) {
     content = content.replaceAll('`' + prefix, '`' + hubPath + '/' + prefix);
   }

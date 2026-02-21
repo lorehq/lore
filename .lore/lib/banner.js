@@ -132,9 +132,9 @@ function buildBanner(directory) {
 
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const delegationLine =
-    'DO NOT EXECUTE WORK YOURSELF. You are an orchestrator. Your ONLY jobs: (1) semantic search, (2) delegate ALL work to workers, (3) capture after. NEVER run curl, fetch, API calls, or multi-step exploration directly. Workers: ' + workerList;
-  const skillLine =
-    operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
+    'DO NOT EXECUTE WORK YOURSELF. You are an orchestrator. Your ONLY jobs: (1) semantic search, (2) delegate ALL work to workers, (3) capture after. NEVER run curl, fetch, API calls, or multi-step exploration directly. Workers: ' +
+    workerList;
+  const skillLine = operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
 
   let output = `=== LORE${version}${profileTag} ===
 
@@ -145,12 +145,12 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
   if (profile === 'minimal') {
     output += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
   } else if (profile === 'discovery') {
-    output += '\nPROFILE: discovery \u2014 aggressive capture. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
+    output +=
+      '\nPROFILE: discovery \u2014 aggressive capture. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
   }
 
   if (semanticSearchUrl) {
-    output +=
-      `\nSEMANTIC SEARCH: ${semanticSearchUrl} — query first, read returned files, then delegate ALL work.`;
+    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl} — query first, read returned files, then delegate ALL work.`;
   } else {
     output +=
       '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';
@@ -216,7 +216,6 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
           });
         for (const file of files) {
           const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
-          const { attrs } = parseFrontmatter(raw);
           const stripped = stripFrontmatter(raw).trim();
           if (!stripped) continue;
           // Without semantic search, inject all conventions so the model has them available
@@ -228,7 +227,8 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
         if (stripped) requiredParts.push(stripped);
       }
       if (requiredParts.length > 0) output += '\n\nCONVENTIONS:\n' + requiredParts.join('\n\n');
-      if (availableNames.length > 0) output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + availableNames.join(', ');
+      if (availableNames.length > 0)
+        output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + availableNames.join(', ');
     }
   } catch (e) {
     debug('conventions: %s', e.message);

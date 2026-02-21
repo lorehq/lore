@@ -13,7 +13,14 @@ const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 // --- Hub: framework-owned paths (synced by scripts/sync-framework.sh) ---
 
-const FRAMEWORK_PREFIXES = ['.lore/hooks/', '.lore/lib/', '.lore/scripts/', '.opencode/', '.cursor/hooks/', '.cursor/mcp/'];
+const FRAMEWORK_PREFIXES = [
+  '.lore/hooks/',
+  '.lore/lib/',
+  '.lore/scripts/',
+  '.opencode/',
+  '.cursor/hooks/',
+  '.cursor/mcp/',
+];
 
 const FRAMEWORK_PATTERNS = [
   /^\.lore\/skills\/lore-/,

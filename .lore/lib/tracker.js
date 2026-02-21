@@ -26,12 +26,6 @@ function isReadOnly(tool) {
   return t === 'read' || t === 'grep' || t === 'glob';
 }
 
-function isDocsWrite(tool, filePath, rootDir) {
-  const resolved = path.resolve(filePath);
-  const docsPrefix = path.resolve(rootDir || process.cwd(), 'docs') + path.sep;
-  return isWriteTool(tool) && resolved.startsWith(docsPrefix);
-}
-
 // Read escalation thresholds from .lore-config (defaults: nudge=15, warn=30)
 function getThresholds(directory) {
   try {
@@ -76,7 +70,12 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
 
   // Memory scratch warning always emits
   if (isWriteTool(tool) && filePath && filePath.replace(/\\/g, '/').includes('.lore/memory.local.md')) {
-    return { message: '>>> Gotcha buried in scratch notes? Move to /lore-create-skill <<<', level: 'info', bashCount: newCount, silent: false };
+    return {
+      message: '>>> Gotcha buried in scratch notes? Move to /lore-create-skill <<<',
+      level: 'info',
+      bashCount: newCount,
+      silent: false,
+    };
   }
 
   // Non-bash tools (not read-only, not knowledge write) — silent
@@ -86,10 +85,20 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
 
   // Bash: emit only at threshold crossings
   if (newCount === nudge) {
-    return { message: `Capture checkpoint (${newCount} commands in a row). Confirm Exploration vs Execution. ${decision}`, level: 'warn', bashCount: newCount, silent: false };
+    return {
+      message: `Capture checkpoint (${newCount} commands in a row). Confirm Exploration vs Execution. ${decision}`,
+      level: 'warn',
+      bashCount: newCount,
+      silent: false,
+    };
   }
   if (newCount === warn || (newCount > warn && newCount % warn === 0)) {
-    return { message: `REQUIRED capture review (${newCount} consecutive commands). Confirm Exploration vs Execution. ${decision}`, level: 'warn', bashCount: newCount, silent: false };
+    return {
+      message: `REQUIRED capture review (${newCount} consecutive commands). Confirm Exploration vs Execution. ${decision}`,
+      level: 'warn',
+      bashCount: newCount,
+      silent: false,
+    };
   }
 
   // Bash below thresholds or between crossings — silent

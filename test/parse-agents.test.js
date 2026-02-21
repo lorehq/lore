@@ -10,7 +10,10 @@ const os = require('os');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-parse-agents-'));
 const libDir = path.join(tmpDir, '.lore', 'hooks', 'lib');
 fs.mkdirSync(libDir, { recursive: true });
-fs.copyFileSync(path.join(__dirname, '..', '.lore', 'hooks', 'lib', 'parse-agents.js'), path.join(libDir, 'parse-agents.js'));
+fs.copyFileSync(
+  path.join(__dirname, '..', '.lore', 'hooks', 'lib', 'parse-agents.js'),
+  path.join(libDir, 'parse-agents.js'),
+);
 // Shared lib — parse-agents.js requires ../../lib/banner.js
 const sharedLib = path.join(tmpDir, '.lore', 'lib');
 fs.mkdirSync(sharedLib, { recursive: true });

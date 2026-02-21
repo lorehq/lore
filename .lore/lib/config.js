@@ -19,11 +19,11 @@ function stripJsonComments(str) {
       }
       result += str.slice(i, j + 1);
       i = j + 1;
-    // Line comment
+      // Line comment
     } else if (str[i] === '/' && str[i + 1] === '/') {
       i = str.indexOf('\n', i);
       if (i === -1) break;
-    // Block comment
+      // Block comment
     } else if (str[i] === '/' && str[i + 1] === '*') {
       i = str.indexOf('*/', i + 2);
       if (i === -1) break;

@@ -26,10 +26,7 @@ function setup(opts = {}) {
     'context-path-guide.js',
   ];
   for (const hook of hooks) {
-    fs.copyFileSync(
-      path.join(__dirname, '..', '.lore', 'hooks', hook),
-      path.join(dir, '.lore', 'hooks', hook),
-    );
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'hooks', hook), path.join(dir, '.lore', 'hooks', hook));
   }
 
   // Copy hooks/lib/

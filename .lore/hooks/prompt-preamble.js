@@ -12,9 +12,7 @@ if (getProfile(hubDir) === 'minimal') process.exit(0);
 const cfg = getConfig(hubDir);
 const docker = cfg.docker || {};
 const semanticSearchUrl =
-  docker.search && docker.search.address
-    ? `http://${docker.search.address}:${docker.search.port || 9185}/search`
-    : '';
+  docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port || 9185}/search` : '';
 
 const agents = getAgentNames();
 const parts = [];
@@ -28,7 +26,7 @@ if (semanticSearchUrl) {
   // Full preamble — no semantic search, repeat key instructions
   if (agents.length > 0) {
     parts.push(
-      "Orchestrate, don\u2019t execute \u2014 delegate exploration, API discovery, and multi-step work to workers; only keep single lookups and capture writes in primary",
+      'Orchestrate, don\u2019t execute \u2014 delegate exploration, API discovery, and multi-step work to workers; only keep single lookups and capture writes in primary',
     );
   }
 

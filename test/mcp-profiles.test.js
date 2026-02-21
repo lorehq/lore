@@ -97,7 +97,7 @@ test('mcp: minimal profile only exposes lore_context', async () => {
   try {
     proc = await startServer(dir);
     const res = await sendRPC(proc, { jsonrpc: '2.0', id: 1, method: 'tools/list' });
-    const names = res.result.tools.map(t => t.name);
+    const names = res.result.tools.map((t) => t.name);
     assert.deepEqual(names, ['lore_context'], 'minimal should only expose lore_context');
   } finally {
     if (proc) stopServer(proc);
@@ -111,7 +111,7 @@ test('mcp: standard profile exposes all 3 tools', async () => {
   try {
     proc = await startServer(dir);
     const res = await sendRPC(proc, { jsonrpc: '2.0', id: 1, method: 'tools/list' });
-    const names = res.result.tools.map(t => t.name);
+    const names = res.result.tools.map((t) => t.name);
     assert.deepEqual(names, ['lore_check_in', 'lore_context', 'lore_write_guard']);
   } finally {
     if (proc) stopServer(proc);

@@ -22,7 +22,14 @@ const hubDir = process.env.LORE_HUB || cwd;
 
 if (getProfile(hubDir) === 'minimal') {
   console.log(JSON.stringify({ permission: 'allow' }));
-  logHookEvent({ platform: 'cursor', hook: 'capture-nudge', event: 'beforeShellExecution', outputSize: 0, state: { profileSkip: true }, directory: hubDir });
+  logHookEvent({
+    platform: 'cursor',
+    hook: 'capture-nudge',
+    event: 'beforeShellExecution',
+    outputSize: 0,
+    state: { profileSkip: true },
+    directory: hubDir,
+  });
   process.exit(0);
 }
 

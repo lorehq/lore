@@ -25,7 +25,14 @@ export const KnowledgeTracker = async ({ directory, client }) => {
       const isFailure = !!input?.error;
 
       if (profile === 'minimal') {
-        logHookEvent({ platform: 'opencode', hook: 'knowledge-tracker', event: 'tool.execute.after', outputSize: 0, state: { profileSkip: true }, directory: hub });
+        logHookEvent({
+          platform: 'opencode',
+          hook: 'knowledge-tracker',
+          event: 'tool.execute.after',
+          outputSize: 0,
+          state: { profileSkip: true },
+          directory: hub,
+        });
         return;
       }
 

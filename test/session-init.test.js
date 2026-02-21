@@ -15,7 +15,10 @@ function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-')));
   fs.mkdirSync(path.join(dir, '.lore', 'hooks'), { recursive: true });
-  fs.copyFileSync(path.join(__dirname, '..', '.lore', 'hooks', 'session-init.js'), path.join(dir, '.lore', 'hooks', 'session-init.js'));
+  fs.copyFileSync(
+    path.join(__dirname, '..', '.lore', 'hooks', 'session-init.js'),
+    path.join(dir, '.lore', 'hooks', 'session-init.js'),
+  );
   // Shared lib — hook resolves ../lib/ relative to .lore/hooks/
   const libDir = path.join(dir, '.lore', 'lib');
   fs.mkdirSync(libDir, { recursive: true });

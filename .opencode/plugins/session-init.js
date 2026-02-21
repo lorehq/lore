@@ -13,7 +13,9 @@ const { logHookEvent } = require('../../.lore/lib/hook-logger');
 function runEnsureStructure(hub) {
   try {
     execSync(`bash "${join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, { stdio: 'pipe' });
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 }
 
 export const SessionInit = async ({ directory, client }) => {

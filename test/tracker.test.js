@@ -110,7 +110,10 @@ test('getThresholds: explicit values override discovery defaults', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ profile: 'discovery', nudgeThreshold: 10, warnThreshold: 20 }));
+  fs.writeFileSync(
+    path.join(dir, '.lore', 'config.json'),
+    JSON.stringify({ profile: 'discovery', nudgeThreshold: 10, warnThreshold: 20 }),
+  );
   const t2 = getThresholds(dir);
   assert.equal(t2.nudge, 10);
   assert.equal(t2.warn, 20);
@@ -255,4 +258,3 @@ test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {
   });
   assert.ok(result.message.includes('scratch notes'));
 });
-

@@ -7,9 +7,7 @@ const path = require('path');
 const { debug } = require('./debug');
 
 function readTemplate(directory, templateName) {
-  return fs.readFileSync(
-    path.join(directory, '.lore', 'templates', templateName), 'utf8'
-  );
+  return fs.readFileSync(path.join(directory, '.lore', 'templates', templateName), 'utf8');
 }
 
 function ensureStickyFiles(directory) {

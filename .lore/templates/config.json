@@ -1,7 +1,7 @@
 {
   "name": "{{name}}",
   "version": "{{version}}",
-  "created": "{{created}}",
+  "created": "{{created}}"
 
   // Hook verbosity: "minimal" | "standard" | "discovery"
   //   minimal   — safety hooks only, no per-tool nudges
