@@ -59,7 +59,7 @@ When tiers are configured, pick the right worker:
 
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
-Name conventions and skills for workers in the prompt — they read the files. Use `/lore-delegate` for the full delegation recipe.
+Name conventions and skills for workers in the prompt — they read the files. Load `/lore-delegate` before constructing any worker prompt — it defines the required structure.
 
 `subagentDefaults` in `.lore/config.json`:
 
