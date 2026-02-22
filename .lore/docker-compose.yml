@@ -9,6 +9,13 @@ services:
     ports:
       - '${LORE_DOCS_PORT:-9184}:8000'
       - '${LORE_SEMANTIC_PORT:-9185}:8080'
+    environment:
+      - DEFAULT_K=${SEMANTIC_DEFAULT_K:-8}
+      - MAX_K=${SEMANTIC_MAX_K:-20}
+      - MAX_CHUNK_CHARS=${SEMANTIC_MAX_CHUNK_CHARS:-1000}
+      - SNIPPET_CHARS=${SEMANTIC_SNIPPET_CHARS:-200}
+      - RESULT_MODE=${SEMANTIC_RESULT_MODE:-paths_min}
+      - EMBED_MODEL=${SEMANTIC_EMBED_MODEL:-BAAI/bge-small-en-v1.5}
     volumes:
       - ../docs:/data/docs
       - ../.lore/skills:/data/skills:ro

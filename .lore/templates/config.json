@@ -19,9 +19,18 @@
   //   "cursor-model": null
   // },
 
-  // Docker services — set by /lore-docker on start, cleared on stop
+  // Docker services — site/search set by /lore-docker on start, cleared on stop
+  // docker.semantic is user-configured and persists across start/stop cycles
   // "docker": {
   //   "site": { "address": "localhost", "port": 9184 },
-  //   "search": { "address": "localhost", "port": 9185 }
+  //   "search": { "address": "localhost", "port": 9185 },
+  //   "semantic": {
+  //     "defaultK": 8,
+  //     "maxK": 20,
+  //     "maxChunkChars": 1000,
+  //     "snippetChars": 200,
+  //     "resultMode": "paths_min",
+  //     "model": "BAAI/bge-small-en-v1.5"
+  //   }
   // }
 }
