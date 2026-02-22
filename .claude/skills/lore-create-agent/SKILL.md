@@ -30,9 +30,7 @@ Scan `.lore/agents/`. If an agent exists for the purpose, update it. Otherwise c
 ---
 name: <purpose>-agent
 description: <Purpose> operations specialist.
-claude-model: sonnet
-opencode-model: openai/gpt-5.2-codex
-cursor-model: sonnet
+model: sonnet
 skills:
   - <skill-name>
 ---
@@ -55,7 +53,7 @@ Handles <purpose> operations.
 - `<skill-name>`
 ```
 
-Model fields are per-platform. Instance defaults in `.lore/config.json` under `subagentDefaults` — agent frontmatter overrides those defaults.
+The `model` field sets the default model for the agent. Per-platform overrides live in `.lore/config.json` under `subagentDefaults`.
 
 ### Step 3: Sync Platform Copies
 

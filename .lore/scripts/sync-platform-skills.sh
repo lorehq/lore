@@ -20,7 +20,7 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
   mkdir -p "$REPO_ROOT/.claude/agents"
   # Resolve model cascade for each agent: frontmatter → subagentDefaults → omit
   # lore-worker.md gets up to 3 tier variants (fast, default, powerful).
-  # All other agents use their own frontmatter claude-model field only.
+  # All other agents use their own frontmatter model field.
   node -e "
     const fs = require('fs');
     const path = require('path');
@@ -71,14 +71,14 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
         if (claudeTiers.fast) stampAgent(src, claudeTiers.fast, 'lore-worker-fast.md');
         if (claudeTiers.powerful) stampAgent(src, claudeTiers.powerful, 'lore-worker-powerful.md');
       } else {
-        // Non-worker agents: use their own frontmatter claude-model field only
+        // Non-worker agents: use their own frontmatter model field
         const fmMatch = src.match(/^---\n([\s\S]*?)\n---/);
-        let claudeModel = null;
+        let agentModel = null;
         if (fmMatch) {
-          const cmMatch = fmMatch[1].match(/^claude-model:\s*(.+)$/m);
-          if (cmMatch) claudeModel = cmMatch[1].trim();
+          const mMatch = fmMatch[1].match(/^model:\s*(.+)$/m);
+          if (mMatch) agentModel = mMatch[1].trim();
         }
-        stampAgent(src, claudeModel, file);
+        stampAgent(src, agentModel, file);
       }
     }
 

@@ -47,16 +47,10 @@ for f in "$REPO_ROOT"/.lore/agents/*.md; do
     val=$(extract_field "$field" "$f")
     [[ -z "$val" ]] && fail "Agent '$name' missing '$field'"
   done
-  # Model: accept per-platform fields (claude-model, opencode-model, cursor-model) or legacy 'model'.
   # lore-worker is exempt — its model comes from subagentDefaults config tiers, not frontmatter.
   if [[ "$name" != "lore-worker" ]]; then
-    cm=$(extract_field "claude-model" "$f")
-    om=$(extract_field "opencode-model" "$f")
-    cm2=$(extract_field "cursor-model" "$f")
     lm=$(extract_field "model" "$f")
-    if [[ -z "$cm" && -z "$om" && -z "$cm2" && -z "$lm" ]]; then
-      fail "Agent '$name' missing model field (claude-model, opencode-model, cursor-model, or model)"
-    fi
+    [[ -z "$lm" ]] && fail "Agent '$name' missing 'model' field"
   fi
 done
 
