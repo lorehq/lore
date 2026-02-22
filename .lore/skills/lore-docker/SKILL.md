@@ -20,13 +20,14 @@ Interpret intent from user input:
 
 ### Start
 
-1. Compute deterministic ports:
+1. Compute deterministic ports and project name:
    - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
    - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
+   - `COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
 2. Prefer Docker when available:
     - Check Docker is running: `docker info > /dev/null 2>&1`
     - Pull image if needed: `docker pull lorehq/lore-docker:latest`
-    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT && docker compose -f .lore/docker-compose.yml up -d`
+    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT COMPOSE_PROJECT_NAME && docker compose -f .lore/docker-compose.yml up -d`
     - Wait up to 15 seconds for docs port to respond (semantic search takes longer to load models)
     - Verify docs: `curl -s -o /dev/null -w '%{http_code}' http://localhost:$LORE_DOCS_PORT`
     - If HTTP 200, write config and report:
@@ -46,6 +47,7 @@ Interpret intent from user input:
 ### Stop
 
 1. Try Docker first:
+   - Set project name: `export COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
    - If container is running: `docker compose -f .lore/docker-compose.yml down`
 2. Then stop local mkdocs if running:
    - `pgrep -f 'mkdocs serve'`
@@ -62,6 +64,7 @@ Interpret intent from user input:
 
 ## Gotchas
 
+- `docker compose` project name defaults to the directory containing the compose file (`.lore` → `lore`), not the project root. Always export `COMPOSE_PROJECT_NAME="$(basename "$PWD")"` before any `docker compose` call so containers are named after the instance (e.g. `my-project-lore-runtime-1`).
 - Always pass `--livereload` for local mkdocs.
 - `pgrep` alone is not sufficient; always verify with curl.
 - Docker may be installed but daemon not running; treat that as fallback-to-local, not a hard error.

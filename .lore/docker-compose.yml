@@ -1,6 +1,8 @@
 # Lore runtime — docs UI + semantic search + maintenance watcher.
 # Pulls the published image. Run with: docker compose -f .lore/docker-compose.yml up -d
 # LORE_DOCS_PORT and LORE_SEMANTIC_PORT set by /lore-docker for multi-instance support.
+# COMPOSE_PROJECT_NAME set by /lore-docker to basename of project root (e.g. my-project).
+name: ${COMPOSE_PROJECT_NAME:-lore}
 services:
   lore-runtime:
     image: lorehq/lore-docker:latest
