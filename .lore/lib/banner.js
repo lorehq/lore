@@ -132,7 +132,7 @@ function buildBanner(directory) {
 
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const delegationLine =
-    'DO NOT EXECUTE WORK YOURSELF. You are an orchestrator. Your ONLY jobs: (1) semantic search, (2) delegate ALL work to workers, (3) capture after. NEVER run curl, fetch, API calls, or multi-step exploration directly. Workers: ' +
+    'DO NOT EXECUTE WORK YOURSELF. You are an orchestrator. Your ONLY jobs: (1) known path → Read directly; unknown → semantic search, (2) delegate ALL work to workers, (3) capture after. NEVER run curl, fetch, API calls, or multi-step exploration directly. Workers: ' +
     workerList;
   const skillLine = operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
 
@@ -150,7 +150,7 @@ CAPTURE: In Exploration, failures may be normal discovery. In Execution, failure
   }
 
   if (semanticSearchUrl) {
-    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl} — query first, read returned files, then delegate ALL work.`;
+    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl} — unknown concept → query first; known path → Read/Grep directly. Delegate ALL work.`;
   } else {
     output +=
       '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';

@@ -20,7 +20,7 @@ const parts = [];
 if (semanticSearchUrl) {
   // Slim preamble — one unified instruction
   parts.push(
-    `DO NOT EXECUTE WORK YOURSELF. Semantic search → delegate to workers. NEVER run API calls, curl, or fetch directly.`,
+    `DO NOT EXECUTE WORK YOURSELF. Unknown → semantic search → delegate. Known path → Read directly. NEVER run API calls, curl, or fetch directly.`,
   );
 } else {
   // Full preamble — no semantic search, repeat key instructions
