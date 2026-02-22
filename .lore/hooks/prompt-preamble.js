@@ -14,7 +14,7 @@ const hasSemanticSearch = !!(docker.search && docker.search.address);
 const search = hasSemanticSearch
   ? 'Curator: search knowledge base first'
   : 'Curator: search docs/knowledge/ \u2192 docs/work/ \u2192 docs/context/ first';
-const msg = `[${search}. Orchestrator: delegate heavy/parallel work to workers. Capturer: gotcha \u2192 skill, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.]`;
+const msg = `[${search}. Orchestrator: delegate API calls, curl, multi-step exploration, and parallel work to workers \u2014 don\u2019t execute directly. Capturer: gotcha \u2192 skill, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.]`;
 
 console.log(msg);
 logHookEvent({
