@@ -5,18 +5,30 @@ alwaysApply: true
 
 ## Delegation
 
-**Orchestrate, don't execute.** Default to `lore-worker`. If another agent exists whose name fits the task, use it instead.
+One framework worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
 
-When tiers are configured, pick the right worker for the job:
-- `lore-worker-fast` — bulk/parallel tasks, simple lookups, boilerplate generation
+Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
+
+When tiers are configured, pick the right worker:
+- `lore-worker-fast` — bulk/parallel tasks, simple lookups, boilerplate
 - `lore-worker` — general-purpose work, the safe default
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
-Delegate when: parallel subtasks, endpoint/API exploration, multi-step execution, context is getting heavy, or a cheaper model suffices. API discovery (probing unknown endpoints) is always a delegation target — never burn Opus tokens on serial trial-and-error.
+Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
-Don't delegate: quick answers, single reads, clarifications, or capture writes.
+Name conventions and skills for workers in the prompt — they read the files. Use `/lore-delegate` for the full delegation recipe.
 
-**Use `/lore-delegate` for the delegation recipe.** It covers what to load, how to scope, and what to require in the response. Do not construct worker prompts without it.
+`subagentDefaults` in `.lore/config.json`:
+
+```json
+"subagentDefaults": {
+  "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
+  "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
+  "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
+}
+```
+
+When configured, `lore sync` generates Claude worker variants: `lore-worker.md` (default), `lore-worker-fast.md`, `lore-worker-powerful.md`. OpenCode and Cursor tiers are informational — read from config at runtime.
 
 ## Agents
 

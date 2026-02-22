@@ -14,11 +14,6 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Read|Glob",
-        "hooks": [{ "type": "command", "command": "node .lore/hooks/search-guard.js" }],
-        "description": "Remind to use semantic search before speculative reads"
-      },
-      {
         "matcher": "Edit|Write|Read",
         "hooks": [{ "type": "command", "command": "node .lore/hooks/protect-memory.js" }]
       },

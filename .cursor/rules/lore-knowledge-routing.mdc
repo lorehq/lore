@@ -3,29 +3,18 @@ description: Where to put different types of knowledge — routing table and cap
 globs: docs/knowledge/**, docs/context/**
 ---
 
-## Knowledge Routing
-
-| What | Where |
-|------|-------|
-| Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored, injected every session) |
-| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
-| Rules, conventions | `docs/context/` |
-| Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
-| Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
-| Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
-
-`MEMORY.md` is intercepted by hooks and blocked. Use the routes above.
-
 ## Capture
 
-Before writing to `docs/`, creating skills, or updating work items — state what you want to write and where, then ask the operator. Proceed only after approval.
+Before writing to `docs/`, creating skills, or updating work items — propose what and where, then wait for operator approval.
 
-After substantive work:
-1. New environment knowledge? → `docs/knowledge/environment/`
-2. Hit gotchas? → create skill
-3. Multi-step procedure? → `docs/knowledge/runbooks/`
-4. Skills over 80 lines or mixing methods? → split
-5. Run `.lore/scripts/validate-consistency.sh`
-6. Active plan or roadmap? → update progress
+Capture targets:
+- Reusable fix → create or update a skill
+- Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
+- Multi-step procedure → `docs/knowledge/runbooks/`
+- Neither → state "No capture needed" with a one-line reason
 
-Use `/lore-capture` for a full checklist pass. `/lore-consolidate` for deep repo-wide health checks.
+Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
+
+After substantive work, also check: skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
+
+Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.

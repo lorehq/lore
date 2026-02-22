@@ -5,30 +5,17 @@ globs: .lore/skills/**
 
 ## Knowledge
 
-**Every gotcha becomes a skill. No exceptions.** Propose the skill name and a one-line summary to the operator. Create it after they approve. 30-80 lines, generic only — no context data (usernames, URLs, account IDs go in `docs/knowledge/environment/`).
+| What | Where |
+|------|-------|
+| Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored) |
+| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
+| Rules, conventions | `docs/context/` |
+| Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
+| Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
+| Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
-One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern.
+`MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Naming: `<service>-<action>-<object>`. Only use `lore-` prefix for framework commands.
+Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines, generic only — context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>`. Reserve `lore-` prefix for framework commands.
 
-Actively map the environment as you encounter it. When you interact with a URL, service, account, API, or infrastructure component — check if it's already documented. If not, propose adding it to `docs/knowledge/environment/` and describe what you want to capture. Write after operator approval.
-
-## Agent Creation
-
-**One framework worker: `lore-worker`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
-
-Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
-
-Per-platform model preferences go on agents (not skills). Instance defaults live in `.lore/config.json` under `subagentDefaults`.
-
-`subagentDefaults` uses a 3-tier nested schema:
-
-```json
-"subagentDefaults": {
-  "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
-  "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
-}
-```
-
-When tiers are configured, `lore sync` generates Claude worker agent variants from `lore-worker.md`: `lore-worker.md` (default tier), `lore-worker-fast.md`, and `lore-worker-powerful.md`, each stamped with the corresponding model. OpenCode and Cursor tiers are informational — the orchestrator reads them from config at runtime; no agent files are generated for those platforms.
+Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
