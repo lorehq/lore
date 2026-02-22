@@ -26,7 +26,7 @@ Per-platform model preferences go on agents (not skills). Instance defaults live
 ```json
 "subagentDefaults": {
   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  "opencode": { "fast": "openai/gpt-4o-mini", "default": "openai/gpt-4o", "powerful": "openai/gpt-4o" },
+  "opencode": { "fast": "openai/gpt-4.1-mini", "default": "openai/gpt-4.1", "powerful": "openai/o3" },
   "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
 }
 ```

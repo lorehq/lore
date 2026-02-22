@@ -31,7 +31,7 @@ Scan `.lore/agents/`. If an agent exists for the purpose, update it. Otherwise c
 name: <purpose>-agent
 description: <Purpose> operations specialist.
 claude-model: sonnet
-opencode-model: openai/gpt-4o
+opencode-model: openai/gpt-4.1
 cursor-model: sonnet
 skills:
   - <skill-name>
