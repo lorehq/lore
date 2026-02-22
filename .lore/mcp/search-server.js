@@ -2,8 +2,9 @@
 // Lore MCP Server — Knowledge Base Search
 // JSON-RPC 2.0 over stdio (newline-delimited JSON). Zero dependencies.
 //
-// Exposes two tools:
-//   lore_search       — semantic search (snippets by default, full content opt-in)
+// Exposes three tools:
+//   lore_search        — semantic search returning snippets and file paths
+//   lore_search_full   — semantic search returning full file contents
 //   lore_search_health — container health and index status
 //
 // Reads docker.search config from .lore/config.json to locate the search container.
@@ -103,17 +104,16 @@ function readFileContent(filePath) {
 
 // ── Tool implementations ────────────────────────────────────────────────────
 
-async function loreSearch(query, k, content) {
+async function doSearch(query, k) {
   const baseUrl = getSearchBaseUrl();
   if (!baseUrl) {
-    return 'Semantic search not configured — no docker.search in .lore/config.json.\nFall back to Glob/Grep for knowledge base searches.';
+    return { error: 'Semantic search not configured — no docker.search in .lore/config.json.\nFall back to Glob/Grep for knowledge base searches.' };
   }
 
   if (!query || !query.trim()) {
-    return 'Error: query parameter is required.';
+    return { error: 'Error: query parameter is required.' };
   }
 
-  const wantFull = content === 'full';
   const searchK = Math.max(1, Math.min(k || 5, 20));
   const url = `${baseUrl}/search?q=${encodeURIComponent(query)}&k=${searchK}&mode=full`;
 
@@ -121,7 +121,7 @@ async function loreSearch(query, k, content) {
   try {
     raw = await httpGet(url);
   } catch (err) {
-    return `Search container unavailable: ${err.message}\nFall back to Glob/Grep for knowledge base searches.`;
+    return { error: `Search container unavailable: ${err.message}\nFall back to Glob/Grep for knowledge base searches.` };
   }
 
   let results;
@@ -130,31 +130,45 @@ async function loreSearch(query, k, content) {
     // API returns { query, results: [...] } or bare array
     results = Array.isArray(parsed) ? parsed : (parsed.results || []);
   } catch {
-    return `Unexpected response from search container:\n${raw.slice(0, 500)}`;
+    return { error: `Unexpected response from search container:\n${raw.slice(0, 500)}` };
   }
 
   if (results.length === 0) {
-    return `No results found for: "${query}"`;
+    return { error: `No results found for: "${query}"` };
   }
+
+  return { results };
+}
+
+async function loreSearch(query, k) {
+  const res = await doSearch(query, k);
+  if (res.error) return res.error;
+
+  const parts = [];
+  for (const result of res.results) {
+    const resultPath = result.path || result.file || '';
+    const score = result.score != null ? result.score.toFixed(3) : '?';
+    const snippet = result.snippet || '';
+    const fsPath = resolveSearchPath(resultPath);
+    parts.push(`--- ${resultPath} (score: ${score}) ---\n${snippet}\n→ ${fsPath}`);
+  }
+  return parts.join('\n\n');
+}
+
+async function loreSearchFull(query, k) {
+  const res = await doSearch(query, k);
+  if (res.error) return res.error;
 
   const parts = [];
   let totalChars = 0;
 
-  for (const result of results) {
+  for (const result of res.results) {
     const resultPath = result.path || result.file || '';
     const score = result.score != null ? result.score.toFixed(3) : '?';
     const snippet = result.snippet || '';
     const fsPath = resolveSearchPath(resultPath);
 
-    if (!wantFull) {
-      // Default: snippet + path for lightweight discovery
-      const entry = `--- ${resultPath} (score: ${score}) ---\n${snippet}\n→ ${fsPath}`;
-      parts.push(entry);
-      continue;
-    }
-
     if (totalChars >= MAX_TOTAL_CHARS) {
-      // Over budget — path + snippet only
       const summary = `--- ${resultPath} (score: ${score}) ---\n${snippet}\n[Content omitted — response size limit reached. Read: ${fsPath}]`;
       parts.push(summary);
       totalChars += summary.length;
@@ -196,21 +210,25 @@ const SERVER_INFO = {
   version: getConfig(hubDir).version || '0.0.0',
 };
 
+const SEARCH_PARAMS = {
+  query: { type: 'string', description: 'Natural language search query.' },
+  k: { type: 'number', description: 'Number of results to return (1-20, default 5).' },
+};
+
 const TOOLS = [
   {
     name: 'lore_search',
     description:
       'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). '
-      + 'Returns snippets and file paths by default. Set content="full" to include full file contents.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Natural language search query.' },
-        k: { type: 'number', description: 'Number of results to return (1-20, default 5).' },
-        content: { type: 'string', enum: ['snippet', 'full'], description: 'Response detail level. "snippet" (default) returns matched excerpts + file paths. "full" includes entire file contents.' },
-      },
-      required: ['query'],
-    },
+      + 'Returns snippets and file paths. Use lore_search_full to get complete file contents.',
+    inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
+  },
+  {
+    name: 'lore_search_full',
+    description:
+      'Semantic search returning full file contents for each match. '
+      + 'Use when you need to read the matched files, not just discover them.',
+    inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
   },
   {
     name: 'lore_search_health',
@@ -251,7 +269,10 @@ async function handleRequest(req) {
     try {
       if (toolName === 'lore_search') {
         const args = req.params?.arguments || {};
-        text = await loreSearch(args.query, args.k, args.content);
+        text = await loreSearch(args.query, args.k);
+      } else if (toolName === 'lore_search_full') {
+        const args = req.params?.arguments || {};
+        text = await loreSearchFull(args.query, args.k);
       } else if (toolName === 'lore_search_health') {
         text = await loreSearchHealth();
       } else {
