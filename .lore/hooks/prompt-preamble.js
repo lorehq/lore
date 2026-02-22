@@ -11,9 +11,10 @@ const cfg = getConfig(hubDir);
 const docker = cfg.docker || {};
 const hasSemanticSearch = !!(docker.search && docker.search.address);
 
-const msg = hasSemanticSearch
-  ? '[Search the knowledge base first, delegate work to workers, capture what you learn.]'
-  : '[Search the knowledge base first (docs/knowledge/ \u2192 docs/work/ \u2192 docs/context/), delegate work to workers, capture what you learn.]';
+const search = hasSemanticSearch
+  ? 'Curator: search knowledge base first'
+  : 'Curator: search docs/knowledge/ \u2192 docs/work/ \u2192 docs/context/ first';
+const msg = `[${search}. Orchestrator: delegate heavy/parallel work to workers. Capturer: gotcha \u2192 skill, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.]`;
 
 console.log(msg);
 logHookEvent({
