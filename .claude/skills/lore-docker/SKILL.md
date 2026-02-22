@@ -20,17 +20,20 @@ Interpret intent from user input:
 
 ### Start
 
-1. Compute deterministic ports:
+1. Compute deterministic ports, project name, and semantic settings:
    - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
    - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
+   - `COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
+   - Read `docker.semantic` from config.json, export `SEMANTIC_*` env vars (fall back to built-in defaults if key absent):
+     `eval "$(node -e "const{getConfig}=require('./.lore/lib/config');const c=getConfig('.');const s=(c.docker||{}).semantic||{};const D={defaultK:8,maxK:20,maxChunkChars:1000,snippetChars:200,resultMode:'paths_min',model:'BAAI/bge-small-en-v1.5'};Object.entries({SEMANTIC_DEFAULT_K:s.defaultK??D.defaultK,SEMANTIC_MAX_K:s.maxK??D.maxK,SEMANTIC_MAX_CHUNK_CHARS:s.maxChunkChars??D.maxChunkChars,SEMANTIC_SNIPPET_CHARS:s.snippetChars??D.snippetChars,SEMANTIC_RESULT_MODE:s.resultMode??D.resultMode,SEMANTIC_EMBED_MODEL:s.model??D.model}).forEach(([k,v])=>console.log('export '+k+'='+v));")"
 2. Prefer Docker when available:
     - Check Docker is running: `docker info > /dev/null 2>&1`
     - Pull image if needed: `docker pull lorehq/lore-docker:latest`
-    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT && docker compose -f .lore/docker-compose.yml up -d`
+    - Export ports and start: `export LORE_DOCS_PORT LORE_SEMANTIC_PORT COMPOSE_PROJECT_NAME && docker compose -f .lore/docker-compose.yml up -d`
     - Wait up to 15 seconds for docs port to respond (semantic search takes longer to load models)
     - Verify docs: `curl -s -o /dev/null -w '%{http_code}' http://localhost:$LORE_DOCS_PORT`
     - If HTTP 200, write config and report:
-      - Write docker config to `.lore/config.json`: `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');c.docker={site:{address:'localhost',port:+process.env.LORE_DOCS_PORT},search:{address:'localhost',port:+process.env.LORE_SEMANTIC_PORT}};fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
+      - Write docker config to `.lore/config.json` (preserves `docker.semantic`): `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');const sem=c.docker?.semantic;c.docker={site:{address:'localhost',port:+process.env.LORE_DOCS_PORT},search:{address:'localhost',port:+process.env.LORE_SEMANTIC_PORT}};if(sem)c.docker.semantic=sem;fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
       - Report docs URL and mode: Docker
     - Check semantic health (non-blocking — may still be loading): `curl -s http://localhost:$LORE_SEMANTIC_PORT/health`
 3. Fall back to local mkdocs when Docker is unavailable or verification fails:
@@ -46,11 +49,12 @@ Interpret intent from user input:
 ### Stop
 
 1. Try Docker first:
+   - Set project name: `export COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
    - If container is running: `docker compose -f .lore/docker-compose.yml down`
 2. Then stop local mkdocs if running:
    - `pgrep -f 'mkdocs serve'`
    - If running: `kill $(pgrep -f 'mkdocs serve')`
-3. Clear config: `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');delete c.docker;fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
+3. Clear config (preserves `docker.semantic`): `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');const sem=c.docker?.semantic;delete c.docker;if(sem)c.docker={semantic:sem};fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
 4. Report what was stopped, or "No docs UI is running".
 
 ### Status
@@ -62,6 +66,7 @@ Interpret intent from user input:
 
 ## Gotchas
 
+- `docker compose` project name defaults to the directory containing the compose file (`.lore` → `lore`), not the project root. Always export `COMPOSE_PROJECT_NAME="$(basename "$PWD")"` before any `docker compose` call so containers are named after the instance (e.g. `my-project-lore-runtime-1`).
 - Always pass `--livereload` for local mkdocs.
 - `pgrep` alone is not sufficient; always verify with curl.
 - Docker may be installed but daemon not running; treat that as fallback-to-local, not a hard error.

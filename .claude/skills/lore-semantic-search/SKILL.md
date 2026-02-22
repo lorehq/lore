@@ -24,12 +24,12 @@ Set environment variables before the command:
 - `SEM_Q` query text
 - `SEM_K` optional top-k
 
-## Fallback Behavior
+## When to Use Which
 
-If semantic search fails or returns no useful matches:
+- Known path or keyword → `Read`/`Glob`/`Grep` directly (exact, cheaper)
+- Unknown concept → semantic search, then read matched files
 
-1. Perform shallow lookup in order: `docs/knowledge/` -> `docs/work/` -> `docs/context/`
-2. Use focused `Grep`/`Read` before broad scans
+If no useful matches: shallow lookup `docs/knowledge/` → `docs/work/` → `docs/context/`
 
 ## Checking Availability
 

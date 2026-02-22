@@ -81,6 +81,15 @@ Don't delegate: quick answers, single reads, clarifications, or capture writes.
 
 **Use `/lore-delegate` for the delegation recipe.** It covers what to load, how to scope, and what to require in the response. Do not construct worker prompts without it.
 
+## Semantic Search
+
+When semantic search is available:
+- **Unknown concept → semantic search first, then read matched files.**
+- **EXACT PATH (specific filename already in hand) → Read/Glob/Grep directly.**
+- Knowing a *category* (e.g. "it's probably in `docs/knowledge/environment/`") is NOT an exact path — search first.
+
+When semantic search is unavailable: fall back to Glob/Grep directly.
+
 ## Capture
 
 Before writing to `docs/`, creating skills, or updating work items — state what you want to write and where, then ask the operator. Proceed only after approval.
