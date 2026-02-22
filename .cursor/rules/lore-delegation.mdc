@@ -16,7 +16,7 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
-Name conventions and skills for workers in the prompt — they read the files. Load `/lore-delegate` before constructing any worker prompt — it defines the required structure.
+Always load `/lore-delegate` before constructing any worker prompt — it defines the required prompt structure and delegation rules. Name conventions and skills for workers in the prompt — they read the files.
 
 `subagentDefaults` in `.lore/config.json`:
 
