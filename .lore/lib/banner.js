@@ -131,29 +131,21 @@ function buildBanner(directory) {
   const plans = scanWork(path.join(docsWork, 'plans'));
 
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
-  const delegationLine =
-    'You are an orchestrator. Search the knowledge base first (semantic search if available), delegate work to workers, capture what you learn. Workers: ' +
-    workerList;
   const skillLine = operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
 
   let output = `=== LORE${version}${profileTag} ===
 
-DELEGATION: ${delegationLine}
-KNOWLEDGE: Vague question lookup order -> Knowledge, then Work items, then Context (docs/knowledge/ -> docs/work/ -> docs/context/) | Use Exploration -> Execution. Capture reusable Execution fixes -> skills | Capture environment discoveries (URL/endpoint/service/host/port/auth/header/redirect/base path) -> docs/knowledge/environment/ | Ask operator before writing to docs/ or creating skills
-CAPTURE: In Exploration, failures may be normal discovery. In Execution, failures require capture decision (A/B/C) before completion.`;
+WORKERS: ${workerList}`;
+
+  if (semanticSearchUrl) {
+    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
+  }
 
   if (profile === 'minimal') {
     output += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
   } else if (profile === 'discovery') {
     output +=
-      '\nPROFILE: discovery \u2014 aggressive capture. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
-  }
-
-  if (semanticSearchUrl) {
-    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
-  } else {
-    output +=
-      '\nLOOKUP: Vague ask -> quick local lookup in order: Knowledge folder -> Work folder -> Context folder. Keep it shallow (first 2 levels), then ask clarifying questions if still unclear.';
+      '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
   }
 
   if (skillLine) output += `\n\nSKILLS: ${skillLine}`;
