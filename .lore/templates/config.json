@@ -16,7 +16,7 @@
   // Generates lore-worker.md, lore-worker-fast.md, lore-worker-powerful.md agent variants.
   // "subagentDefaults": {
   //   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  //   "opencode": { "fast": "openai/gpt-4.1-mini", "default": "openai/gpt-4.1", "powerful": "openai/o3" },
+  //   "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
   //   "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   // },
 
