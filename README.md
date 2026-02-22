@@ -31,6 +31,8 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Sessions accelerate instead of resetting.** Every session opens with your project identity, conventions, active work, available agents, and a map of everything your agent knows. No re-explaining.
 
+**Semantic search and a live docs UI — highly recommended.** Run `/lore-docker` to start a local Docker sidecar that gives agents semantic search over the full knowledge base and opens a MkDocs site at `localhost` for browsing it visually. Without Docker, agents fall back to Grep/Glob search.
+
 **Gotchas become skills that persist.** When your agent hits an API quirk, an encoding edge case, or a deployment gotcha, it captures that as a skill. That skill loads in every future session. The mistake happens once, the fix persists.
 
 **Conventions are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
@@ -38,8 +40,6 @@ No configuration needed. Your first session gets a full context banner immediate
 **One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift.
 
 **Complex work delegates to focused workers.** When work benefits from a fresh context window, the orchestrator spawns workers loaded with curated skills and conventions. Compound tasks split across parallel workers for maximum throughput.
-
-**Semantic search and a live docs UI — optional but recommended.** Run `/lore-docker` to start a local Docker sidecar that gives agents semantic search over the full knowledge base and opens a MkDocs site at `localhost` for browsing it visually. Without Docker, agents fall back to Grep/Glob search.
 
 ## Before / After
 
