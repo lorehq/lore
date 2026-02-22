@@ -15,7 +15,9 @@
   // Per-platform model preferences for delegated workers (3-tier: fast, default, powerful)
   // Generates lore-worker.md, lore-worker-fast.md, lore-worker-powerful.md agent variants.
   // "subagentDefaults": {
-  //   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
+  //   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
+  //   "opencode": { "fast": "openai/gpt-4o-mini", "default": "openai/gpt-4o", "powerful": "openai/gpt-4o" },
+  //   "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   // },
 
   // Docker services — site/search set by /lore-docker on start, cleared on stop

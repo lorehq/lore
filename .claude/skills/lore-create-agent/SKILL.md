@@ -32,7 +32,7 @@ name: <purpose>-agent
 description: <Purpose> operations specialist.
 claude-model: sonnet
 opencode-model: openai/gpt-4o
-cursor-model: # not yet supported
+cursor-model: sonnet
 skills:
   - <skill-name>
 ---

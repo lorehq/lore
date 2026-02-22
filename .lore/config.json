@@ -4,6 +4,8 @@
   "created": "2026-02-14",
   "profile": "standard",
   "subagentDefaults": {
-    "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
+    "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
+    "opencode": { "fast": "openai/gpt-4o-mini", "default": "openai/gpt-4o", "powerful": "openai/gpt-4o" },
+    "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   }
 }
