@@ -52,9 +52,9 @@ One framework worker: `lore-worker`. The orchestrator spawns it per-task with cu
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
-When tiers are configured, pick the right worker:
-- `lore-worker-fast` — bulk/parallel tasks, simple lookups, boilerplate
-- `lore-worker` — general-purpose work, the safe default
+When tiers are configured, start with the cheapest tier that fits — escalate only when the task demands reasoning:
+- `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
+- `lore-worker` — general-purpose work requiring judgment, the safe middle ground
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
@@ -71,7 +71,7 @@ Name conventions and skills for workers in the prompt — they read the files. L
 }
 ```
 
-When configured, `lore sync` generates Claude worker variants: `lore-worker.md` (default), `lore-worker-fast.md`, `lore-worker-powerful.md`. OpenCode and Cursor tiers are informational — read from config at runtime.
+When configured, worker tier variants are generated at session start from `.lore/templates/lore-worker.md`. Change `subagentDefaults` in config and restart to see updated tiers. OpenCode and Cursor tiers are informational — read from config at runtime.
 
 ## Ownership
 
