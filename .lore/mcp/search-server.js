@@ -3,7 +3,7 @@
 // JSON-RPC 2.0 over stdio (newline-delimited JSON). Zero dependencies.
 //
 // Exposes two tools:
-//   lore_search       — semantic search with full file content
+//   lore_search       — semantic search (snippets by default, full content opt-in)
 //   lore_search_health — container health and index status
 //
 // Reads docker.search config from .lore/config.json to locate the search container.
@@ -103,7 +103,7 @@ function readFileContent(filePath) {
 
 // ── Tool implementations ────────────────────────────────────────────────────
 
-async function loreSearch(query, k) {
+async function loreSearch(query, k, content) {
   const baseUrl = getSearchBaseUrl();
   if (!baseUrl) {
     return 'Semantic search not configured — no docker.search in .lore/config.json.\nFall back to Glob/Grep for knowledge base searches.';
@@ -113,6 +113,7 @@ async function loreSearch(query, k) {
     return 'Error: query parameter is required.';
   }
 
+  const wantFull = content === 'full';
   const searchK = Math.max(1, Math.min(k || 5, 20));
   const url = `${baseUrl}/search?q=${encodeURIComponent(query)}&k=${searchK}&mode=full`;
 
@@ -145,6 +146,13 @@ async function loreSearch(query, k) {
     const snippet = result.snippet || '';
     const fsPath = resolveSearchPath(resultPath);
 
+    if (!wantFull) {
+      // Default: snippet + path for lightweight discovery
+      const entry = `--- ${resultPath} (score: ${score}) ---\n${snippet}\n→ ${fsPath}`;
+      parts.push(entry);
+      continue;
+    }
+
     if (totalChars >= MAX_TOTAL_CHARS) {
       // Over budget — path + snippet only
       const summary = `--- ${resultPath} (score: ${score}) ---\n${snippet}\n[Content omitted — response size limit reached. Read: ${fsPath}]`;
@@ -153,8 +161,8 @@ async function loreSearch(query, k) {
       continue;
     }
 
-    const content = readFileContent(fsPath);
-    const entry = `--- ${resultPath} (score: ${score}) ---\n${content}`;
+    const fileContent = readFileContent(fsPath);
+    const entry = `--- ${resultPath} (score: ${score}) ---\n${fileContent}`;
     parts.push(entry);
     totalChars += entry.length;
   }
@@ -193,12 +201,13 @@ const TOOLS = [
     name: 'lore_search',
     description:
       'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). '
-      + 'Returns matched files with full content. Preferred over Glob/Grep for discovery.',
+      + 'Returns snippets and file paths by default. Set content="full" to include full file contents.',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Natural language search query.' },
         k: { type: 'number', description: 'Number of results to return (1-20, default 5).' },
+        content: { type: 'string', enum: ['snippet', 'full'], description: 'Response detail level. "snippet" (default) returns matched excerpts + file paths. "full" includes entire file contents.' },
       },
       required: ['query'],
     },
@@ -242,7 +251,7 @@ async function handleRequest(req) {
     try {
       if (toolName === 'lore_search') {
         const args = req.params?.arguments || {};
-        text = await loreSearch(args.query, args.k);
+        text = await loreSearch(args.query, args.k, args.content);
       } else if (toolName === 'lore_search_health') {
         text = await loreSearchHealth();
       } else {
