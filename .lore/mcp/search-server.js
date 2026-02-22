@@ -4,7 +4,7 @@
 //
 // Exposes three tools:
 //   lore_search  — semantic search returning snippets and file paths
-//   lore_read    — semantic search returning full file contents for each match
+//   lore_read    — read a knowledge base file by path (use after lore_search)
 //   lore_health  — container health and index status
 //
 // Reads docker.search config from .lore/config.json to locate the search container.
@@ -26,7 +26,6 @@ const { getConfig } = require(path.join(hubDir, '.lore', 'lib', 'config'));
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const MAX_LINES_PER_FILE = 500;
-const MAX_TOTAL_CHARS = 150000;
 const HTTP_TIMEOUT_MS = 10000;
 
 // ── HTTP helper ─────────────────────────────────────────────────────────────
@@ -155,33 +154,13 @@ async function loreSearch(query, k) {
   return parts.join('\n\n');
 }
 
-async function loreSearchFull(query, k) {
-  const res = await doSearch(query, k);
-  if (res.error) return res.error;
-
-  const parts = [];
-  let totalChars = 0;
-
-  for (const result of res.results) {
-    const resultPath = result.path || result.file || '';
-    const score = result.score != null ? result.score.toFixed(3) : '?';
-    const snippet = result.snippet || '';
-    const fsPath = resolveSearchPath(resultPath);
-
-    if (totalChars >= MAX_TOTAL_CHARS) {
-      const summary = `--- ${resultPath} (score: ${score}) ---\n${snippet}\n[Content omitted — response size limit reached. Read: ${fsPath}]`;
-      parts.push(summary);
-      totalChars += summary.length;
-      continue;
-    }
-
-    const fileContent = readFileContent(fsPath);
-    const entry = `--- ${resultPath} (score: ${score}) ---\n${fileContent}`;
-    parts.push(entry);
-    totalChars += entry.length;
+function loreRead(filePath) {
+  if (!filePath || !filePath.trim()) {
+    return 'Error: file_path parameter is required.';
   }
 
-  return parts.join('\n\n');
+  const resolved = path.resolve(filePath);
+  return readFileContent(resolved);
 }
 
 async function loreSearchHealth() {
@@ -226,9 +205,15 @@ const TOOLS = [
   {
     name: 'lore_read',
     description:
-      'Semantic search returning full file contents for each match. '
-      + 'Use when you need to read the matched files, not just discover them.',
-    inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
+      'Read a knowledge base file by path. Use after lore_search to get the full contents '
+      + 'of a matched file.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file_path: { type: 'string', description: 'Absolute path to the file (from lore_search results).' },
+      },
+      required: ['file_path'],
+    },
   },
   {
     name: 'lore_health',
@@ -272,7 +257,7 @@ async function handleRequest(req) {
         text = await loreSearch(args.query, args.k);
       } else if (toolName === 'lore_read') {
         const args = req.params?.arguments || {};
-        text = await loreSearchFull(args.query, args.k);
+        text = loreRead(args.file_path);
       } else if (toolName === 'lore_health') {
         text = await loreSearchHealth();
       } else {
