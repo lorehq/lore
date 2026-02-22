@@ -3,9 +3,9 @@
 // JSON-RPC 2.0 over stdio (newline-delimited JSON). Zero dependencies.
 //
 // Exposes three tools:
-//   lore_search        — semantic search returning snippets and file paths
-//   lore_search_full   — semantic search returning full file contents
-//   lore_search_health — container health and index status
+//   lore_search  — semantic search returning snippets and file paths
+//   lore_read    — semantic search returning full file contents for each match
+//   lore_health  — container health and index status
 //
 // Reads docker.search config from .lore/config.json to locate the search container.
 // Platform-agnostic — works with Claude Code, Cursor, and OpenCode.
@@ -220,18 +220,18 @@ const TOOLS = [
     name: 'lore_search',
     description:
       'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). '
-      + 'Returns snippets and file paths. Use lore_search_full to get complete file contents.',
+      + 'Returns snippets and file paths. Use lore_read to get complete file contents.',
     inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
   },
   {
-    name: 'lore_search_full',
+    name: 'lore_read',
     description:
       'Semantic search returning full file contents for each match. '
       + 'Use when you need to read the matched files, not just discover them.',
     inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
   },
   {
-    name: 'lore_search_health',
+    name: 'lore_health',
     description: 'Check if the semantic search container is running and how many files are indexed.',
     inputSchema: { type: 'object', properties: {}, required: [] },
   },
@@ -270,10 +270,10 @@ async function handleRequest(req) {
       if (toolName === 'lore_search') {
         const args = req.params?.arguments || {};
         text = await loreSearch(args.query, args.k);
-      } else if (toolName === 'lore_search_full') {
+      } else if (toolName === 'lore_read') {
         const args = req.params?.arguments || {};
         text = await loreSearchFull(args.query, args.k);
-      } else if (toolName === 'lore_search_health') {
+      } else if (toolName === 'lore_health') {
         text = await loreSearchHealth();
       } else {
         return {
