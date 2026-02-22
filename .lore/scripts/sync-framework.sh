@@ -5,9 +5,9 @@
 # Usage: .lore/scripts/sync-framework.sh <source-dir>
 #
 # Framework-owned (synced):
-#   .lore/hooks/, .lore/lib/, .lore/scripts/, .opencode/, .cursor/, opencode.json,
-#   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
-#   .lore/instructions.md, .gitignore
+#   .lore/hooks/, .lore/lib/, .lore/mcp/, .lore/scripts/, .opencode/, .cursor/,
+#   opencode.json, .mcp.json, .claude/settings.json, .lore/skills/lore-*/,
+#   .lore/agents/lore-*, .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
@@ -46,6 +46,9 @@ cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
 mkdir -p "$TARGET/.cursor/mcp"
 cp "$SOURCE/.cursor/mcp/lore-server.js" "$TARGET/.cursor/mcp/lore-server.js"
 cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
+# Knowledge base search MCP — platform-agnostic semantic search tool.
+mkdir -p "$TARGET/.lore/mcp"
+cp "$SOURCE/.lore/mcp/search-server.js" "$TARGET/.lore/mcp/search-server.js"
 
 # Framework-owned rules (content derived from instructions.md, same across instances)
 mkdir -p "$TARGET/.cursor/rules"
@@ -86,6 +89,7 @@ if [ -s "$TARGET/.lore/operator.gitignore" ]; then
   cat "$TARGET/.lore/operator.gitignore" >> "$TARGET/.gitignore"
 fi
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
+cp "$SOURCE/.mcp.json" "$TARGET/.mcp.json"
 
 # Generate platform copies from canonical .lore/ source
 bash "$TARGET/.lore/scripts/sync-platform-skills.sh"

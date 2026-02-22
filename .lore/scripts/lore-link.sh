@@ -50,6 +50,7 @@ GENERATED_FILES=(
   .opencode/commands/lore-update.md
   .opencode/commands/lore-docker.md
   opencode.json
+  .mcp.json
 )
 
 # -- link --
@@ -100,6 +101,22 @@ do_link() {
     fs.writeFileSync(process.argv[2], JSON.stringify(settings, null, 2) + '\n');
   " "$HUB" "$target/.claude/settings.json"
 
+  # Claude Code MCP — knowledge base search pointing back to hub
+  node -e "
+    const fs = require('fs');
+    const hub = process.argv[1];
+    const config = {
+      mcpServers: {
+        'lore-search': {
+          command: 'node',
+          args: [hub + '/.lore/mcp/search-server.js'],
+          env: { LORE_HUB: hub }
+        }
+      }
+    };
+    fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
+  " "$HUB" "$target/.mcp.json"
+
   # Cursor hooks
   node -e "
     const fs = require('fs');
@@ -120,16 +137,21 @@ do_link() {
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/.cursor/hooks.json"
 
-  # Cursor MCP config — points to hub's lore-server.js with LORE_HUB so the
-  # server resolves shared libs and knowledge files from the hub, not the target repo.
+  # Cursor MCP config — points to hub's servers with LORE_HUB so the
+  # servers resolve shared libs and knowledge files from the hub, not the target repo.
   node -e "
     const fs = require('fs');
     const hub = process.argv[1];
     const config = {
       mcpServers: {
-        lore: {
+        'lore-cursor': {
           command: 'node',
           args: [hub + '/.cursor/mcp/lore-server.js'],
+          env: { LORE_HUB: hub }
+        },
+        'lore-search': {
+          command: 'node',
+          args: [hub + '/.lore/mcp/search-server.js'],
           env: { LORE_HUB: hub }
         }
       }
@@ -175,7 +197,16 @@ do_link() {
   node -e "
     const fs = require('fs');
     const hub = process.argv[1];
-    const config = { instructions: ['CLAUDE.md'] };
+    const config = {
+      instructions: ['CLAUDE.md'],
+      mcpServers: {
+        'lore-search': {
+          command: 'node',
+          args: [hub + '/.lore/mcp/search-server.js'],
+          env: { LORE_HUB: hub }
+        }
+      }
+    };
     fs.writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
   " "$HUB" "$target/opencode.json"
 

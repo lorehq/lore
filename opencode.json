@@ -1,4 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": [".lore/instructions.md", ".lore/memory.local.md"]
+  "instructions": [".lore/instructions.md", ".lore/memory.local.md"],
+  "mcpServers": {
+    "lore-search": {
+      "command": "node",
+      "args": [".lore/mcp/search-server.js"]
+    }
+  }
 }

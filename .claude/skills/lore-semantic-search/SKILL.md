@@ -8,6 +8,8 @@ banner-loaded: true
 
 # Semantic Search Query (Local)
 
+**Preferred:** Use the `lore_search` MCP tool when available — it handles search + file reading in a single call. The methods below are fallbacks for environments without MCP support.
+
 When `docker.search` in `.lore/config.json` points to localhost or a private network, `Fetch`/`WebFetch` may fail due to URL restrictions.
 
 ## Query Methods

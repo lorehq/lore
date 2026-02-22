@@ -1,9 +1,5 @@
 {
   "mcpServers": {
-    "lore-cursor": {
-      "command": "node",
-      "args": [".cursor/mcp/lore-server.js"]
-    },
     "lore-search": {
       "command": "node",
       "args": [".lore/mcp/search-server.js"]
