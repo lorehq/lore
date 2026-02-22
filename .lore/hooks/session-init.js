@@ -7,8 +7,11 @@ const { buildBanner, ensureStickyFiles } = require('../lib/banner');
 const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
 
+const { generate: generateAgents } = require('../lib/generate-agents');
+
 const root = path.join(__dirname, '..', '..');
 debug('session-init: root=%s', root);
+generateAgents(root);
 ensureStickyFiles(root);
 try {
   require('child_process').execSync(`bash "${path.join(root, '.lore', 'scripts', 'ensure-structure.sh')}"`, {

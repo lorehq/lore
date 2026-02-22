@@ -5,9 +5,9 @@
 # Usage: .lore/scripts/sync-framework.sh <source-dir>
 #
 # Framework-owned (synced):
-#   .lore/hooks/, .lore/lib/, .lore/mcp/, .lore/scripts/, .opencode/, .cursor/,
-#   opencode.json, .mcp.json, .claude/settings.json, .lore/skills/lore-*/,
-#   .lore/agents/lore-*, .lore/instructions.md, .gitignore
+#   .lore/hooks/, .lore/lib/, .lore/mcp/, .lore/scripts/, .lore/templates/,
+#   .opencode/, .cursor/, opencode.json, .mcp.json, .claude/settings.json,
+#   .lore/skills/lore-*/, .lore/agents/lore-*, .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
@@ -67,7 +67,14 @@ if [ -d "$SOURCE/.lore/skills" ]; then
   done
 fi
 
-# Framework agents (lore-* only) — overwrite existing, skip operator agents
+# Framework agent templates — lore-worker.md lives in templates/, tiers generated at session start
+if [ -d "$SOURCE/.lore/templates" ]; then
+  mkdir -p "$TARGET/.lore/templates"
+  cp -Rf "$SOURCE/.lore/templates/." "$TARGET/.lore/templates/"
+fi
+
+# Framework agents (lore-* only, non-worker) — overwrite existing, skip operator agents
+# Worker tiers are generated from template by generate-agents.js at session start
 if [ -d "$SOURCE/.lore/agents" ]; then
   mkdir -p "$TARGET/.lore/agents"
   for agent_file in "$SOURCE/.lore/agents"/lore-*.md; do

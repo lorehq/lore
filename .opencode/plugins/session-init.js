@@ -20,6 +20,9 @@ function runEnsureStructure(hub) {
 
 export const SessionInit = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
+  // Generate worker agent tiers from template + config before banner reads .lore/agents/
+  const { generate: generateAgents } = require('../../.lore/lib/generate-agents');
+  generateAgents(hub);
   // Scaffold missing files before first banner build so PROJECT section
   // picks up the agent-rules.md template on first run.
   ensureStickyFiles(hub);

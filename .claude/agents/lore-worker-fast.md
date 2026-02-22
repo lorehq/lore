@@ -1,5 +1,5 @@
 ---
-name: lore-worker
+name: lore-worker-fast
 description: Ephemeral task worker. Orchestrator loads it with skills and context per-task.
 model: haiku
 skills: [lore-semantic-search]

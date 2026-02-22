@@ -1,7 +1,6 @@
 ---
 name: lore-worker-powerful
 description: Ephemeral task worker. Orchestrator loads it with skills and context per-task.
-model: opus
 skills: [lore-semantic-search]
 ---
 # Worker Agent

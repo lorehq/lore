@@ -47,8 +47,8 @@ for f in "$REPO_ROOT"/.lore/agents/*.md; do
     val=$(extract_field "$field" "$f")
     [[ -z "$val" ]] && fail "Agent '$name' missing '$field'"
   done
-  # lore-worker is exempt — its model comes from subagentDefaults config tiers, not frontmatter.
-  if [[ "$name" != "lore-worker" ]]; then
+  # lore-worker tier variants are exempt — their model comes from subagentDefaults config, not frontmatter.
+  if [[ "$name" != "lore-worker" && "$name" != "lore-worker-fast" && "$name" != "lore-worker-powerful" ]]; then
     lm=$(extract_field "model" "$f")
     [[ -z "$lm" ]] && fail "Agent '$name' missing 'model' field"
   fi

@@ -34,4 +34,6 @@ When configured, `lore sync` generates Claude worker variants: `lore-worker.md` 
 
 | Agent | Description |
 |-------|-------------|
+| lore-worker-fast | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |
+| lore-worker-powerful | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |
 | lore-worker | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |

@@ -8,8 +8,11 @@ const path = require('path');
 const { buildBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
+const { generate: generateAgents } = require('../../.lore/lib/generate-agents');
+
 const hub = process.env.LORE_HUB || path.join(__dirname, '..', '..');
 
+generateAgents(hub);
 ensureStickyFiles(hub);
 try {
   require('child_process').execSync(`bash "${require('path').join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, {
