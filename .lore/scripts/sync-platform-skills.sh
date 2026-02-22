@@ -19,38 +19,34 @@ fi
 if [ -d "$REPO_ROOT/.lore/agents" ]; then
   mkdir -p "$REPO_ROOT/.claude/agents"
   # Resolve model cascade for each agent: frontmatter → subagentDefaults → omit
+  # lore-worker.md gets up to 3 tier variants (fast, default, powerful).
+  # All other agents use their own frontmatter claude-model field only.
   node -e "
     const fs = require('fs');
     const path = require('path');
     const root = process.argv[1];
     const configPath = path.join(root, '.lore', 'config.json');
-    let defaults = {};
+    let claudeTiers = {};
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      defaults = cfg.subagentDefaults || {};
+      claudeTiers = (cfg.subagentDefaults && cfg.subagentDefaults.claude) || {};
     } catch (_e) { /* no config or no defaults */ }
 
     const agentDir = path.join(root, '.lore', 'agents');
     const outDir = path.join(root, '.claude', 'agents');
-    for (const file of fs.readdirSync(agentDir)) {
-      if (!file.endsWith('.md')) continue;
-      const src = fs.readFileSync(path.join(agentDir, file), 'utf8');
+
+    function stampAgent(src, claudeModel, outFile) {
       const fmMatch = src.match(/^---\n([\s\S]*?)\n---/);
-      if (!fmMatch) { fs.writeFileSync(path.join(outDir, file), src); continue; }
+      if (!fmMatch) { fs.writeFileSync(path.join(outDir, outFile), src); return; }
 
       const fm = fmMatch[1];
-      // Extract claude-model from frontmatter
-      const cmMatch = fm.match(/^claude-model:\s*(.+)$/m);
-      const claudeModel = cmMatch ? cmMatch[1].trim() : (defaults['claude-model'] || null);
-
-      // Replace per-platform model fields with single platform-native 'model' field
+      // Strip per-platform model fields
       let newFm = fm
         .replace(/^claude-model:.*\n?/m, '')
         .replace(/^opencode-model:.*\n?/m, '')
         .replace(/^cursor-model:.*\n?/m, '')
         .replace(/^model:.*\n?/m, '');
       if (claudeModel) {
-        // Insert model after description line, or at end of frontmatter
         const descIdx = newFm.search(/^description:.*$/m);
         if (descIdx >= 0) {
           const eol = newFm.indexOf('\n', descIdx);
@@ -61,7 +57,35 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
       }
 
       const out = src.replace(fmMatch[1], newFm.replace(/\n+$/, ''));
-      fs.writeFileSync(path.join(outDir, file), out);
+      fs.writeFileSync(path.join(outDir, outFile), out);
+    }
+
+    for (const file of fs.readdirSync(agentDir)) {
+      if (!file.endsWith('.md')) continue;
+      const src = fs.readFileSync(path.join(agentDir, file), 'utf8');
+
+      if (file === 'lore-worker.md') {
+        // Always emit lore-worker.md with default tier model (or no model if null)
+        stampAgent(src, claudeTiers.default || null, 'lore-worker.md');
+        // Emit fast and powerful variants only when tiers are configured
+        if (claudeTiers.fast) stampAgent(src, claudeTiers.fast, 'lore-worker-fast.md');
+        if (claudeTiers.powerful) stampAgent(src, claudeTiers.powerful, 'lore-worker-powerful.md');
+      } else {
+        // Non-worker agents: use their own frontmatter claude-model field only
+        const fmMatch = src.match(/^---\n([\s\S]*?)\n---/);
+        let claudeModel = null;
+        if (fmMatch) {
+          const cmMatch = fmMatch[1].match(/^claude-model:\s*(.+)$/m);
+          if (cmMatch) claudeModel = cmMatch[1].trim();
+        }
+        stampAgent(src, claudeModel, file);
+      }
+    }
+
+    // Clean up stale files from old naming scheme
+    for (const stale of ['lore-worker-agent.md', 'lore-worker-default.md']) {
+      const stalePath = path.join(outDir, stale);
+      if (fs.existsSync(stalePath)) fs.unlinkSync(stalePath);
     }
   " "$REPO_ROOT"
 fi

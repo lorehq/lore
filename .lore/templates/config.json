@@ -12,11 +12,10 @@
   // Max directory depth for ASCII trees in banner and knowledge map
   // "treeDepth": 5,
 
-  // Per-platform model preferences for delegated workers
+  // Per-platform model preferences for delegated workers (3-tier: fast, default, powerful)
+  // Generates lore-worker.md, lore-worker-fast.md, lore-worker-powerful.md agent variants.
   // "subagentDefaults": {
-  //   "claude-model": "sonnet",
-  //   "opencode-model": null,
-  //   "cursor-model": null
+  //   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   // },
 
   // Docker services — site/search set by /lore-docker on start, cleared on stop

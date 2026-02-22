@@ -8,7 +8,7 @@ allowed-tools: Write, Edit, Read, Glob
 
 # Create Agent
 
-Operator agents are optional static delegation patterns. The framework provides `lore-worker-agent` for general delegation — this skill is for creating additional operator-owned agents when a recurring task pattern benefits from a pre-packaged agent.
+Operator agents are optional static delegation patterns. The framework provides `lore-worker` for general delegation — this skill is for creating additional operator-owned agents when a recurring task pattern benefits from a pre-packaged agent.
 
 ## When to Create
 
@@ -67,4 +67,4 @@ bash .lore/scripts/sync-platform-skills.sh
 
 Pattern: `<purpose>-agent` (e.g., `deploy-agent`, `infra-agent`, `docs-agent`). Lowercase, kebab-case.
 
-**Do not use the `lore-` prefix** — that's reserved for framework agents (`lore-worker-agent`). Operator agents use descriptive names without the prefix.
+**Do not use the `lore-` prefix** — that's reserved for framework agents (`lore-worker`). Operator agents use descriptive names without the prefix.

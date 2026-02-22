@@ -1,5 +1,5 @@
 ---
-name: lore-worker-agent
+name: lore-worker
 description: Ephemeral task worker. Orchestrator loads it with skills and context per-task.
 model: sonnet
 skills: [lore-semantic-search]

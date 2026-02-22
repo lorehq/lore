@@ -36,7 +36,7 @@ Knowledge-persistent coding agent framework.
 
 - Framework skills: `lore-capture`, `lore-create-skill`, etc.
 - Operator skills: `bash-macos-compat`, etc.
-- Framework agents: `lore-worker-agent`
+- Framework agents: `lore-worker`
 
 Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
@@ -65,15 +65,30 @@ Capture rules:
 
 ## Agent Creation
 
-**One framework worker: `lore-worker-agent`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
+**One framework worker: `lore-worker`.** The orchestrator spawns it per-task with curated skills, conventions, and scope.
 
 Operator agents are optional. Create them when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
-Per-platform model preferences go on agents (not skills). Set `claude-model`, `opencode-model`, `cursor-model` in agent frontmatter. Instance defaults live in `.lore/config.json` under `subagentDefaults`.
+Per-platform model preferences go on agents (not skills). Instance defaults live in `.lore/config.json` under `subagentDefaults`.
+
+`subagentDefaults` uses a 3-tier nested schema:
+
+```json
+"subagentDefaults": {
+  "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
+}
+```
+
+When tiers are configured, `lore sync` generates worker agent variants from `lore-worker.md`: `lore-worker.md` (default tier), `lore-worker-fast.md`, and `lore-worker-powerful.md`, each stamped with the corresponding platform model.
 
 ## Delegation
 
-**Orchestrate, don't execute.** Default to `lore-worker-agent`. If another agent exists whose name fits the task, use it instead.
+**Orchestrate, don't execute.** Default to `lore-worker`. If another agent exists whose name fits the task, use it instead.
+
+When tiers are configured, pick the right worker for the job:
+- `lore-worker-fast` — bulk/parallel tasks, simple lookups, boilerplate generation
+- `lore-worker` — general-purpose work, the safe default
+- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
 Delegate when: parallel subtasks, endpoint/API exploration, multi-step execution, context is getting heavy, or a cheaper model suffices. API discovery (probing unknown endpoints) is always a delegation target — never burn Opus tokens on serial trial-and-error.
 

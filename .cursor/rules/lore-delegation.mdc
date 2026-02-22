@@ -5,7 +5,12 @@ alwaysApply: true
 
 ## Delegation
 
-**Orchestrate, don't execute.** Default to `lore-worker-agent`. If another agent exists whose name fits the task, use it instead.
+**Orchestrate, don't execute.** Default to `lore-worker`. If another agent exists whose name fits the task, use it instead.
+
+When tiers are configured, pick the right worker for the job:
+- `lore-worker-fast` — bulk/parallel tasks, simple lookups, boilerplate generation
+- `lore-worker` — general-purpose work, the safe default
+- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
 Delegate when: parallel subtasks, endpoint/API exploration, multi-step execution, context is getting heavy, or a cheaper model suffices. API discovery (probing unknown endpoints) is always a delegation target — never burn Opus tokens on serial trial-and-error.
 
@@ -17,4 +22,4 @@ Don't delegate: quick answers, single reads, clarifications, or capture writes.
 
 | Agent | Description |
 |-------|-------------|
-| lore-worker-agent | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |
+| lore-worker | Ephemeral task worker. Orchestrator loads it with skills and context per-task. |
