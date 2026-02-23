@@ -80,7 +80,7 @@ echo "--- Platform Sync ---"
 if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
   # Check .claude/skills/ matches .lore/skills/
   if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
-    diff_out=$(diff --strip-trailing-cr -rq "$REPO_ROOT/.lore/skills" "$REPO_ROOT/.claude/skills" 2>&1) || true
+    diff_out=$(diff -rq "$REPO_ROOT/.lore/skills" "$REPO_ROOT/.claude/skills" 2>&1) || true
     if [[ -n "$diff_out" ]]; then
       fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/scripts/sync-platform-skills.sh"
     fi
@@ -106,9 +106,8 @@ fi
 echo "--- Instructions Sync ---"
 if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
   # CLAUDE.md is a direct copy of instructions.md
-  # Use --strip-trailing-cr to handle CRLF on Windows
   if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
-    if ! diff --strip-trailing-cr -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1; then
+    if ! diff -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1; then
       fail "CLAUDE.md out of sync with .lore/instructions.md — run: bash .lore/scripts/sync-platform-skills.sh"
     fi
   else
