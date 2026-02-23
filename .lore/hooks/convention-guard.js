@@ -49,10 +49,7 @@ debug('convention-guard: file=%s relative=%s', filePath, relative);
 // Checks parent dir first (operator override), then system/ fallback.
 function extractPrinciples(filename) {
   const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
-  const candidates = [
-    path.join(convDir, filename),
-    path.join(convDir, 'system', filename),
-  ];
+  const candidates = [path.join(convDir, filename), path.join(convDir, 'system', filename)];
   for (const convPath of candidates) {
     try {
       const content = fs.readFileSync(convPath, 'utf8');
@@ -120,7 +117,9 @@ try {
   let systemFiles = [];
   const systemDir = path.join(convDir, 'system');
   try {
-    systemFiles = fs.readdirSync(systemDir).filter((f) => f.endsWith('.md') && !injected.has(f) && !operatorNames.has(f));
+    systemFiles = fs
+      .readdirSync(systemDir)
+      .filter((f) => f.endsWith('.md') && !injected.has(f) && !operatorNames.has(f));
   } catch (_) {}
   const allFiles = [...operatorFiles, ...systemFiles];
   if (allFiles.length > 0) {

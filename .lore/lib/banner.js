@@ -176,9 +176,7 @@ WORKERS: ${workerList}`;
       // Semantic search available — list all convention names, agent finds content on demand
       // Merge operator conventions + system/ conventions (operator names take precedence)
       if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
-        const operatorNames = fs
-          .readdirSync(convDir)
-          .filter((f) => f.endsWith('.md') && f !== 'index.md');
+        const operatorNames = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && f !== 'index.md');
         const operatorSet = new Set(operatorNames);
         let systemNames = [];
         const systemDir = path.join(convDir, 'system');
@@ -187,9 +185,7 @@ WORKERS: ${workerList}`;
             .readdirSync(systemDir)
             .filter((f) => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f));
         } catch (_) {}
-        const allNames = [...operatorNames, ...systemNames]
-          .map((f) => f.replace(/\.md$/, ''))
-          .sort();
+        const allNames = [...operatorNames, ...systemNames].map((f) => f.replace(/\.md$/, '')).sort();
         if (allNames.length > 0) {
           output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + allNames.join(', ');
         }
