@@ -7,12 +7,20 @@ import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 const require = createRequire(import.meta.url);
-const { buildBanner, buildCompactReminder, ensureStickyFiles } = require('../../.lore/lib/banner');
+const { buildDynamicBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 function runEnsureStructure(hub) {
   try {
     execSync(`bash "${join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, { stdio: 'pipe' });
+  } catch {
+    /* non-critical */
+  }
+}
+
+function regenerateClaudeMd(hub) {
+  try {
+    execSync(`node "${join(hub, '.lore', 'scripts', 'generate-claude-md.js')}" "${hub}"`, { stdio: 'pipe' });
   } catch {
     /* non-critical */
   }
@@ -27,53 +35,44 @@ export const SessionInit = async ({ directory, client }) => {
   // picks up the agent-rules.md template on first run.
   ensureStickyFiles(hub);
   runEnsureStructure(hub);
-  const banner = buildBanner(hub);
+  // Regenerate CLAUDE.md with latest static banner content (read via opencode.json instructions)
+  regenerateClaudeMd(hub);
+  const initBanner = buildDynamicBanner(hub);
   await client.app.log({
-    body: { service: 'session-init', level: 'info', message: banner },
+    body: { service: 'session-init', level: 'info', message: initBanner || '(no dynamic content)' },
   });
-  // One-time init — log banner size for baseline context cost
   logHookEvent({
     platform: 'opencode',
     hook: 'session-init',
     event: 'SessionInit',
-    outputSize: banner.length,
+    outputSize: initBanner.length,
     directory: hub,
   });
 
-  // True until the first chat.system.transform call; reset to true after compaction
-  // so the next call after a compact gets full re-orientation.
-  let needsFullBanner = true;
+  // First transform call injects dynamic content; subsequent calls skip (CLAUDE.md has static).
+  let needsDynamic = true;
 
   return {
     'experimental.chat.system.transform': async (_input, output) => {
-      ensureStickyFiles(hub);
-      runEnsureStructure(hub);
-      let b;
-      if (needsFullBanner) {
-        b = buildBanner(hub);
-        needsFullBanner = false;
-      } else {
-        b = buildCompactReminder(hub);
+      if (needsDynamic) {
+        const b = buildDynamicBanner(hub);
+        if (b) output.system.push(b);
+        needsDynamic = false;
+        logHookEvent({
+          platform: 'opencode',
+          hook: 'session-init',
+          event: 'chat.system.transform',
+          outputSize: b.length,
+          directory: hub,
+        });
       }
-      output.system.push(b);
-      // Fires every LLM call. First call gets full banner (~14K chars),
-      // subsequent calls get compact reminder (~200 chars). Resets after compaction.
-      logHookEvent({
-        platform: 'opencode',
-        hook: 'session-init',
-        event: 'chat.system.transform',
-        outputSize: b.length,
-        directory: hub,
-      });
     },
     'experimental.session.compacting': async (_input, output) => {
-      ensureStickyFiles(hub);
-      runEnsureStructure(hub);
-      const b = buildBanner(hub);
-      output.context.push(b);
-      // Compaction rebuilds context from scratch — restore full banner on next call.
-      needsFullBanner = true;
-      // Fires on context compaction — should be rare, log to confirm it works
+      // After compaction, CLAUDE.md instructions reload automatically.
+      // Only re-inject dynamic content.
+      const b = buildDynamicBanner(hub);
+      if (b) output.context.push(b);
+      needsDynamic = true;
       logHookEvent({
         platform: 'opencode',
         hook: 'session-init',

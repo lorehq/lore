@@ -111,7 +111,9 @@ function getBannerLoadedSkills(directory) {
   }
 }
 
-function buildBanner(directory) {
+// Static banner: file-driven content that only changes when source files change.
+// Suitable for baking into CLAUDE.md and .mdc files at generation time.
+function buildStaticBanner(directory) {
   const agentEntries = getAgentEntries(directory);
   const operatorSkills = getOperatorSkills(directory);
 
@@ -164,18 +166,6 @@ WORKERS: ${workerList}`;
     if (stripped && !stripped.includes('Describe your project')) output += '\n\nPROJECT:\n' + stripped;
   } catch (e) {
     debug('agent-rules: %s', e.message);
-  }
-
-  try {
-    const profilePath = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
-    const raw = fs.readFileSync(profilePath, 'utf8');
-    const stripped = stripFrontmatter(raw).trim();
-    // Skip injection if the profile is still the default template
-    if (stripped && !stripped.includes('- **Name:**\n- **Role:**')) {
-      output += '\n\nOPERATOR PROFILE:\n' + stripped;
-    }
-  } catch (e) {
-    debug('operator-profile: %s', e.message);
   }
 
   try {
@@ -237,14 +227,45 @@ WORKERS: ${workerList}`;
     if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
   }
 
+  return output;
+}
+
+// Dynamic banner: gitignored content that changes between/within sessions.
+// Injected at runtime via hooks — never baked into static files.
+function buildDynamicBanner(directory) {
+  let output = '';
+
+  try {
+    const profilePath = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
+    const raw = fs.readFileSync(profilePath, 'utf8');
+    const stripped = stripFrontmatter(raw).trim();
+    // Skip injection if the profile is still the default template
+    if (stripped && !stripped.includes('- **Name:**\n- **Role:**')) {
+      output += 'OPERATOR PROFILE:\n' + stripped;
+    }
+  } catch (e) {
+    debug('operator-profile: %s', e.message);
+  }
+
   const memPath = path.join(directory, '.lore/memory.local.md');
   try {
     const mem = fs.readFileSync(memPath, 'utf8').trim();
-    if (mem && mem !== '# Local Memory') output += `\n\nLOCAL MEMORY:\n${mem}`;
+    if (mem && mem !== '# Local Memory') {
+      if (output) output += '\n\n';
+      output += `LOCAL MEMORY:\n${mem}`;
+    }
   } catch (e) {
     debug('local-memory: %s', e.message);
   }
 
+  return output;
+}
+
+// Full banner: static + dynamic combined. Backward compatible.
+function buildBanner(directory) {
+  let output = buildStaticBanner(directory);
+  const dynamic = buildDynamicBanner(directory);
+  if (dynamic) output += '\n\n' + dynamic;
   return output;
 }
 
@@ -297,6 +318,8 @@ function buildCursorBanner(directory) {
 // New code can import directly from lib/tree, lib/config, lib/sticky.
 module.exports = {
   buildBanner,
+  buildStaticBanner,
+  buildDynamicBanner,
   buildCursorBanner,
   buildTree,
   ensureStickyFiles,

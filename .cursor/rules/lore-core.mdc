@@ -120,6 +120,87 @@ Safety hooks (protect-memory, framework-guard) always fire regardless of profile
 - Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
 
 
+=== LORE v0.11.0 ===
+
+WORKERS: lore-worker-fast, lore-worker-powerful, lore-worker
+
+SKILLS: mcp-stdio-content-length-framing, node-macos-stdin-fd, platform-command-collisions, pymdownx-extension-order
+
+# Delegation Recipe
+
+## Worker Prompt Rules
+
+Name what to load — workers read the files themselves.
+
+Include in every worker prompt:
+1. **Knowledge-base-first** — "Search the knowledge base before acting (semantic search if available, otherwise Glob/Grep)." This prevents redundant discovery and surfaces existing skills/knowledge early.
+2. **Task description** — what needs doing and why
+3. **Resolve before delegating** — Workers execute, they don't interpret. Resolve ambiguous or relative inputs to concrete values before they reach the worker. If it requires reasoning or judgment, the orchestrator decides; the worker receives the decision.
+   - Bad: "find large files" → worker decides what "large" means
+   - Good: "find files over 10MB" → worker executes a clear threshold
+   - Bad: "get recent orders" → worker interprets "recent"
+   - Good: "get orders with status pending" → worker filters on a concrete field
+4. **Conventions to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
+5. **Scope** — target repo path, which files may be modified
+6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
+7. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
+
+You may also name specific skills to load — workers discover the rest via semantic search.
+
+Workers report findings — the orchestrator decides what to persist.
+
+## Parallel Workers
+
+For independent subtasks, spawn parallel workers. Don't serialize what can run concurrently.
+
+## After Worker Returns
+
+1. Gotchas reported? → create skill
+2. Environment facts? → write to `docs/knowledge/environment/`
+3. Procedures? → write to `docs/knowledge/runbooks/`
+4. Nothing? → move on
+
+# Semantic Search Query (Local)
+
+**Preferred:** Use the `lore_search` MCP tool when available — it handles search + file reading in a single call. The methods below are fallbacks for environments without MCP support.
+
+When `docker.search` in `.lore/config.json` points to localhost or a private network, `Fetch`/`WebFetch` may fail due to URL restrictions.
+
+## Query Methods
+
+### Node.js (built-in fetch)
+
+```bash
+SEM_URL="http://localhost:PORT/search" SEM_Q="your query" SEM_K=5 \
+node -e "const u=new URL(process.env.SEM_URL);u.searchParams.set('q',process.env.SEM_Q||'');u.searchParams.set('k',process.env.SEM_K||'8');fetch(u).then(r=>r.text()).then(t=>process.stdout.write(t)).catch(e=>{console.error(e.message);process.exit(1);});"
+```
+
+### curl
+
+```bash
+# Default: returns file paths (paths_min mode)
+curl -s "http://localhost:PORT/search?q=your+query&k=5"
+
+# Full mode: includes score and snippet per result
+curl -s "http://localhost:PORT/search?q=your+query&k=5&mode=full"
+```
+
+## Checking Availability
+
+```bash
+node -e "const c=require('./.lore/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
+```
+
+If output is `unavailable`, skip to Grep/Glob fallback immediately.
+
+## Gotchas
+
+- **MAX_K defaults to 2** — queries requesting `k` higher than `MAX_K` raise a validation error. Set `-e MAX_K=10` when starting the container.
+- **Paths in responses are relative** to the mounted volume root. Prepend the local mount path to read them.
+- **Model loading takes 30-60s on first start** — health returns `ok: true` only after indexing completes; poll before querying.
+- **WebFetch fails on localhost** — always use Bash (Node fetch or curl) for lore-docker endpoints.
+- Always include the `q` query parameter. Prefer short, concrete queries first, then broaden if needed.
+
 ## MCP Tools
 
 Call `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.

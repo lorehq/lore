@@ -45,9 +45,9 @@ if [ -d "$REPO_ROOT/.lore/agents" ]; then
   " "$REPO_ROOT"
 fi
 
-# -- Instructions --
+# -- Instructions + static banner --
 if [ -f "$REPO_ROOT/.lore/instructions.md" ]; then
-  cp "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md"
+  node "$REPO_ROOT/.lore/scripts/generate-claude-md.js" "$REPO_ROOT"
 fi
 
 # -- Cursor rules --

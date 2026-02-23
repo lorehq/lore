@@ -181,13 +181,41 @@ function buildKnowledgeMap() {
 
 // -- Tier 1: Always-on (loaded every session, including first auto-open) ------
 
-// 1. lore-core — full framework instructions + MCP tool usage.
-//    MCP section is appended beyond instructions.md because it's Cursor-specific
-//    (Claude Code and OpenCode use hooks directly, not MCP tools).
+// 1. lore-core — full framework instructions + static banner items + MCP tool usage.
+//    Static banner items (WORKERS, SEMANTIC SEARCH, SKILLS, banner-loaded skills) are
+//    baked in here so they don't need to be injected via the sessionStart hook.
+//    MCP section is appended because it's Cursor-specific.
+const { getConfig: getCfg, getProfile: getProf } = require(path.join(SOURCE, '.lore', 'lib', 'config'));
+const { getAgentEntries: getAgents, getOperatorSkills: getOpSkills, getBannerLoadedSkills: getBLSkills } = require(path.join(SOURCE, '.lore', 'lib', 'banner'));
+
+const coreCfg = getCfg(SOURCE);
+const coreVersion = coreCfg.version ? ` v${coreCfg.version}` : '';
+const coreProfile = getProf(SOURCE);
+const coreProfileTag = coreProfile !== 'standard' ? ` [${coreProfile.toUpperCase()}]` : '';
+const coreDocker = coreCfg.docker || {};
+const coreSearchUrl = coreDocker.search && coreDocker.search.address
+  ? `http://${coreDocker.search.address}:${coreDocker.search.port || 9185}/search`
+  : '';
+const coreAgents = getAgents(SOURCE);
+const coreWorkerList = coreAgents.length > 0 ? coreAgents.map(a => a.name).join(', ') : '(none yet)';
+const coreOpSkills = getOpSkills(SOURCE);
+const coreSkillLine = coreOpSkills.length > 0 ? coreOpSkills.map(s => s.name).join(', ') : '';
+const coreBLSkills = getBLSkills(SOURCE);
+
+let staticBannerBlock = `=== LORE${coreVersion}${coreProfileTag} ===\n\nWORKERS: ${coreWorkerList}`;
+if (coreSearchUrl) staticBannerBlock += `\nSEMANTIC SEARCH: ${coreSearchUrl}`;
+if (coreProfile === 'minimal') {
+  staticBannerBlock += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
+} else if (coreProfile === 'discovery') {
+  staticBannerBlock += '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
+}
+if (coreSkillLine) staticBannerBlock += `\n\nSKILLS: ${coreSkillLine}`;
+if (coreBLSkills.length > 0) staticBannerBlock += '\n\n' + coreBLSkills.map(s => s.body).join('\n\n');
+
 const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.';
 writeMdc('lore-core.mdc',
   'description: Lore framework instructions — core behaviors, knowledge routing, ownership, skill/agent creation\nalwaysApply: true',
-  instructions + mcpSection
+  instructions + '\n\n' + staticBannerBlock + mcpSection
 );
 
 // 2. lore-project — project identity + conventions snapshot

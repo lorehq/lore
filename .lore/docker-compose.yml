@@ -16,9 +16,11 @@ services:
       - SNIPPET_CHARS=${SEMANTIC_SNIPPET_CHARS:-200}
       - RESULT_MODE=${SEMANTIC_RESULT_MODE:-paths_min}
       - EMBED_MODEL=${SEMANTIC_EMBED_MODEL:-BAAI/bge-small-en-v1.5}
+      - REPO_ROOT=/data/repo
+      - DOCS_SOURCE=/data/repo/docs
+      - SKILLS_SOURCE=/data/repo/.lore/skills
     volumes:
-      - ../docs:/data/docs
-      - ../.lore/skills:/data/skills:ro
+      - ..:/data/repo
       - runtime_data:/runtime-data
       - runtime_cache:/runtime-cache
     restart: unless-stopped
