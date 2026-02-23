@@ -46,9 +46,11 @@ GENERATED_FILES=(
   .opencode/plugins/framework-guard.js
   .opencode/commands/lore-capture.md
   .opencode/commands/lore-consolidate.md
+  .opencode/commands/lore-create-note.md
+  .opencode/commands/lore-docker.md
+  .opencode/commands/lore-link.md
   .opencode/commands/lore-status.md
   .opencode/commands/lore-update.md
-  .opencode/commands/lore-docker.md
   opencode.json
   .mcp.json
 )
@@ -189,9 +191,11 @@ do_link() {
   # OpenCode custom slash commands
   cp "$HUB/.opencode/commands/lore-capture.md" "$target/.opencode/commands/lore-capture.md"
   cp "$HUB/.opencode/commands/lore-consolidate.md" "$target/.opencode/commands/lore-consolidate.md"
+  cp "$HUB/.opencode/commands/lore-create-note.md" "$target/.opencode/commands/lore-create-note.md"
+  cp "$HUB/.opencode/commands/lore-docker.md" "$target/.opencode/commands/lore-docker.md"
+  cp "$HUB/.opencode/commands/lore-link.md" "$target/.opencode/commands/lore-link.md"
   cp "$HUB/.opencode/commands/lore-status.md" "$target/.opencode/commands/lore-status.md"
   cp "$HUB/.opencode/commands/lore-update.md" "$target/.opencode/commands/lore-update.md"
-  cp "$HUB/.opencode/commands/lore-docker.md" "$target/.opencode/commands/lore-docker.md"
 
   # opencode.json
   node -e "

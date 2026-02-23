@@ -22,9 +22,7 @@ services:
     volumes:
       - ..:/data/repo
       - runtime_data:/runtime-data
-      - runtime_cache:/runtime-cache
     restart: unless-stopped
 
 volumes:
   runtime_data:
-  runtime_cache:

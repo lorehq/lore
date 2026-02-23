@@ -10,10 +10,34 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# -- Claude Code --
+# -- Claude Code skills --
+# Only copy skills with type: command to .claude/skills/ (user- and agent-invocable).
+# Gotcha/reference skills stay in .lore/skills/ only (discovered via semantic search).
 if [ -d "$REPO_ROOT/.lore/skills" ]; then
   mkdir -p "$REPO_ROOT/.claude/skills"
-  cp -Rf "$REPO_ROOT/.lore/skills/." "$REPO_ROOT/.claude/skills/"
+  node -e "
+    const fs = require('fs');
+    const path = require('path');
+    const { parseFrontmatter } = require('./.lore/lib/frontmatter');
+    const root = process.argv[1];
+    const srcDir = path.join(root, '.lore', 'skills');
+    const outDir = path.join(root, '.claude', 'skills');
+
+    for (const d of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const skillFile = path.join(srcDir, d.name, 'SKILL.md');
+      if (!fs.existsSync(skillFile)) continue;
+      const { attrs } = parseFrontmatter(fs.readFileSync(skillFile, 'utf8'));
+      const outSkillDir = path.join(outDir, d.name);
+      if (attrs.type === 'command') {
+        // Copy command skill to .claude/skills/
+        fs.cpSync(path.join(srcDir, d.name), outSkillDir, { recursive: true, force: true });
+      } else {
+        // Remove non-command skill from .claude/skills/ if it was previously copied
+        if (fs.existsSync(outSkillDir)) fs.rmSync(outSkillDir, { recursive: true, force: true });
+      }
+    }
+  " "$REPO_ROOT"
 fi
 
 # Worker agent tiers — generated from template + config into .lore/agents/ and .claude/agents/
