@@ -78,12 +78,31 @@ done
 # -- 4. Platform copies match canonical source --
 echo "--- Platform Sync ---"
 if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
-  # Check .claude/skills/ matches .lore/skills/
+  # Check .claude/skills/ contains exactly the type: command skills from .lore/skills/
   if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
-    diff_out=$(diff -rq "$REPO_ROOT/.lore/skills" "$REPO_ROOT/.claude/skills" 2>&1) || true
-    if [[ -n "$diff_out" ]]; then
-      fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/scripts/sync-platform-skills.sh"
-    fi
+    sync_ok=true
+    # Every type: command skill in .lore/ must exist and match in .claude/
+    for dir in "$REPO_ROOT"/.lore/skills/*/; do
+      name=$(basename "$dir")
+      sf="$dir/SKILL.md"
+      [[ -f "$sf" ]] || continue
+      skill_type=$(extract_field "type" "$sf")
+      if [[ "$skill_type" == "command" ]]; then
+        if [[ ! -d "$REPO_ROOT/.claude/skills/$name" ]]; then
+          sync_ok=false; break
+        fi
+        diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/skills/$name" 2>&1) || true
+        if [[ -n "$diff_out" ]]; then
+          sync_ok=false; break
+        fi
+      else
+        # Non-command skills must NOT be in .claude/skills/
+        if [[ -d "$REPO_ROOT/.claude/skills/$name" ]]; then
+          sync_ok=false; break
+        fi
+      fi
+    done
+    $sync_ok || fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/scripts/sync-platform-skills.sh"
   else
     fail ".claude/skills/ missing — run: bash .lore/scripts/sync-platform-skills.sh"
   fi
