@@ -72,3 +72,4 @@ Interpret intent from user input:
 - Docker may be installed but daemon not running; treat that as fallback-to-local, not a hard error.
 - If both Docker and local are running, prefer reporting Docker URL first and note both are active.
 - Semantic search model loading can take 30-60 seconds on first start. Report the health endpoint URL so the user can check back.
+- After image pull + container recreation, the search endpoint returns connection refused (HTTP 000) for 60-120 seconds while uvicorn starts and the embedding model loads. This is normal startup behavior — poll `/health` until `ok: true` rather than treating the first failure as an error. Distinct from the volume conflict gotcha (`lore-docker-update-volume-conflict`).
