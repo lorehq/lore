@@ -84,12 +84,14 @@ test('passes: fully consistent setup', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  // Create skill in canonical location and mirror to platform copy
+  // Create type: command skill in canonical location and mirror to platform copy
   const skillDir = path.join(dir, '.lore', 'skills', 'test-skill');
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: test-skill', 'description: A complete test skill', '---', '# Test Skill'].join('\n'),
+    ['---', 'name: test-skill', 'description: A complete test skill', 'type: command', '---', '# Test Skill'].join(
+      '\n',
+    ),
   );
   const copyDir = path.join(dir, '.claude', 'skills', 'test-skill');
   fs.mkdirSync(copyDir, { recursive: true });
@@ -182,12 +184,12 @@ test('fails: platform copy out of sync with canonical source', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  // Create skill in .lore/ only (no platform copy)
+  // Create type: command skill in .lore/ only (no platform copy)
   const skillDir = path.join(dir, '.lore', 'skills', 'sync-test');
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: sync-test', 'description: Tests sync detection', '---'].join('\n'),
+    ['---', 'name: sync-test', 'description: Tests sync detection', 'type: command', '---'].join('\n'),
   );
 
   const { code, stdout } = runScript(dir);
