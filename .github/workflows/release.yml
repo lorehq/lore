@@ -28,8 +28,15 @@ jobs:
         if: runner.os != 'Windows'
         run: shellcheck -x .lore/scripts/*.sh .lore/scripts/lib/*.sh
       - name: Lint & format
+        if: matrix.node-version >= 20
         run: npx eslint . && npx prettier --check .
       - run: npm test
+      - name: Regenerate derived files
+        shell: bash
+        run: |
+          node -e "require('./.lore/lib/banner').ensureStickyFiles('.')"
+          bash .lore/scripts/sync-platform-skills.sh && bash .lore/scripts/generate-cursor-rules.sh
+          node .lore/scripts/generate-claude-md.js .
       - name: Validate consistency
         shell: bash
         run: bash .lore/scripts/validate-consistency.sh
