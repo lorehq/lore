@@ -102,7 +102,12 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
 
   // First bash in a sequence — capture reminder; subsequent silent until thresholds
   if (newCount === 1) {
-    return { message: 'Capturer: gotcha \u2192 skill | new fact \u2192 docs/knowledge/', level: 'info', bashCount: newCount, silent: false };
+    return {
+      message: 'Capturer: gotcha \u2192 skill | new fact \u2192 docs/knowledge/',
+      level: 'info',
+      bashCount: newCount,
+      silent: false,
+    };
   }
   return { silent: true, bashCount: newCount };
 }

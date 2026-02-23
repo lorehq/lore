@@ -19,7 +19,9 @@ function generate(rootDir) {
   try {
     const cfg = getConfig(rootDir);
     claudeTiers = (cfg.subagentDefaults && cfg.subagentDefaults.claude) || {};
-  } catch (_e) { /* no config or no defaults */ }
+  } catch (_e) {
+    /* no config or no defaults */
+  }
 
   const canonicalDir = path.join(rootDir, '.lore', 'agents');
   const claudeDir = path.join(rootDir, '.claude', 'agents');
@@ -27,9 +29,7 @@ function generate(rootDir) {
   fs.mkdirSync(claudeDir, { recursive: true });
 
   // Default tier always present; fast/powerful only when configured
-  const tiers = [
-    { file: 'lore-worker.md', name: 'lore-worker', model: claudeTiers.default || null },
-  ];
+  const tiers = [{ file: 'lore-worker.md', name: 'lore-worker', model: claudeTiers.default || null }];
   if (claudeTiers.fast) {
     tiers.push({ file: 'lore-worker-fast.md', name: 'lore-worker-fast', model: claudeTiers.fast });
   }
@@ -57,7 +57,9 @@ function generate(rootDir) {
           debug('generate-agents: removed stale %s from %s', f, dir);
         }
       }
-    } catch (_e) { /* dir doesn't exist */ }
+    } catch (_e) {
+      /* dir doesn't exist */
+    }
   }
 }
 
@@ -82,7 +84,9 @@ function writeIfChanged(filePath, content) {
   try {
     const existing = fs.readFileSync(filePath, 'utf8');
     if (existing === content) return;
-  } catch (_e) { /* file doesn't exist */ }
+  } catch (_e) {
+    /* file doesn't exist */
+  }
   fs.writeFileSync(filePath, content);
   debug('generate-agents: wrote %s', filePath);
 }

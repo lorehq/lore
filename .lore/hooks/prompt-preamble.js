@@ -43,12 +43,10 @@ try {
   }
   const prompt = (input.prompt || '').trim();
   if (prompt) {
-    const matches = ambiguityPatterns
-      .filter(p => p.test(prompt))
-      .map(p => prompt.match(p)[0]);
+    const matches = ambiguityPatterns.filter((p) => p.test(prompt)).map((p) => prompt.match(p)[0]);
     if (matches.length > 0) {
-      const unique = [...new Set(matches.map(m => m.toLowerCase()))];
-      ambiguityNote = ` \u26A0 Ambiguous input detected (${unique.map(m => '"' + m + '"').join(', ')}). Resolve to concrete values before acting or delegating \u2014 clarify with user if needed.`;
+      const unique = [...new Set(matches.map((m) => m.toLowerCase()))];
+      ambiguityNote = ` \u26A0 Ambiguous input detected (${unique.map((m) => '"' + m + '"').join(', ')}). Resolve to concrete values before acting or delegating \u2014 clarify with user if needed.`;
     }
   }
 } catch (_e) {
