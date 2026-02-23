@@ -1,37 +1,33 @@
 {
   "name": "{{name}}",
   "version": "{{version}}",
-  "created": "{{created}}"
+  "created": "{{created}}",
+  "profile": "standard",
+  "subagentDefaults": {
+    "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
+    "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
+    "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
+  },
+  "docker": {
+    "semantic": {
+      "defaultK": 8,
+      "maxK": 20,
+      "maxChunkChars": 1000,
+      "snippetChars": 200,
+      "resultMode": "paths_min",
+      "model": "BAAI/bge-small-en-v1.5"
+    }
+  }
 
   // Hook verbosity: "minimal" | "standard" | "discovery"
   //   minimal   — safety hooks only, no per-tool nudges
   //   standard  — all hooks active (nudge at 15, warn at 30)
   //   discovery — lower thresholds (nudge at 5, warn at 10), aggressive capture
-  // "profile": "standard",
 
   // Max directory depth for ASCII trees in banner and knowledge map
-  // "treeDepth": 5,
+  // "treeDepth": 5
 
-  // Per-platform model preferences for delegated workers (3-tier: fast, default, powerful)
-  // Generates lore-worker.md, lore-worker-fast.md, lore-worker-powerful.md agent variants.
-  // "subagentDefaults": {
-  //   "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  //   "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
-  //   "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
-  // },
-
-  // Docker services — site/search set by /lore-docker on start, cleared on stop
-  // docker.semantic is user-configured and persists across start/stop cycles
-  // "docker": {
-  //   "site": { "address": "localhost", "port": 9184 },
-  //   "search": { "address": "localhost", "port": 9185 },
-  //   "semantic": {
-  //     "defaultK": 8,
-  //     "maxK": 20,
-  //     "maxChunkChars": 1000,
-  //     "snippetChars": 200,
-  //     "resultMode": "paths_min",
-  //     "model": "BAAI/bge-small-en-v1.5"
-  //   }
-  // }
+  // Docker site/search ports are set by /lore-docker on start, cleared on stop
+  // "docker.site": { "address": "localhost", "port": 9184 }
+  // "docker.search": { "address": "localhost", "port": 9185 }
 }
