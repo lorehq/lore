@@ -34,7 +34,9 @@ function httpGet(url) {
   return new Promise((resolve, reject) => {
     const req = http.get(url, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(data);
@@ -92,8 +94,10 @@ function readFileContent(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
     const lines = content.split('\n');
     if (lines.length > MAX_LINES_PER_FILE) {
-      return lines.slice(0, MAX_LINES_PER_FILE).join('\n')
-        + `\n[...truncated at ${MAX_LINES_PER_FILE} lines, full file at ${filePath}]`;
+      return (
+        lines.slice(0, MAX_LINES_PER_FILE).join('\n') +
+        `\n[...truncated at ${MAX_LINES_PER_FILE} lines, full file at ${filePath}]`
+      );
     }
     return content;
   } catch {
@@ -106,7 +110,10 @@ function readFileContent(filePath) {
 async function doSearch(query, k) {
   const baseUrl = getSearchBaseUrl();
   if (!baseUrl) {
-    return { error: 'Semantic search not configured — no docker.search in .lore/config.json.\nFall back to Glob/Grep for knowledge base searches.' };
+    return {
+      error:
+        'Semantic search not configured — no docker.search in .lore/config.json.\nFall back to Glob/Grep for knowledge base searches.',
+    };
   }
 
   if (!query || !query.trim()) {
@@ -120,14 +127,16 @@ async function doSearch(query, k) {
   try {
     raw = await httpGet(url);
   } catch (err) {
-    return { error: `Search container unavailable: ${err.message}\nFall back to Glob/Grep for knowledge base searches.` };
+    return {
+      error: `Search container unavailable: ${err.message}\nFall back to Glob/Grep for knowledge base searches.`,
+    };
   }
 
   let results;
   try {
     const parsed = JSON.parse(raw);
     // API returns { query, results: [...] } or bare array
-    results = Array.isArray(parsed) ? parsed : (parsed.results || []);
+    results = Array.isArray(parsed) ? parsed : parsed.results || [];
   } catch {
     return { error: `Unexpected response from search container:\n${raw.slice(0, 500)}` };
   }
@@ -146,6 +155,7 @@ async function loreSearch(query, k) {
   const parts = [];
   for (const result of res.results) {
     const resultPath = result.path || result.file || '';
+    // eslint-disable-next-line eqeqeq
     const score = result.score != null ? result.score.toFixed(3) : '?';
     const snippet = result.snippet || '';
     const fsPath = resolveSearchPath(resultPath);
@@ -173,7 +183,9 @@ async function loreSearchHealth() {
     const raw = await httpGet(`${baseUrl}/health`);
     const health = JSON.parse(raw);
     const parts = [`Status: ${health.ok ? 'healthy' : 'unhealthy'}`];
+    // eslint-disable-next-line eqeqeq
     if (health.file_count != null) parts.push(`Files indexed: ${health.file_count}`);
+    // eslint-disable-next-line eqeqeq
     if (health.chunk_count != null) parts.push(`Chunks: ${health.chunk_count}`);
     if (health.last_indexed_at) parts.push(`Last indexed: ${health.last_indexed_at}`);
     return parts.join('\n');
@@ -198,15 +210,14 @@ const TOOLS = [
   {
     name: 'lore_search',
     description:
-      'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). '
-      + 'Returns snippets and file paths. Use lore_read to get complete file contents.',
+      'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). ' +
+      'Returns snippets and file paths. Use lore_read to get complete file contents.',
     inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
   },
   {
     name: 'lore_read',
     description:
-      'Read a knowledge base file by path. Use after lore_search to get the full contents '
-      + 'of a matched file.',
+      'Read a knowledge base file by path. Use after lore_search to get the full contents ' + 'of a matched file.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -298,19 +309,22 @@ rl.on('line', (line) => {
   if (!line.trim()) return;
   try {
     const req = JSON.parse(line);
-    const p = Promise.resolve(handleRequest(req)).then((res) => {
-      // Notifications (no id) get null back — don't send anything
-      if (res) process.stdout.write(JSON.stringify(res) + '\n');
-    }).catch((err) => {
-      console.error('[lore-search-mcp] handler error:', err.message);
-      process.stdout.write(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: req.id || null,
-          error: { code: -32603, message: 'Internal error' },
-        }) + '\n',
-      );
-    }).finally(() => pending.delete(p));
+    const p = Promise.resolve(handleRequest(req))
+      .then((res) => {
+        // Notifications (no id) get null back — don't send anything
+        if (res) process.stdout.write(JSON.stringify(res) + '\n');
+      })
+      .catch((err) => {
+        console.error('[lore-search-mcp] handler error:', err.message);
+        process.stdout.write(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: req.id || null,
+            error: { code: -32603, message: 'Internal error' },
+          }) + '\n',
+        );
+      })
+      .finally(() => pending.delete(p));
     pending.add(p);
   } catch (err) {
     console.error('[lore-search-mcp] parse error:', err.message);
