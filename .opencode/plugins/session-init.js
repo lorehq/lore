@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 const require = createRequire(import.meta.url);
-const { buildDynamicBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
+const { buildBanner, buildDynamicBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
 function runEnsureStructure(hub) {
@@ -49,15 +49,16 @@ export const SessionInit = async ({ directory, client }) => {
     directory: hub,
   });
 
-  // First transform call injects dynamic content; subsequent calls skip (CLAUDE.md has static).
-  let needsDynamic = true;
+  // First transform call injects full banner; subsequent calls skip.
+  // OpenCode has no CLAUDE.md equivalent, so the full banner must be injected via hooks.
+  let needsBanner = true;
 
   return {
     'experimental.chat.system.transform': async (_input, output) => {
-      if (needsDynamic) {
-        const b = buildDynamicBanner(hub);
+      if (needsBanner) {
+        const b = buildBanner(hub);
         if (b) output.system.push(b);
-        needsDynamic = false;
+        needsBanner = false;
         logHookEvent({
           platform: 'opencode',
           hook: 'session-init',
@@ -68,11 +69,10 @@ export const SessionInit = async ({ directory, client }) => {
       }
     },
     'experimental.session.compacting': async (_input, output) => {
-      // After compaction, CLAUDE.md instructions reload automatically.
-      // Only re-inject dynamic content.
-      const b = buildDynamicBanner(hub);
+      // After compaction, re-inject full banner (no CLAUDE.md to reload from).
+      const b = buildBanner(hub);
       if (b) output.context.push(b);
-      needsDynamic = true;
+      needsBanner = true;
       logHookEvent({
         platform: 'opencode',
         hook: 'session-init',

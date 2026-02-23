@@ -45,11 +45,11 @@ test('resets bash counter after read-only tool', (t) => {
   assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset');
 });
 
-test('first bash: silent below threshold', (t) => {
+test('first bash: emits capture reminder', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.equal(out.additionalContext, undefined, 'first bash should be silent below default threshold');
+  assert.ok(out.additionalContext.includes('Capturer'), 'first bash should emit capture reminder');
 });
 
 test('3rd consecutive bash: nudge', (t) => {

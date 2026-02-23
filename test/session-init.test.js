@@ -82,21 +82,23 @@ function runHook(dir) {
   });
 }
 
-test('shows version from .lore-config', (t) => {
+test('hook output excludes static version header', (t) => {
   const dir = setup({ config: { version: '1.2.3' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('=== LORE v1.2.3 ==='));
+  // Version is static content — baked into CLAUDE.md at generation time
+  assert.ok(!out.includes('=== LORE'), 'version header belongs in CLAUDE.md, not hook output');
 });
 
-test('shows "(none yet)" when no agents', (t) => {
+test('hook output excludes static worker list', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('(none yet)'));
+  // Worker list is static content — baked into CLAUDE.md
+  assert.ok(!out.includes('(none yet)'), 'worker list belongs in CLAUDE.md, not hook output');
 });
 
-test('shows active roadmap title and summary', (t) => {
+test('hook output excludes static roadmaps', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
@@ -106,30 +108,29 @@ test('shows active roadmap title and summary', (t) => {
     ['---', 'title: My Roadmap', 'status: active', 'summary: Phase 1 in progress', '---', '# My Roadmap'].join('\n'),
   );
   const out = runHook(dir);
-  assert.ok(out.includes('ACTIVE ROADMAPS:'));
-  assert.ok(out.includes('My Roadmap (Phase 1 in progress)'));
+  // Roadmaps are static content — baked into CLAUDE.md
+  assert.ok(!out.includes('ACTIVE ROADMAPS:'), 'roadmaps belong in CLAUDE.md, not hook output');
 });
 
-test('shows on-hold label', (t) => {
+test('hook output excludes static on-hold labels', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'paused');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(path.join(rmDir, 'index.md'), ['---', 'title: Paused Roadmap', 'status: on-hold', '---'].join('\n'));
   const out = runHook(dir);
-  assert.ok(out.includes('Paused Roadmap [ON HOLD]'));
+  // On-hold labels are static content — baked into CLAUDE.md
+  assert.ok(!out.includes('[ON HOLD]'), 'on-hold labels belong in CLAUDE.md, not hook output');
 });
 
-test('reads PROJECT from docs/context/agent-rules.md', (t) => {
+test('hook output excludes static PROJECT context', (t) => {
   const dir = setup({
     agentRules: '---\ntitle: Agent Rules\n---\n\n# My Project\n\nCustom agent rules here.',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('PROJECT:'));
-  assert.ok(out.includes('# My Project'));
-  assert.ok(out.includes('Custom agent rules here.'));
-  assert.ok(!out.includes('title: Agent Rules'), 'frontmatter should be stripped');
+  // PROJECT is static content — baked into CLAUDE.md
+  assert.ok(!out.includes('PROJECT:'), 'project context belongs in CLAUDE.md, not hook output');
 });
 
 test('creates MEMORY.local.md if missing', (t) => {
@@ -142,16 +143,14 @@ test('creates MEMORY.local.md if missing', (t) => {
   assert.equal(fs.readFileSync(memPath, 'utf8'), '# Local Memory\n');
 });
 
-test('builds knowledge map tree', (t) => {
+test('hook output excludes static knowledge map', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Create some skill directories
   fs.mkdirSync(path.join(dir, '.lore', 'skills', 'my-skill'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.lore', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
   const out = runHook(dir);
-  assert.ok(out.includes('KNOWLEDGE MAP:'));
-  assert.ok(out.includes('.lore/skills/'));
-  assert.ok(out.includes('my-skill/'));
+  // Knowledge map is static content — baked into CLAUDE.md
+  assert.ok(!out.includes('KNOWLEDGE MAP:'), 'knowledge map belongs in CLAUDE.md, not hook output');
 });
 
 test('dirs-only tree skips archive directories', (t) => {
@@ -188,7 +187,7 @@ test('creates sticky docs/context/agent-rules.md when missing', (t) => {
   assert.ok(!content.includes('Coding Rules'), 'template should not contain coding rules');
 });
 
-test('injects conventions directory as CONVENTIONS section', (t) => {
+test('hook output excludes static conventions directory', (t) => {
   const dir = setup({
     conventionsDir: {
       'index.md': '# Conventions\n\nOverview here.',
@@ -198,29 +197,26 @@ test('injects conventions directory as CONVENTIONS section', (t) => {
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('CONVENTIONS:'));
-  assert.ok(out.includes('Overview here.'));
-  assert.ok(out.includes('Simplicity first.'));
-  assert.ok(out.includes('Use checkboxes.'));
+  // Conventions are static content — baked into CLAUDE.md
+  assert.ok(!out.includes('CONVENTIONS:'), 'conventions belong in CLAUDE.md, not hook output');
 });
 
-test('injects flat conventions.md as fallback', (t) => {
+test('hook output excludes static conventions.md fallback', (t) => {
   const dir = setup({
     conventions: '# Conventions\n\nFlat file rules.',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('CONVENTIONS:'));
-  assert.ok(out.includes('Flat file rules.'));
+  // Conventions are static content — baked into CLAUDE.md
+  assert.ok(!out.includes('CONVENTIONS:'), 'conventions belong in CLAUDE.md, not hook output');
 });
 
-test('scaffolds conventions and includes them when neither path exists', (t) => {
-  // ensureStickyFiles now runs before buildBanner, so the scaffold is
-  // always present on first run. CONVENTIONS section appears immediately.
+test('scaffolds conventions even though hook output is dynamic-only', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('CONVENTIONS:'));
+  // Conventions are static content — not in hook output but scaffolding still runs
+  assert.ok(!out.includes('CONVENTIONS:'), 'conventions belong in CLAUDE.md, not hook output');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md')));
 });
 
@@ -265,19 +261,16 @@ test('does not overwrite existing conventions directory with scaffold', (t) => {
   );
 });
 
-test('treeDepth config limits knowledge map depth', (t) => {
+test('hook output excludes static knowledge map regardless of treeDepth', (t) => {
   const dir = setup({ config: { treeDepth: 1 } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Create a 3-level deep structure under docs/
   fs.mkdirSync(path.join(dir, 'docs', 'level1', 'level2', 'level3'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'level1', 'a.md'), '# A');
   fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'b.md'), '# B');
   fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'level3', 'c.md'), '# C');
   const out = runHook(dir);
-  assert.ok(out.includes('level1/'), 'depth-0 dir should appear');
-  assert.ok(!out.includes('level2/'), 'depth-1 dir should not appear at treeDepth: 1');
-  assert.ok(!out.includes('b.md'), 'depth-2 file should not appear');
-  assert.ok(!out.includes('c.md'), 'depth-3 file should not appear');
+  // Knowledge map is static content — baked into CLAUDE.md (treeDepth tested in banner.test.js)
+  assert.ok(!out.includes('KNOWLEDGE MAP:'), 'knowledge map belongs in CLAUDE.md, not hook output');
 });
 
 test('creates sticky operator-profile.md when missing', (t) => {
@@ -310,21 +303,17 @@ test('injects customized operator profile', (t) => {
   assert.ok(out.includes('Staff Engineer'));
 });
 
-test('operator profile appears after PROJECT in banner', (t) => {
+test('hook outputs operator profile without static content', (t) => {
   const dir = setup({
     agentRules: '# My Project\n\nProject rules here.',
     operatorProfile: '# Operator Profile\n\n- **Name:** Jane Doe\n- **Role:** Lead Dev',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  const projectIdx = out.indexOf('PROJECT:');
-  const operatorIdx = out.indexOf('OPERATOR PROFILE:');
-  const conventionsIdx = out.indexOf('CONVENTIONS:');
-  assert.ok(projectIdx > -1, 'PROJECT should be present');
-  assert.ok(operatorIdx > -1, 'OPERATOR PROFILE should be present');
-  assert.ok(conventionsIdx > -1, 'CONVENTIONS should be present');
-  assert.ok(operatorIdx > projectIdx, 'OPERATOR PROFILE should come after PROJECT');
-  assert.ok(conventionsIdx > operatorIdx, 'CONVENTIONS should come after OPERATOR PROFILE');
+  // Hook output is dynamic-only — operator profile appears but PROJECT is in CLAUDE.md
+  assert.ok(out.includes('OPERATOR PROFILE:'), 'operator profile is dynamic content');
+  assert.ok(out.includes('Jane Doe'));
+  assert.ok(!out.includes('PROJECT:'), 'project context belongs in CLAUDE.md');
 });
 
 test('does not overwrite existing operator-profile.md with scaffold', (t) => {

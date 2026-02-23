@@ -85,17 +85,16 @@ function getStateFile(dir) {
 
 // ── Session Init ──
 
-test('session-init: emits full banner with version and static context', (t) => {
+test('session-init: emits cursor banner with version and dynamic content', (t) => {
   const dir = setup({ config: { version: '1.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const { code, stdout } = runHook(dir, 'session-init.js');
   assert.equal(code, 0);
   const parsed = JSON.parse(stdout);
   assert.ok(parsed.additional_context.includes('=== LORE v1.0.0 ==='));
-  // Full banner — .mdc rules serve as first-session fallback only
-  assert.ok(parsed.additional_context.includes('DELEGATION:'), 'full banner should include delegation');
-  assert.ok(parsed.additional_context.includes('CAPTURE:'), 'full banner should include capture reminder');
-  assert.ok(parsed.additional_context.includes('KNOWLEDGE MAP:'), 'full banner should include knowledge map');
+  // Cursor banner is dynamic-only — static context lives in .cursor/rules/lore-*.mdc
+  assert.ok(!parsed.additional_context.includes('DELEGATION:'), 'static content should be in .mdc rules');
+  assert.ok(!parsed.additional_context.includes('KNOWLEDGE MAP:'), 'static content should be in .mdc rules');
   assert.equal(parsed.continue, true);
 });
 

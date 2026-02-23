@@ -445,7 +445,7 @@ test('buildBanner: discovery profile shows PROFILE line', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
   assert.ok(out.includes('PROFILE: discovery'));
-  assert.ok(out.includes('aggressive capture'));
+  assert.ok(out.includes('capture aggressively'));
 });
 
 test('buildBanner: standard profile has no PROFILE line', (t) => {
@@ -547,4 +547,22 @@ test('buildCursorBanner: does not include KNOWLEDGE MAP section', (t) => {
   fs.writeFileSync(path.join(dir, '.lore', 'skills', 'test-skill', 'SKILL.md'), '# Test');
   const out = buildCursorBanner(dir);
   assert.ok(!out.includes('KNOWLEDGE MAP:'));
+});
+
+// ---------------------------------------------------------------------------
+// buildBanner: treeDepth
+// ---------------------------------------------------------------------------
+
+test('buildBanner: treeDepth config limits knowledge map depth', (t) => {
+  const dir = setup({ config: { treeDepth: 1 } });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'docs', 'level1', 'level2', 'level3'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'a.md'), '# A');
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'b.md'), '# B');
+  fs.writeFileSync(path.join(dir, 'docs', 'level1', 'level2', 'level3', 'c.md'), '# C');
+  const out = buildBanner(dir);
+  assert.ok(out.includes('level1/'), 'depth-0 dir should appear');
+  assert.ok(!out.includes('level2/'), 'depth-1 dir should not appear at treeDepth: 1');
+  assert.ok(!out.includes('b.md'), 'depth-2 file should not appear');
+  assert.ok(!out.includes('c.md'), 'depth-3 file should not appear');
 });

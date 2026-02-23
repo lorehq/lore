@@ -60,15 +60,15 @@ test('prompt-preamble: outputs bracketed line', () => {
   }
 });
 
-test('prompt-preamble: always includes task list reminder', () => {
+test('prompt-preamble: always includes role directives', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(out.includes('Vague question lookup order'), 'should include lookup-order reminder');
-    assert.ok(out.includes('Knowledge -> Work items -> Context'), 'should include lookup order sequence');
-    assert.ok(out.includes('Use Exploration -> Execution'), 'should include phase workflow reminder');
-    assert.ok(out.includes('Capture reusable Execution fixes -> skills'), 'should include capture reminder');
-    assert.ok(out.includes('docs/knowledge/environment/'), 'should include environment capture route');
+    assert.ok(out.includes('Curator'), 'should include Curator role');
+    assert.ok(out.includes('Orchestrator'), 'should include Orchestrator role');
+    assert.ok(out.includes('Capturer'), 'should include Capturer role');
+    assert.ok(out.includes('delegate'), 'should include delegation directive');
+    assert.ok(out.includes('docs/knowledge/'), 'should include knowledge capture route');
   } finally {
     cleanup(dir);
   }
@@ -93,16 +93,15 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
   });
   try {
     const out = run(dir);
-    assert.ok(out.includes('Orchestrate'), 'should include delegation nudge');
+    assert.ok(out.includes('Orchestrator'), 'should include Orchestrator role');
     assert.ok(out.includes('delegate'), 'should mention delegation');
-    assert.ok(out.includes('capture writes in primary'), 'should discourage delegating capture writes');
-    assert.ok(out.includes('Use Exploration -> Execution'), 'should still include phase workflow reminder');
+    assert.ok(out.includes('Capturer'), 'should include Capturer role');
   } finally {
     cleanup(dir);
   }
 });
 
-test('prompt-preamble: with conventions — lists names', () => {
+test('prompt-preamble: with conventions — still includes role directives', () => {
   const dir = setup();
   const convDir = path.join(dir, 'docs', 'context', 'conventions');
   fs.mkdirSync(convDir, { recursive: true });
@@ -111,21 +110,21 @@ test('prompt-preamble: with conventions — lists names', () => {
   fs.writeFileSync(path.join(convDir, 'index.md'), '# Overview\n');
   try {
     const out = run(dir);
-    assert.ok(out.toLowerCase().includes('conventions'), 'should include conventions label');
-    assert.ok(out.includes('coding'), 'should list coding convention');
-    assert.ok(out.includes('security'), 'should list security convention');
-    assert.ok(!/conventions[^|\]]*\bindex\b/i.test(out), 'should exclude index.md from conventions list');
+    // Preamble no longer lists convention names (they're in the static banner)
+    assert.ok(out.includes('Curator'), 'should include Curator role');
+    assert.ok(out.includes('Capturer'), 'should include Capturer role');
   } finally {
     cleanup(dir);
   }
 });
 
-test('prompt-preamble: includes semantic search hint when configured', () => {
+test('prompt-preamble: uses KB shorthand when semantic search configured', () => {
   const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
   try {
     const out = run(dir);
-    assert.ok(out.toLowerCase().includes('semantic search'), 'should include semantic search enabled note');
-    assert.ok(out.includes('delegate'), 'should use slim delegation preamble when search is configured');
+    // With semantic search, Curator directive says "search KB first" instead of listing paths
+    assert.ok(out.includes('search KB first'), 'should use KB search shorthand when semantic search configured');
+    assert.ok(out.includes('delegate'), 'should include delegation directive');
   } finally {
     cleanup(dir);
   }

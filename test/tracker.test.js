@@ -163,7 +163,8 @@ test('processToolUse: bash increments counter', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 1);
-  assert.ok(result.silent); // below threshold — no message emitted
+  assert.ok(!result.silent); // first bash emits capture reminder
+  assert.ok(result.message.includes('Capturer'));
 });
 
 test('processToolUse: nudge at threshold', (t) => {

@@ -74,25 +74,26 @@ function pluginUrl(dir, name) {
 
 // ── Session Init ──
 
-test('session-init: shows version in banner', async (t) => {
+test('session-init: initial log is dynamic-only', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('=== LORE v2.0.0 ==='));
+  // Initial log uses dynamic banner — static content (version) goes through system.transform
+  assert.ok(!client.logs[0].message.includes('=== LORE'), 'initial log should not include static version header');
 });
 
-test('session-init: shows "(none yet)" when no agents', async (t) => {
+test('session-init: initial log omits static worker list', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('(none yet)'));
+  assert.ok(!client.logs[0].message.includes('(none yet)'), 'worker list belongs in system.transform');
 });
 
-test('session-init: shows agent names', async (t) => {
+test('session-init: system.transform includes agent names', async (t) => {
   const dir = setup({
     agents: {
       'doc-agent.md': '---\nname: doc-agent\n---\n',
@@ -101,11 +102,13 @@ test('session-init: shows agent names', async (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
-  await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('doc-agent'));
+  const hooks = await SessionInit({ directory: dir, client });
+  const output = { system: [] };
+  await hooks['experimental.chat.system.transform']({}, output);
+  assert.ok(output.system[0].includes('doc-agent'));
 });
 
-test('session-init: shows active roadmaps', async (t) => {
+test('session-init: system.transform includes active roadmaps', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'test-rm');
@@ -113,21 +116,25 @@ test('session-init: shows active roadmaps', async (t) => {
   fs.writeFileSync(path.join(rmDir, 'index.md'), '---\ntitle: Test RM\nstatus: active\nsummary: Phase 1\n---\n');
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
-  await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('ACTIVE ROADMAPS:'));
-  assert.ok(client.logs[0].message.includes('Test RM (Phase 1)'));
+  const hooks = await SessionInit({ directory: dir, client });
+  const output = { system: [] };
+  await hooks['experimental.chat.system.transform']({}, output);
+  assert.ok(output.system[0].includes('ACTIVE ROADMAPS:'));
+  assert.ok(output.system[0].includes('Test RM (Phase 1)'));
 });
 
-test('session-init: injects project context', async (t) => {
+test('session-init: system.transform includes project context', async (t) => {
   const dir = setup({
     agentRules: '---\ntitle: Rules\n---\n\n# My Project\n\nCustom rules.',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
-  await SessionInit({ directory: dir, client });
-  assert.ok(client.logs[0].message.includes('PROJECT:'));
-  assert.ok(client.logs[0].message.includes('Custom rules.'));
+  const hooks = await SessionInit({ directory: dir, client });
+  const output = { system: [] };
+  await hooks['experimental.chat.system.transform']({}, output);
+  assert.ok(output.system[0].includes('PROJECT:'));
+  assert.ok(output.system[0].includes('Custom rules.'));
 });
 
 test('session-init: creates sticky files', async (t) => {
@@ -141,7 +148,7 @@ test('session-init: creates sticky files', async (t) => {
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
-test('session-init: compaction pushes banner to context', async (t) => {
+test('session-init: compaction pushes full banner to context', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
@@ -149,10 +156,11 @@ test('session-init: compaction pushes banner to context', async (t) => {
   const hooks = await SessionInit({ directory: dir, client });
   const output = { context: [] };
   await hooks['experimental.session.compacting']({}, output);
+  // OpenCode has no CLAUDE.md — compaction must re-inject full banner
   assert.ok(output.context[0].includes('=== LORE v2.0.0 ==='));
 });
 
-test('session-init: system.transform pushes banner to system prompt', async (t) => {
+test('session-init: system.transform pushes full banner to system prompt', async (t) => {
   const dir = setup({ config: { version: '2.0.0' } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
@@ -160,6 +168,7 @@ test('session-init: system.transform pushes banner to system prompt', async (t) 
   const hooks = await SessionInit({ directory: dir, client });
   const output = { system: [] };
   await hooks['experimental.chat.system.transform']({}, output);
+  // OpenCode has no CLAUDE.md — system.transform must inject full banner
   assert.ok(output.system[0].includes('=== LORE v2.0.0 ==='));
 });
 
@@ -177,14 +186,15 @@ test('knowledge-tracker: silent on read-only tools', async (t) => {
   assert.equal(client.logs.length, 0, 'no logs for read-only tools');
 });
 
-test('knowledge-tracker: first bash silent below threshold', async (t) => {
+test('knowledge-tracker: first bash emits capture reminder', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const client = mockClient();
   const { KnowledgeTracker } = await import(pluginUrl(dir, 'knowledge-tracker.js'));
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.equal(client.logs.length, 0, 'first bash should be silent below default threshold');
+  assert.equal(client.logs.length, 1, 'first bash should emit capture reminder');
+  assert.ok(client.logs[0].message.includes('Capturer'));
 });
 
 test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
