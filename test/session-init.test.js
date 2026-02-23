@@ -29,10 +29,7 @@ function setup(opts = {}) {
   // Templates — sticky files read from .lore/templates/
   const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
   const tplDir = path.join(dir, '.lore', 'templates');
-  fs.mkdirSync(tplDir, { recursive: true });
-  for (const f of fs.readdirSync(tplSrc)) {
-    fs.copyFileSync(path.join(tplSrc, f), path.join(tplDir, f));
-  }
+  fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Minimal structure so the hook doesn't error
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
@@ -227,10 +224,11 @@ test('creates sticky conventions directory scaffold when neither path exists', (
   assert.ok(!fs.existsSync(convDir), 'should not exist before hook runs');
   runHook(dir);
   assert.ok(fs.existsSync(path.join(convDir, 'index.md')), 'index.md should be created');
-  assert.ok(fs.existsSync(path.join(convDir, 'docs.md')), 'docs.md should be created');
+  assert.ok(fs.existsSync(path.join(convDir, 'documentation.md')), 'documentation.md should be created');
   assert.ok(fs.existsSync(path.join(convDir, 'coding.md')), 'coding.md should be created');
-  const docsContent = fs.readFileSync(path.join(convDir, 'docs.md'), 'utf8');
-  assert.ok(docsContent.includes('Checkboxes'));
+  assert.ok(fs.existsSync(path.join(convDir, 'security.md')), 'security.md should be created');
+  const docsContent = fs.readFileSync(path.join(convDir, 'documentation.md'), 'utf8');
+  assert.ok(docsContent.includes('Duplicate') || docsContent.includes('Documentation'));
 });
 
 test('does not overwrite existing conventions.md with scaffold', (t) => {
@@ -255,9 +253,10 @@ test('does not overwrite existing conventions directory with scaffold', (t) => {
   runHook(dir);
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'conventions', 'index.md'), 'utf8');
   assert.ok(content.includes('My Conventions'), 'should preserve operator content');
+  // Seed files are created individually even when dir exists
   assert.ok(
-    !fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'docs.md')),
-    'should not create extra scaffold files',
+    fs.existsSync(path.join(dir, 'docs', 'context', 'conventions', 'coding.md')),
+    'should create seed convention files',
   );
 });
 

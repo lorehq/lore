@@ -129,21 +129,34 @@ try {
 } catch (_) {}
 
 // Conventions: prefer directory of .md files (index.md first), fall back to single file.
+// Merges operator conventions + system/ conventions (operator files take precedence).
 // Mirrors the same logic in lib/banner.js buildBanner().
 const convDir = path.join(SOURCE, 'docs', 'context', 'conventions');
 let conventions = '';
 try {
-  const files = fs.readdirSync(convDir)
+  const operatorFiles = fs.readdirSync(convDir)
     .filter(f => f.endsWith('.md'))
     .sort((a, b) => {
       if (a === 'index.md') return -1;
       if (b === 'index.md') return 1;
       return a.localeCompare(b);
     });
-  conventions = files
+  const operatorSet = new Set(operatorFiles);
+  const parts = operatorFiles
     .map(f => stripFrontmatter(readOr(path.join(convDir, f))))
-    .filter(Boolean)
-    .join('\n\n');
+    .filter(Boolean);
+  // Add system/ conventions not overridden by operator files
+  const systemDir = path.join(convDir, 'system');
+  try {
+    const systemFiles = fs.readdirSync(systemDir)
+      .filter(f => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f))
+      .sort();
+    for (const f of systemFiles) {
+      const content = stripFrontmatter(readOr(path.join(systemDir, f)));
+      if (content) parts.push(content);
+    }
+  } catch (_) {}
+  conventions = parts.join('\n\n');
 } catch (_) {
   // Older layout: single conventions.md file
   conventions = stripFrontmatter(
@@ -152,8 +165,11 @@ try {
 }
 
 // Docs-specific formatting rules (standalone for the docs-formatting .mdc)
+// Check operator documentation.md first, then system/ fallback
 const docsFormatting = stripFrontmatter(
-  readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'docs.md'))
+  readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'documentation.md'))
+) || stripFrontmatter(
+  readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'system', 'documentation.md'))
 );
 
 // ── Tree building (reuses framework lib) ─────────────────────────────────────

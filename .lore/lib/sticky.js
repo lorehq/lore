@@ -10,6 +10,24 @@ function readTemplate(directory, templateName) {
   return fs.readFileSync(path.join(directory, '.lore', 'templates', templateName), 'utf8');
 }
 
+// Read a seed template, returning null if not found.
+function readSeed(directory, seedPath) {
+  try {
+    return fs.readFileSync(path.join(directory, '.lore', 'templates', 'seeds', seedPath), 'utf8');
+  } catch (e) {
+    debug('readSeed: %s', e.message);
+    return null;
+  }
+}
+
+// Seed convention files: template name → target filename.
+// Template 'docs.md' creates 'documentation.md' (renamed from legacy 'docs.md').
+const SEED_CONVENTIONS = [
+  { seed: 'coding.md', target: 'coding.md' },
+  { seed: 'docs.md', target: 'documentation.md' },
+  { seed: 'security.md', target: 'security.md' },
+];
+
 function ensureStickyFiles(directory) {
   try {
     const localIndex = path.join(directory, 'docs', 'knowledge', 'local', 'index.md');
@@ -33,7 +51,7 @@ function ensureStickyFiles(directory) {
 
 <!-- Injected into every agent session as PROJECT context. -->
 <!-- Customize with your project identity and behavior rules. -->
-<!-- Coding conventions belong in docs/context/conventions.md \u2014 also injected. -->
+<!-- Coding conventions belong in docs/context/conventions/ \u2014 also injected. -->
 
 ## About
 
@@ -46,9 +64,11 @@ Rules for how the agent should operate in this instance.
       );
     }
 
+    // Conventions directory — scaffold index + seed files individually
     const convFile = path.join(directory, 'docs', 'context', 'conventions.md');
     const convDir = path.join(directory, 'docs', 'context', 'conventions');
     if (!fs.existsSync(convFile) && !fs.existsSync(convDir)) {
+      // First time: create directory with index
       fs.mkdirSync(convDir, { recursive: true });
       fs.writeFileSync(
         path.join(convDir, 'index.md'),
@@ -57,25 +77,25 @@ Rules for how the agent should operate in this instance.
 Operational rules and standards for this environment. Each page covers a specific domain.
 `,
       );
-      fs.writeFileSync(
-        path.join(convDir, 'docs.md'),
-        `# Docs
+    }
+    // Create individual seed convention files if missing (even if dir already exists)
+    if (fs.existsSync(convDir)) {
+      for (const { seed, target } of SEED_CONVENTIONS) {
+        const targetPath = path.join(convDir, target);
+        if (!fs.existsSync(targetPath)) {
+          const content = readSeed(directory, path.join('conventions', seed));
+          if (content) {
+            fs.writeFileSync(targetPath, content);
+          }
+        }
+      }
+    }
 
-## Formatting
-
-- **Checkboxes** (\`- [x]\`/\`- [ ]\`) for all actionable items: scope, deliverables, success criteria
-- **Strikethrough** (\`~~text~~\`) on completed item text: \`- [x] ~~Done item~~\`
-- **No emoji icons** \u2014 no checkmarks, no colored circles, no decorative symbols
-- **Blank line before lists** \u2014 required for MkDocs to render lists correctly
-`,
-      );
-      fs.writeFileSync(
-        path.join(convDir, 'coding.md'),
-        `# Coding
-
-Add your coding rules here \u2014 standards the agent should follow when writing code.
-`,
-      );
+    // Notes directory — scaffold index
+    const notesIndex = path.join(directory, 'docs', 'work', 'notes', 'index.md');
+    if (!fs.existsSync(notesIndex)) {
+      fs.mkdirSync(path.join(directory, 'docs', 'work', 'notes'), { recursive: true });
+      fs.writeFileSync(notesIndex, readTemplate(directory, 'notes-index.md'));
     }
 
     const memPath = path.join(directory, '.lore', 'memory.local.md');

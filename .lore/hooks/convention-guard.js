@@ -46,21 +46,29 @@ const relative = resolved.slice(repoPrefix.length);
 debug('convention-guard: file=%s relative=%s', filePath, relative);
 
 // Extract bold principle lines from a convention file: **Bold text.**
+// Checks parent dir first (operator override), then system/ fallback.
 function extractPrinciples(filename) {
-  const convPath = path.join(hubDir, 'docs', 'context', 'conventions', filename);
-  try {
-    const content = fs.readFileSync(convPath, 'utf8');
-    const lines = content.split('\n');
-    const principles = [];
-    for (const line of lines) {
-      const match = line.match(/^\*\*(.+?)\*\*$/);
-      if (match) principles.push(match[1]);
+  const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
+  const candidates = [
+    path.join(convDir, filename),
+    path.join(convDir, 'system', filename),
+  ];
+  for (const convPath of candidates) {
+    try {
+      const content = fs.readFileSync(convPath, 'utf8');
+      const lines = content.split('\n');
+      const principles = [];
+      for (const line of lines) {
+        const match = line.match(/^\*\*(.+?)\*\*$/);
+        if (match) principles.push(match[1]);
+      }
+      if (principles.length > 0) return principles;
+    } catch (e) {
+      // Try next candidate
     }
-    return principles;
-  } catch (e) {
-    debug('convention-guard: could not read %s: %s', filename, e.message);
-    return [];
   }
+  debug('convention-guard: could not read %s from parent or system/', filename);
+  return [];
 }
 
 // Determine which conventions apply based on path
@@ -79,7 +87,7 @@ const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
 
 // Docs convention applies to all docs/ paths (including work/ and knowledge/)
 if (isDocs) {
-  const docs = extractPrinciples('docs.md');
+  const docs = extractPrinciples('documentation.md');
   if (docs.length > 0) {
     conventions.push('Docs: ' + docs.join(' | '));
   }
@@ -100,15 +108,23 @@ if (isWork) {
 
 // Build menu of conventions not already injected above
 const injected = new Set(['index.md', 'security.md']);
-if (isDocs) injected.add('docs.md');
+if (isDocs) injected.add('documentation.md');
 if (isWork) injected.add('work-items.md');
 if (isKnowledge) injected.add('knowledge-capture.md');
 
 const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
 try {
-  const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
-  if (files.length > 0) {
-    const names = files.map((f) => f.replace(/\.md$/, ''));
+  // Merge operator conventions + system/ conventions, operator takes precedence
+  const operatorFiles = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
+  const operatorNames = new Set(operatorFiles);
+  let systemFiles = [];
+  const systemDir = path.join(convDir, 'system');
+  try {
+    systemFiles = fs.readdirSync(systemDir).filter((f) => f.endsWith('.md') && !injected.has(f) && !operatorNames.has(f));
+  } catch (_) {}
+  const allFiles = [...operatorFiles, ...systemFiles];
+  if (allFiles.length > 0) {
+    const names = allFiles.map((f) => f.replace(/\.md$/, ''));
     conventions.push(
       'Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant',
     );

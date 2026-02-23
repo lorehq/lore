@@ -132,6 +132,7 @@ function buildStaticBanner(directory) {
   const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
   const plans = scanWork(path.join(docsWork, 'plans'));
 
+  // Notes (docs/work/notes/) intentionally excluded from scanning — lightweight capture, no banner inclusion
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const skillLine = operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
 
@@ -173,10 +174,20 @@ WORKERS: ${workerList}`;
     const convFile = path.join(directory, 'docs', 'context', 'conventions.md');
     if (semanticSearchUrl) {
       // Semantic search available — list all convention names, agent finds content on demand
+      // Merge operator conventions + system/ conventions (operator names take precedence)
       if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
-        const allNames = fs
+        const operatorNames = fs
           .readdirSync(convDir)
-          .filter((f) => f.endsWith('.md') && f !== 'index.md')
+          .filter((f) => f.endsWith('.md') && f !== 'index.md');
+        const operatorSet = new Set(operatorNames);
+        let systemNames = [];
+        const systemDir = path.join(convDir, 'system');
+        try {
+          systemNames = fs
+            .readdirSync(systemDir)
+            .filter((f) => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f));
+        } catch (_) {}
+        const allNames = [...operatorNames, ...systemNames]
           .map((f) => f.replace(/\.md$/, ''))
           .sort();
         if (allNames.length > 0) {
@@ -184,11 +195,11 @@ WORKERS: ${workerList}`;
         }
       }
     } else {
-      // No semantic search — inject required conventions in full, list rest by name
+      // No semantic search — inject all conventions in full
+      // Merge operator conventions + system/ conventions (operator files take precedence)
       const requiredParts = [];
-      const availableNames = [];
       if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
-        const files = fs
+        const operatorFiles = fs
           .readdirSync(convDir)
           .filter((f) => f.endsWith('.md'))
           .sort((a, b) => {
@@ -196,21 +207,31 @@ WORKERS: ${workerList}`;
             if (b === 'index.md') return 1;
             return a.localeCompare(b);
           });
-        for (const file of files) {
+        const operatorSet = new Set(operatorFiles);
+        for (const file of operatorFiles) {
           const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
           const stripped = stripFrontmatter(raw).trim();
-          if (!stripped) continue;
-          // Without semantic search, inject all conventions so the model has them available
-          requiredParts.push(stripped);
+          if (stripped) requiredParts.push(stripped);
         }
+        // Add system/ conventions not overridden by operator files
+        const systemDir = path.join(convDir, 'system');
+        try {
+          const systemFiles = fs
+            .readdirSync(systemDir)
+            .filter((f) => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f))
+            .sort();
+          for (const file of systemFiles) {
+            const raw = fs.readFileSync(path.join(systemDir, file), 'utf8');
+            const stripped = stripFrontmatter(raw).trim();
+            if (stripped) requiredParts.push(stripped);
+          }
+        } catch (_) {}
       } else if (fs.existsSync(convFile)) {
         const raw = fs.readFileSync(convFile, 'utf8');
         const stripped = stripFrontmatter(raw).trim();
         if (stripped) requiredParts.push(stripped);
       }
       if (requiredParts.length > 0) output += '\n\nCONVENTIONS:\n' + requiredParts.join('\n\n');
-      if (availableNames.length > 0)
-        output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + availableNames.join(', ');
     }
   } catch (e) {
     debug('conventions: %s', e.message);

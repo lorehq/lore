@@ -1,6 +1,3 @@
----
-required: false
----
 # Work Items
 
 ## Formatting

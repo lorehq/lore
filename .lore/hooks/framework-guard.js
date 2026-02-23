@@ -17,6 +17,8 @@ const FRAMEWORK_PREFIXES = [
   '.opencode/',
   '.cursor/hooks/',
   '.cursor/mcp/',
+  'docs/context/conventions/system/',
+  'docs/knowledge/runbooks/system/',
 ];
 
 const FRAMEWORK_PATTERNS = [

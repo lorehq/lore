@@ -100,6 +100,18 @@ if [ -d "$SOURCE/.lore/agents" ]; then
   done
 fi
 
+# Framework-owned system conventions — always overwrite
+if [ -d "$SOURCE/docs/context/conventions/system" ]; then
+  mkdir -p "$TARGET/docs/context/conventions/system"
+  cp -Rf "$SOURCE/docs/context/conventions/system/." "$TARGET/docs/context/conventions/system/"
+fi
+
+# Framework-owned system runbooks — always overwrite
+if [ -d "$SOURCE/docs/knowledge/runbooks/system" ]; then
+  mkdir -p "$TARGET/docs/knowledge/runbooks/system"
+  cp -Rf "$SOURCE/docs/knowledge/runbooks/system/." "$TARGET/docs/knowledge/runbooks/system/"
+fi
+
 # Single files
 [ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"

@@ -85,10 +85,11 @@ Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
 ## Work Management
 
-Roadmaps, plans, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
+Roadmaps, plans, notes, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
 
 - **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
 - **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.
+- **Notes** (`docs/work/notes/<slug>.md`): Lightweight capture — bugs, ideas, observations. Single files with minimal frontmatter (`title`, `status`, `created`). Not tracked in the session banner.
 - **Brainstorms** (`docs/work/brainstorms/<slug>/`): Conversation artifacts for future reference. No `status` field — not tracked work.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
@@ -109,7 +110,10 @@ Safety hooks (protect-memory, framework-guard) always fire regardless of profile
 - Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
 - Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
 - Context: `docs/context/` (rules, conventions — injected every session)
+- System conventions: `docs/context/conventions/system/` (framework-owned, overwritten on sync)
 - Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
-- Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
+- System runbooks: `docs/knowledge/runbooks/system/` (framework-owned, overwritten on sync)
+- Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/notes/`, `docs/work/brainstorms/`
+- Seed templates: `.lore/templates/seeds/` (default convention content for new instances)
 - Hooks: `.lore/hooks/`
 - Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
