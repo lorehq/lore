@@ -9,6 +9,8 @@
     "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   },
   "docker": {
+    "site": { "address": "localhost", "port": 9184 },
+    "search": { "address": "localhost", "port": 9185 },
     "semantic": {
       "defaultK": 8,
       "maxK": 20,
@@ -26,8 +28,4 @@
 
   // Max directory depth for ASCII trees in banner and knowledge map
   // "treeDepth": 5
-
-  // Docker site/search ports are set by /lore-docker on start, cleared on stop
-  // "docker.site": { "address": "localhost", "port": 9184 }
-  // "docker.search": { "address": "localhost", "port": 9185 }
 }
