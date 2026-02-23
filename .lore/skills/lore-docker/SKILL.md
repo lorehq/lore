@@ -11,6 +11,12 @@ Manage the local docs UI lifecycle from one command.
 
 Current runtime model: one Docker container (`lorehq/lore-docker`) provides docs UI, semantic search, and file-watch maintenance.
 
+## Platform detection
+
+Before running any commands, detect the OS once:
+- `uname -s` → `Linux` or `Darwin` = Unix, `MINGW*` or `MSYS*` or `CYGWIN*` = Windows (Git Bash)
+- On Windows/Git Bash: `pgrep` is unavailable, `cksum` may be missing, and bash runs under Git Bash — use `powershell -NoProfile -Command "..."` for process queries and port hashing
+
 ## Process
 
 Interpret intent from user input:
@@ -23,7 +29,8 @@ Interpret intent from user input:
 1. Compute ports, project name, and semantic settings:
    - Read config: `cfg=$(node -e "const{getConfig}=require('./.lore/lib/config');console.log(JSON.stringify(getConfig('.').docker||{}))")`
    - If `cfg.dynamicPorts` is truthy:
-     - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
+     - Unix: `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
+     - Windows: use `node -e` to compute the hash instead (cksum unavailable): `LORE_DOCS_PORT=$(node -e "const s=require('path').basename(process.cwd());let h=0;for(const c of s)h=((h<<5)-h+c.charCodeAt(0))|0;console.log((Math.abs(h)%999)+9001)")`
      - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
    - Else (static defaults):
      - `LORE_DOCS_PORT=$(node -e "const{getConfig}=require('./.lore/lib/config');const c=getConfig('.');console.log(c.docker?.site?.port||9184)")`
@@ -45,7 +52,9 @@ Interpret intent from user input:
    - Check Python: `python3 --version || python --version`
    - Check mkdocs: `command -v mkdocs`
    - If missing, install deps: `pip install mkdocs-material mkdocs-panzoom-plugin`
-   - Handle stale local process: if `pgrep -f 'mkdocs serve'` returns a PID but `curl http://localhost:8000` is not 200, kill stale PID
+   - Handle stale local process — detect and kill by platform:
+     - Unix: `pgrep -f 'mkdocs serve'` — if PID exists but `curl http://localhost:8000` is not 200, `kill` the PID
+     - Windows: `powershell -NoProfile -Command "(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*mkdocs serve*' }).ProcessId"` — if PID exists but curl fails, `powershell -NoProfile -Command "Stop-Process -Id <PID> -Force"`
    - Start local server: `nohup mkdocs serve --livereload > /dev/null 2>&1 &`
    - Verify with curl on `http://localhost:8000`
    - Note: local fallback provides docs UI only — no semantic search or file watching
@@ -57,8 +66,8 @@ Interpret intent from user input:
    - Set project name: `export COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
    - If container is running: `docker compose -f .lore/docker-compose.yml down`
 2. Then stop local mkdocs if running:
-   - `pgrep -f 'mkdocs serve'`
-   - If running: `kill $(pgrep -f 'mkdocs serve')`
+   - Unix: `pgrep -f 'mkdocs serve'` — if running: `kill $(pgrep -f 'mkdocs serve')`
+   - Windows: `powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*mkdocs serve*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"`
 3. Clear config (preserves `docker.semantic`): `node -e "const{getConfig}=require('./.lore/lib/config');const fs=require('fs');const c=getConfig('.');const sem=c.docker?.semantic;delete c.docker;if(sem)c.docker={semantic:sem};fs.writeFileSync('.lore/config.json',JSON.stringify(c,null,2)+'\n')"`
 4. Report what was stopped, or "No docs UI is running".
 
@@ -73,7 +82,7 @@ Interpret intent from user input:
 
 - `docker compose` project name defaults to the directory containing the compose file (`.lore` → `lore`), not the project root. Always export `COMPOSE_PROJECT_NAME="$(basename "$PWD")"` before any `docker compose` call so containers are named after the instance (e.g. `my-project-lore-runtime-1`).
 - Always pass `--livereload` for local mkdocs.
-- `pgrep` alone is not sufficient; always verify with curl.
+- Process detection: `pgrep` on Unix, `Get-CimInstance Win32_Process` on Windows. Always verify with curl regardless.
 - Docker may be installed but daemon not running; treat that as fallback-to-local, not a hard error.
 - If both Docker and local are running, prefer reporting Docker URL first and note both are active.
 - Semantic search model loading can take 30-60 seconds on first start. Report the health endpoint URL so the user can check back.
