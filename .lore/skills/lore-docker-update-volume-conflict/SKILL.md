@@ -25,7 +25,7 @@ docker compose -f .lore/docker-compose.yml down -v
 LORE_DOCS_PORT=<port> LORE_SEMANTIC_PORT=<port> docker compose -f .lore/docker-compose.yml up -d
 ```
 
-The `-v` flag removes the `runtime_data` and `runtime_cache` named volumes so the new container creates them fresh with correct ownership.
+The `-v` flag removes the `runtime_data` named volume so the new container creates it fresh with correct ownership.
 
 ## Notes
 
