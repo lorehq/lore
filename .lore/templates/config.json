@@ -9,8 +9,6 @@
     "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
   },
   "docker": {
-    "site": { "address": "localhost", "port": 9184 },
-    "search": { "address": "localhost", "port": 9185 },
     "semantic": {
       "defaultK": 8,
       "maxK": 20,
@@ -19,6 +17,7 @@
       "resultMode": "paths_min",
       "model": "BAAI/bge-small-en-v1.5"
     }
+    // "dynamicPorts": true  — compute unique ports per instance (for multi-instance setups)
   }
 
   // Hook verbosity: "minimal" | "standard" | "discovery"
