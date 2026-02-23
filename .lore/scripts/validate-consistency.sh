@@ -105,11 +105,16 @@ fi
 # -- 5. Instructions copies match canonical source --
 echo "--- Instructions Sync ---"
 if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
-  # CLAUDE.md is a direct copy of instructions.md
+  # CLAUDE.md = instructions.md + static banner. Verify instructions prefix matches.
   if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
-    if ! diff -q "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1; then
-      fail "CLAUDE.md out of sync with .lore/instructions.md — run: bash .lore/scripts/sync-platform-skills.sh"
-    fi
+    node -e "
+      const fs = require('fs');
+      const norm = c => c.replace(/\r\n/g, '\n').trimEnd();
+      const inst = norm(fs.readFileSync(process.argv[1], 'utf8'));
+      const claude = norm(fs.readFileSync(process.argv[2], 'utf8'));
+      if (!claude.startsWith(inst)) { process.exit(1); }
+    " "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1 \
+      || fail "CLAUDE.md out of sync with .lore/instructions.md — run: node .lore/scripts/generate-claude-md.js ."
   else
     fail "CLAUDE.md missing — run: bash .lore/scripts/sync-platform-skills.sh"
   fi
