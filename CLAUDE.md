@@ -85,10 +85,11 @@ Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
 ## Work Management
 
-Roadmaps, plans, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
+Roadmaps, plans, notes, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
 
 - **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
 - **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.
+- **Notes** (`docs/work/notes/<slug>.md`): Lightweight capture — bugs, ideas, observations. Single files with minimal frontmatter (`title`, `status`, `created`). Not tracked in the session banner.
 - **Brainstorms** (`docs/work/brainstorms/<slug>/`): Conversation artifacts for future reference. No `status` field — not tracked work.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
@@ -109,12 +110,15 @@ Safety hooks (protect-memory, framework-guard) always fire regardless of profile
 - Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
 - Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
 - Context: `docs/context/` (rules, conventions — injected every session)
+- System conventions: `docs/context/conventions/system/` (framework-owned, overwritten on sync)
 - Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
-- Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/brainstorms/`
+- System runbooks: `docs/knowledge/runbooks/system/` (framework-owned, overwritten on sync)
+- Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/notes/`, `docs/work/brainstorms/`
+- Seed templates: `.lore/templates/seeds/` (default convention content for new instances)
 - Hooks: `.lore/hooks/`
 - Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
 
-=== LORE v0.11.1 ===
+=== LORE v0.12.0 ===
 
 WORKERS: lore-worker-fast, lore-worker-powerful, lore-worker
 
@@ -302,64 +306,6 @@ For multi-step work, state the plan up front:
 - Use consistent terminology. Pick one term per concept and stick with it project-wide.
 - Concrete over abstract: specific values, real examples, actual commands.
 
-# Knowledge Capture
-
-How knowledge entries should be written and organized. For routing rules (what goes where), see `.lore/instructions.md`.
-
-## 1. Ask Before Writing
-
-**No knowledge write happens without operator approval.**
-
-- Before creating a skill, runbook, environment doc, or work item — state the file path and a one-line description of the content.
-- Ask the operator: "Is that okay?" Proceed only after approval.
-- This applies to all writes under `docs/` and `.lore/skills/`.
-- Workers never write knowledge — they report findings to the orchestrator, who proposes writes to the operator.
-
-## 2. One Canonical Location Per Fact
-
-**If changing one fact means editing multiple files, the structure is wrong.**
-
-- Every piece of reference data (IPs, endpoints, service configs) lives in exactly one file. Everything else links to it.
-- Before adding information, search for where it already exists. Add to that file or link to it.
-- Tables and lists consolidate naturally. Five services on the same platform belong in one table, not five pages.
-- When you find duplication, fix it: pick the canonical location, consolidate, replace copies with links.
-
-## 3. Consolidate, Don't Scatter
-
-**A file should earn its existence. Thin files are overhead.**
-
-- If a page is under 30 lines, it's a section in a parent file — not its own page.
-- Related services, endpoints, or configs belong in a single reference table. Don't create a page per service when a row per service will do.
-- Group by domain, not by when you learned it. "All backup targets" beats "backup-vaultwarden, backup-docker, backup-proxmox, backup-media, backup-offsite, backup-network."
-- Runbooks for trivial operations (single command, one config export) belong as entries in a quick-reference list.
-
-## 4. Minimize Update Cost
-
-**Structure for maintainability, not comprehensiveness.**
-
-- Before creating a new file, ask: "If this data changes, how many files do I touch?" If the answer is more than one, restructure.
-- Reference data (IPs, ports, VLANs, service URLs) belongs in inventory tables, not embedded in prose across runbooks and plans.
-- Runbooks should reference inventory data by link, not by copying it inline.
-- When infrastructure changes, one file update should be sufficient.
-
-## 5. Keep It Scannable
-
-**Walls of prose hide information. Structure reveals it.**
-
-- Use tables for anything with repeating attributes (services, VMs, endpoints, backup schedules).
-- Use short bullets for facts. Save paragraphs for decisions that need rationale.
-- Front-load the key insight. First sentence answers "what do I need to know?"
-- Headings should be specific enough to find by scanning. "NFS Configuration" beats "Additional Notes."
-
-## 6. Don't Capture Noise
-
-**Not everything learned is worth persisting.**
-
-- Don't capture session-specific context (current task state, in-progress decisions).
-- Don't write knowledge that restates what code or config files already make obvious.
-- Don't create entries for hypothetical problems you haven't hit.
-- Don't capture what's already in instructions or conventions. Link instead.
-
 # Security
 
 ## 1. No Secrets in the Repo
@@ -398,6 +344,122 @@ How knowledge entries should be written and organized. For routing rules (what g
 - When documenting access patterns, note what permissions are required — not how to escalate them.
 - Prefer short-lived tokens over long-lived ones. Document rotation procedures, not the tokens themselves.
 
+# Knowledge Base Structure
+
+## 1. One Topic Per File
+
+**Atomic files produce the best retrieval.**
+
+- Each file covers one entity, one concept, or one procedure — nothing more.
+- A file should make sense read in isolation, without context from sibling files.
+- Under 20 lines: consider merging into a sibling file. Over 150 lines: likely two topics — split.
+
+## 2. Self-Contained Sections
+
+**Semantic search chunks at `##` boundaries — each section is a retrieval unit.**
+
+- A section that requires reading the section above produces a weak embedding.
+- Use bullet lists over prose for enumerating facts, properties, or steps.
+- Avoid nested lists deeper than two levels.
+
+## 3. Descriptive Names
+
+**File and directory names carry retrieval signal — make them count.**
+
+- Use kebab-case for all file and directory names.
+- File names: primary noun + qualifier (`github-actions-cache.md`, `stripe-webhook-auth.md`).
+- Directory names: noun phrases describing the category (`payment-providers/`, not `misc/`).
+- Avoid generic names: `misc.md`, `notes.md`, `overview.md`, `other/` — they carry no retrieval signal.
+
+## 4. Depth Limit
+
+**Shallow hierarchy means fewer agent navigation hops.**
+
+- Max 3 levels under `docs/knowledge/`: domain → category → files.
+- Add a third level (subcategory) only when a category has 10+ files.
+- Every directory must have an `index.md` describing its contents and linking to children.
+
+## 5. Frontmatter
+
+**Minimal frontmatter enables filtered retrieval and helps agents reason about files before reading them.**
+
+- Three required fields on every knowledge file:
+  ```yaml
+  ---
+  title: Human-readable title
+  tags: [tag1, tag2]
+  type: environment | runbook | reference | procedure
+  ---
+  ```
+- Use existing tags before coining new ones.
+- Add `related: [path1, path2]` for strongly connected files.
+
+## 6. Cross-References
+
+**Links compound value. Duplication compounds drift.**
+
+- Use `related:` frontmatter for files covering the same entity from different angles.
+- Use inline links for specific fact references within prose or bullets.
+- Never duplicate content — link instead.
+
+## 7. Protected Paths
+
+**These paths must not be renamed or moved by defrag or any reorganization.**
+
+- `docs/knowledge/local/` — gitignored operator profile.
+- `docs/knowledge/environment/` — environment facts; framework references this path.
+- `docs/knowledge/runbooks/` — runbooks; external references depend on this name.
+- The knowledge-defrag runbook reads this list before proposing any moves.
+
+# Knowledge Capture
+
+How knowledge entries should be written and organized. For routing rules (what goes where), see `.lore/instructions.md`.
+
+## 1. One Canonical Location Per Fact
+
+**If changing one fact means editing multiple files, the structure is wrong.**
+
+- Every piece of reference data (IPs, endpoints, service configs) lives in exactly one file. Everything else links to it.
+- Before adding information, search for where it already exists. Add to that file or link to it.
+- Tables and lists consolidate naturally. Five services on the same platform belong in one table, not five pages.
+- When you find duplication, fix it: pick the canonical location, consolidate, replace copies with links.
+
+## 2. Consolidate, Don't Scatter
+
+**A file should earn its existence. Thin files are overhead.**
+
+- If a page is under 30 lines, it's a section in a parent file — not its own page.
+- Related services, endpoints, or configs belong in a single reference table. Don't create a page per service when a row per service will do.
+- Group by domain, not by when you learned it. "All backup targets" beats "backup-vaultwarden, backup-docker, backup-proxmox, backup-media, backup-offsite, backup-network."
+- Runbooks for trivial operations (single command, one config export) belong as entries in a quick-reference list.
+
+## 3. Minimize Update Cost
+
+**Structure for maintainability, not comprehensiveness.**
+
+- Before creating a new file, ask: "If this data changes, how many files do I touch?" If the answer is more than one, restructure.
+- Reference data (IPs, ports, VLANs, service URLs) belongs in inventory tables, not embedded in prose across runbooks and plans.
+- Runbooks should reference inventory data by link, not by copying it inline.
+- When infrastructure changes, one file update should be sufficient.
+
+## 4. Keep It Scannable
+
+**Walls of prose hide information. Structure reveals it.**
+
+- Use tables for anything with repeating attributes (services, VMs, endpoints, backup schedules).
+- Use short bullets for facts. Save paragraphs for decisions that need rationale.
+- Front-load the key insight. First sentence answers "what do I need to know?"
+- Headings should be specific enough to find by scanning. "NFS Configuration" beats "Additional Notes."
+
+## 5. Don't Capture Noise
+
+**Not everything learned is worth persisting.**
+
+- Don't capture session-specific context (current task state, in-progress decisions).
+- Don't write knowledge that restates what code or config files already make obvious.
+- Don't create entries for hypothetical problems you haven't hit.
+- Don't capture what's already in instructions or conventions. Link instead.
+
 # Work Items
 
 ## Formatting
@@ -411,6 +473,7 @@ KNOWLEDGE MAP:
 docs/
 ├── context/
 │   └── conventions/
+│       └── system/
 ├── guides/
 ├── knowledge/
 │   ├── environment/
@@ -420,8 +483,10 @@ docs/
 │   │   └── reference/
 │   ├── local/
 │   └── runbooks/
+│       └── system/
 └── work/
     ├── brainstorms/
+    ├── notes/
     ├── plans/
     └── roadmaps/
 .lore/skills/
@@ -429,6 +494,7 @@ docs/
 ├── lore-consolidate/
 ├── lore-create-agent/
 ├── lore-create-brainstorm/
+├── lore-create-note/
 ├── lore-create-plan/
 ├── lore-create-roadmap/
 ├── lore-create-skill/

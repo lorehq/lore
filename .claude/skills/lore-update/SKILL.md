@@ -25,13 +25,19 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
    **Critical**: always pass `"$tmp"` as the target — omitting it clones into the working directory as `lore/`.
 3. Read the source version from the cloned `.lore/config.json`
 4. Show the operator: current version, new version, what will be synced
-5. On approval, run:
+5. On approval, run **from the instance directory** (cwd), passing the framework clone as the argument:
    ```bash
    bash "$tmp/.lore/scripts/sync-framework.sh" "$tmp"
    ```
+   **Direction: cwd = target instance, argument = source framework.** Getting this backwards overwrites the framework repo with stale instance files.
 6. Update the `version` field in `.lore/config.json` to match the source
-7. Clean up: `rm -rf "$tmp"`
-8. Report what changed
+7. **Seed review** — compare `.lore/templates/seeds/conventions/` to operator convention files in `docs/context/conventions/`. For each seed template where the operator file exists and differs:
+   - Show the diff (seed template vs operator file)
+   - Ask the operator whether to adopt the updated seed or keep their version
+   - Only overwrite operator files the operator explicitly approves
+   Note: seed filenames may map differently (e.g., seed `docs.md` → operator `documentation.md`). Compare by content purpose, not filename.
+8. Clean up: `rm -rf "$tmp"`
+9. Report what changed
 
 ## What Gets Synced
 
@@ -39,10 +45,14 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 - `.lore/hooks/`, `.lore/lib/`, `.lore/scripts/`, `.opencode/`
 - `.claude/settings.json`, `.lore/skills/<built-in>/`
 - `.lore/instructions.md`, `.gitignore`, `opencode.json`
+- `docs/context/conventions/system/`, `docs/knowledge/runbooks/system/`
 - Generated copies (`CLAUDE.md`, `.cursor/rules/lore-*.mdc`) are also regenerated via `sync-platform-skills.sh`
 
+**Seed files (opt-in update):**
+- `.lore/templates/seeds/conventions/` — default convention content. Created on first install if missing. On update, diffs shown for operator review.
+
 **Never touched (operator-owned):**
-- `docs/`, `.lore/agents/`, `mkdocs.yml`
+- `docs/` (except `system/` subdirs), `.lore/agents/`, `mkdocs.yml`
 - `.lore/config.json`, `.lore/memory.local.md`, `.lore/operator.gitignore`
 
 ## Gotchas

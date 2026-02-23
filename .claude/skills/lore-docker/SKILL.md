@@ -20,9 +20,14 @@ Interpret intent from user input:
 
 ### Start
 
-1. Compute deterministic ports, project name, and semantic settings:
-   - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
-   - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
+1. Compute ports, project name, and semantic settings:
+   - Read config: `cfg=$(node -e "const{getConfig}=require('./.lore/lib/config');console.log(JSON.stringify(getConfig('.').docker||{}))")`
+   - If `cfg.dynamicPorts` is truthy:
+     - `LORE_DOCS_PORT=$(( ($(printf '%s' "$(basename "$PWD")" | cksum | cut -d' ' -f1) % 999) + 9001 ))`
+     - `LORE_SEMANTIC_PORT=$(( LORE_DOCS_PORT + 1000 ))`
+   - Else (static defaults):
+     - `LORE_DOCS_PORT=$(node -e "const{getConfig}=require('./.lore/lib/config');const c=getConfig('.');console.log(c.docker?.site?.port||9184)")`
+     - `LORE_SEMANTIC_PORT=$(node -e "const{getConfig}=require('./.lore/lib/config');const c=getConfig('.');console.log(c.docker?.search?.port||9185)")`
    - `COMPOSE_PROJECT_NAME="$(basename "$PWD")"`
    - Read `docker.semantic` from config.json, export `SEMANTIC_*` env vars (fall back to built-in defaults if key absent):
      `eval "$(node -e "const{getConfig}=require('./.lore/lib/config');const c=getConfig('.');const s=(c.docker||{}).semantic||{};const D={defaultK:8,maxK:20,maxChunkChars:1000,snippetChars:200,resultMode:'paths_min',model:'BAAI/bge-small-en-v1.5'};Object.entries({SEMANTIC_DEFAULT_K:s.defaultK??D.defaultK,SEMANTIC_MAX_K:s.maxK??D.maxK,SEMANTIC_MAX_CHUNK_CHARS:s.maxChunkChars??D.maxChunkChars,SEMANTIC_SNIPPET_CHARS:s.snippetChars??D.snippetChars,SEMANTIC_RESULT_MODE:s.resultMode??D.resultMode,SEMANTIC_EMBED_MODEL:s.model??D.model}).forEach(([k,v])=>console.log('export '+k+'='+v));")"

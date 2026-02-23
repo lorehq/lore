@@ -8,6 +8,7 @@ alwaysApply: false
 docs/
 ├── context/
 │   └── conventions/
+│       └── system/
 ├── guides/
 ├── knowledge/
 │   ├── environment/
@@ -17,8 +18,10 @@ docs/
 │   │   └── reference/
 │   ├── local/
 │   └── runbooks/
+│       └── system/
 └── work/
     ├── brainstorms/
+    ├── notes/
     ├── plans/
     └── roadmaps/
 .lore/skills/
@@ -26,6 +29,7 @@ docs/
 ├── lore-consolidate/
 ├── lore-create-agent/
 ├── lore-create-brainstorm/
+├── lore-create-note/
 ├── lore-create-plan/
 ├── lore-create-roadmap/
 ├── lore-create-skill/
