@@ -199,11 +199,12 @@ do_link() {
     const hub = process.argv[1];
     const config = {
       instructions: ['CLAUDE.md'],
-      mcpServers: {
+      mcp: {
         'lore-search': {
-          command: 'node',
-          args: [hub + '/.lore/mcp/search-server.js'],
-          env: { LORE_HUB: hub }
+          type: 'local',
+          command: ['node', hub + '/.lore/mcp/search-server.js'],
+          enabled: true,
+          environment: { LORE_HUB: hub }
         }
       }
     };
