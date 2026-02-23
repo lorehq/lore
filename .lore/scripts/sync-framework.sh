@@ -21,6 +21,23 @@ set -euo pipefail
 SOURCE="${1:?Usage: sync-framework.sh <source-dir>}"
 TARGET="$(pwd)"
 
+# --- Direction guard ---
+# This script copies FROM <source> INTO <cwd>.
+# Source = framework repo (or temp clone). Target = the instance being updated.
+# Getting this backwards overwrites framework files with stale instance copies.
+
+if [ "$(realpath "$SOURCE")" = "$(realpath "$TARGET")" ]; then
+  echo "Error: source and target are the same directory" >&2
+  exit 1
+fi
+
+if [ -f "$TARGET/test/lore-link.test.js" ] || [ -f "$TARGET/package.json" ]; then
+  echo "Error: target (cwd) looks like the framework repo, not an instance." >&2
+  echo "Direction: run FROM the instance, pass the framework repo as the argument." >&2
+  echo "  cd /path/to/my-instance && bash .lore/scripts/sync-framework.sh /path/to/lore" >&2
+  exit 1
+fi
+
 if [ ! -f "$TARGET/.lore/config.json" ]; then
   echo "Error: not a Lore instance (no .lore/config.json found)" >&2
   exit 1

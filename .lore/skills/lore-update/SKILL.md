@@ -25,10 +25,11 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
    **Critical**: always pass `"$tmp"` as the target — omitting it clones into the working directory as `lore/`.
 3. Read the source version from the cloned `.lore/config.json`
 4. Show the operator: current version, new version, what will be synced
-5. On approval, run:
+5. On approval, run **from the instance directory** (cwd), passing the framework clone as the argument:
    ```bash
    bash "$tmp/.lore/scripts/sync-framework.sh" "$tmp"
    ```
+   **Direction: cwd = target instance, argument = source framework.** Getting this backwards overwrites the framework repo with stale instance files.
 6. Update the `version` field in `.lore/config.json` to match the source
 7. Clean up: `rm -rf "$tmp"`
 8. Report what changed
