@@ -101,6 +101,12 @@ else
   echo "  SKIP: create-lore not found at $LORE_ROOT/../create-lore"
 fi
 
+# -- Regenerate derived files (version banner embeds in CLAUDE.md, cursor rules) --
+echo ""
+echo "--- Regenerating derived files ---"
+node "$LORE_ROOT/.lore/scripts/generate-claude-md.js"
+bash "$LORE_ROOT/.lore/scripts/generate-cursor-rules.sh"
+
 echo ""
 echo "=== Done. Verify with: bash .lore/scripts/check-version-sync.sh ==="
 echo ""
