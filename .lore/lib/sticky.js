@@ -30,7 +30,13 @@ const SEED_CONVENTIONS = [
 ];
 
 // Seed runbook files: scaffolded into docs/knowledge/runbooks/ (not system/).
-const SEED_RUNBOOKS = [{ seed: 'docs-code-alignment-sweep.md', target: 'docs-code-alignment-sweep.md' }];
+// Supports subdirectories — use forward slashes in seed/target paths.
+const SEED_RUNBOOKS = [
+  { seed: 'docs-code-alignment-sweep.md', target: 'docs-code-alignment-sweep.md' },
+  { seed: 'first-session/knowledge-worker.md', target: 'first-session/knowledge-worker.md' },
+  { seed: 'first-session/homelab.md', target: 'first-session/homelab.md' },
+  { seed: 'first-session/personal.md', target: 'first-session/personal.md' },
+];
 
 function ensureStickyFiles(directory) {
   try {
@@ -103,6 +109,7 @@ Operational rules and standards for this environment. Each page covers a specifi
         if (!fs.existsSync(targetPath)) {
           const content = readSeed(directory, path.join('runbooks', seed));
           if (content) {
+            fs.mkdirSync(path.dirname(targetPath), { recursive: true });
             fs.writeFileSync(targetPath, content);
           }
         }
