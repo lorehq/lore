@@ -68,7 +68,7 @@ node -e "
 echo "  lore/SECURITY.md"
 MAJOR_MINOR="${VERSION%.*}"
 sed -i "s/| [0-9]*\.[0-9]*\.x *| Yes/| ${MAJOR_MINOR}.x   | Yes/" "$LORE_ROOT/SECURITY.md"
-npx prettier --write "$LORE_ROOT/SECURITY.md" 2>/dev/null || true
+(cd "$LORE_ROOT" && npx prettier --write SECURITY.md) 2>/dev/null || true
 
 # -- create-lore/package.json --
 if [[ -n "$CREATE_LORE_ROOT" && -d "$CREATE_LORE_ROOT" ]]; then
@@ -95,7 +95,7 @@ if [[ -n "$CREATE_LORE_ROOT" && -d "$CREATE_LORE_ROOT" ]]; then
   if [[ -f "$CREATE_LORE_ROOT/SECURITY.md" ]]; then
     echo "  create-lore/SECURITY.md"
     sed -i "s/| [0-9]*\.[0-9]*\.x *| Yes/| ${MAJOR_MINOR}.x   | Yes/" "$CREATE_LORE_ROOT/SECURITY.md"
-    npx prettier --write "$CREATE_LORE_ROOT/SECURITY.md" 2>/dev/null || true
+    (cd "$CREATE_LORE_ROOT" && npx prettier --write SECURITY.md) 2>/dev/null || true
   fi
 else
   echo "  SKIP: create-lore not found at $LORE_ROOT/../create-lore"
