@@ -80,11 +80,11 @@ One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq
 
 ## Platforms
 
-| Platform | Integration | Status |
-|----------|-------------|--------|
-| **Claude Code** | Hooks + `CLAUDE.md` | Stable |
-| **Cursor** | Hooks + MCP server + `.mdc` rules | Stable |
-| **OpenCode** | ESM plugins + `opencode.json` | Stable |
+| Platform | Integration | Maturity |
+|----------|-------------|----------|
+| **Claude Code** | Hooks + `CLAUDE.md` | Supported |
+| **Cursor** | Hooks + MCP server + `.mdc` rules | Experimental |
+| **OpenCode** | ESM plugins + `opencode.json` | Experimental |
 
 All platforms share the same knowledge base. Skills, agents, and conventions written once sync to platform-specific formats automatically.
 

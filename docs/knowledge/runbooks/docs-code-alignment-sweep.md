@@ -1,4 +1,18 @@
+---
+example: true
+highlights:
+  - Parallel vs sequential worker phases with explicit gates
+  - Worker tier selection (haiku for extraction, sonnet for judgment)
+  - Convention isolation — workers get one convention, never multiple
+  - Dedicated semantic search containers per data source
+  - Commit-scoped scanning to limit blast radius
+  - Protected pages that skip certain phases
+---
+
 # Docs-Code Alignment Sweep
+
+!!! example "Seed example"
+    This runbook ships with new Lore instances as an example of advanced runbook patterns — parallel delegation, worker tiers, phased gates, and convention isolation. Customize or delete it.
 
 Bidirectional accuracy sweep — reduce doc volume, verify doc claims against source, discover undocumented functionality, then polish for convention compliance. Produces two outputs: doc fixes and a code violations report for follow-up. Uses parallel workers with dedicated semantic search containers.
 
@@ -31,7 +45,7 @@ docker run -d --name sweep-docs \
   -p 9190:8080 \
   -e MAX_K=10 \
   -v /path/to/docs:/data/docs \
-  lorehq/lore-docker:latest
+  lore-docker:latest
 
 # Source search — used by Phase 2b, Phase 3a
 # Mount source repos as sections under /data/docs
@@ -39,7 +53,7 @@ docker run -d --name sweep-source \
   -p 9191:8080 \
   -e MAX_K=10 \
   -v /path/to/source-repo:/data/docs/source \
-  lorehq/lore-docker:latest
+  lore-docker:latest
 
 # Wait for both — model loading takes 30-60s on first start
 curl -s http://localhost:9190/health && curl -s http://localhost:9191/health
