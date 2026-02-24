@@ -28,23 +28,28 @@ function generate(rootDir) {
   fs.mkdirSync(canonicalDir, { recursive: true });
   fs.mkdirSync(claudeDir, { recursive: true });
 
-  // Default tier always present; fast/powerful only when configured
-  const tiers = [{ file: 'lore-worker.md', name: 'lore-worker', model: claudeTiers.default || null }];
+  // Default tier always present; fast/powerful only when configured.
+  // alias is the Claude Code short name (haiku/sonnet/opus) stamped into .claude/agents/ frontmatter.
+  // Claude Code resolves aliases through ANTHROPIC_DEFAULT_*_MODEL env vars, so full deployment
+  // names (e.g. claude-opus-4-6) must NOT be used here — Claude Code ignores unrecognized values.
+  const tiers = [{ file: 'lore-worker.md', name: 'lore-worker', model: claudeTiers.default || null, alias: 'sonnet' }];
   if (claudeTiers.fast) {
-    tiers.push({ file: 'lore-worker-fast.md', name: 'lore-worker-fast', model: claudeTiers.fast });
+    tiers.push({ file: 'lore-worker-fast.md', name: 'lore-worker-fast', model: claudeTiers.fast, alias: 'haiku' });
   }
   if (claudeTiers.powerful) {
-    tiers.push({ file: 'lore-worker-powerful.md', name: 'lore-worker-powerful', model: claudeTiers.powerful });
+    tiers.push({ file: 'lore-worker-powerful.md', name: 'lore-worker-powerful', model: claudeTiers.powerful, alias: 'opus' });
   }
 
   const validFiles = new Set(tiers.map((t) => t.file));
 
-  // Generate canonical (no model) and Claude (with model) variants
+  // Generate canonical (no model) and Claude (with model alias) variants.
+  // Canonical files omit the model field — they are platform-agnostic.
+  // Claude platform files use the short alias so Claude Code resolves the correct deployment.
   for (const tier of tiers) {
     const canonical = template.replace(/^name:\s*.+$/m, 'name: ' + tier.name);
     writeIfChanged(path.join(canonicalDir, tier.file), canonical);
 
-    const claude = stampModel(canonical, tier.model);
+    const claude = stampModel(canonical, tier.alias);
     writeIfChanged(path.join(claudeDir, tier.file), claude);
   }
 
