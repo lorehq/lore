@@ -29,6 +29,9 @@ const SEED_CONVENTIONS = [
   { seed: 'security.md', target: 'security.md' },
 ];
 
+// Seed runbook files: scaffolded into docs/knowledge/runbooks/ (not system/).
+const SEED_RUNBOOKS = [{ seed: 'docs-code-alignment-sweep.md', target: 'docs-code-alignment-sweep.md' }];
+
 function ensureStickyFiles(directory) {
   try {
     const localIndex = path.join(directory, 'docs', 'knowledge', 'local', 'index.md');
@@ -85,6 +88,20 @@ Operational rules and standards for this environment. Each page covers a specifi
         const targetPath = path.join(convDir, target);
         if (!fs.existsSync(targetPath)) {
           const content = readSeed(directory, path.join('conventions', seed));
+          if (content) {
+            fs.writeFileSync(targetPath, content);
+          }
+        }
+      }
+    }
+
+    // Runbooks directory — scaffold seed runbooks individually
+    const runbooksDir = path.join(directory, 'docs', 'knowledge', 'runbooks');
+    if (fs.existsSync(runbooksDir)) {
+      for (const { seed, target } of SEED_RUNBOOKS) {
+        const targetPath = path.join(runbooksDir, target);
+        if (!fs.existsSync(targetPath)) {
+          const content = readSeed(directory, path.join('runbooks', seed));
           if (content) {
             fs.writeFileSync(targetPath, content);
           }

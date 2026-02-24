@@ -6,7 +6,7 @@
 #   1. Skill frontmatter has required fields (name, description)
 #   2. Agent frontmatter has required fields (name, description, model or per-platform model)
 #   3. Agent skill references point to existing directories
-#   4. Platform copies (.claude/) match canonical source (.lore/)
+#   4. Platform copies (.claude/skills/, .claude/agents/) match canonical source (.lore/)
 #   5. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
 #   6. Cursor hooks configuration references existing scripts
 #   7. Linked repos (.lore/links) still exist on disk
@@ -78,28 +78,19 @@ done
 # -- 4. Platform copies match canonical source --
 echo "--- Platform Sync ---"
 if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
-  # Check .claude/skills/ contains exactly the type: command skills from .lore/skills/
+  # Check .claude/skills/ contains all skills from .lore/skills/ and content matches
   if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
     sync_ok=true
-    # Every type: command skill in .lore/ must exist and match in .claude/
     for dir in "$REPO_ROOT"/.lore/skills/*/; do
       name=$(basename "$dir")
       sf="$dir/SKILL.md"
       [[ -f "$sf" ]] || continue
-      skill_type=$(extract_field "type" "$sf")
-      if [[ "$skill_type" == "command" ]]; then
-        if [[ ! -d "$REPO_ROOT/.claude/skills/$name" ]]; then
-          sync_ok=false; break
-        fi
-        diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/skills/$name" 2>&1) || true
-        if [[ -n "$diff_out" ]]; then
-          sync_ok=false; break
-        fi
-      else
-        # Non-command skills must NOT be in .claude/skills/
-        if [[ -d "$REPO_ROOT/.claude/skills/$name" ]]; then
-          sync_ok=false; break
-        fi
+      if [[ ! -d "$REPO_ROOT/.claude/skills/$name" ]]; then
+        sync_ok=false; break
+      fi
+      diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/skills/$name" 2>&1) || true
+      if [[ -n "$diff_out" ]]; then
+        sync_ok=false; break
       fi
     done
     $sync_ok || fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/scripts/sync-platform-skills.sh"
