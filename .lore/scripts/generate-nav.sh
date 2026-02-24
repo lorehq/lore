@@ -75,12 +75,30 @@ if [[ -f "$OUTPUT" ]]; then
   # Extract everything before the nav: line
   HEADER=$(sed '/^nav:/,$d' "$OUTPUT")
 else
-  # No mkdocs.yml exists — write a minimal header
+  # No mkdocs.yml exists — write full header matching lore-docker runtime config
   HEADER='site_name: Lore
+site_url: https://lorehq.github.io/lore-docs/
 docs_dir: docs
 theme:
   name: material
+  logo: assets/logo.svg
+  palette:
+    - scheme: slate
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - search.highlight
 markdown_extensions:
+  - admonition
   - tables
   - toc:
       permalink: true
@@ -89,8 +107,26 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.tilde
+  - pymdownx.tasklist
+extra_css:
+  - https://fonts.googleapis.com/icon?family=Material+Icons
+  - stylesheets/theme.css
+extra_javascript:
+  - javascripts/external-links.js
 plugins:
   - search
+  - panzoom:
+      key: none
+      hint_location: disabled
+      always_show_hint: true
+      initial_zoom_level: 1.0
+      full_screen: true
+      include_selectors:
+        - img
+        - .mermaid
+        - .d2
 '
 fi
 
