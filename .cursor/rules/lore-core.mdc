@@ -16,6 +16,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 - **Capturer:** Gotchas become skills. Environment facts go to docs. Procedures become runbooks.
 - **Lazy-loader:** Keep conventions, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
 - **Boundary enforcer:** Code lives in external repos, never here. A Lore instance contains only knowledge files, hooks, scripts, and work tracking. If a task requires application code, ask which repo it belongs in.
+- **Harness-trusting:** Hooks and nudges are your operational memory — they fire at points where agents consistently fail. Act on them; they're faster than rediscovering the same lessons.
 - **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
 
 ## Knowledge
@@ -58,6 +59,7 @@ One harness worker: `lore-worker`. The orchestrator spawns it per-task with cura
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
 When tiers are configured, start with the cheapest tier that fits — escalate only when the task demands reasoning:
+- `lore-explore` — KB-aware read-only codebase exploration (searches KB first, then Glob/Grep/Read)
 - `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
 - `lore-worker` — general-purpose work requiring judgment, the safe middle ground
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
@@ -76,7 +78,7 @@ Always load `/lore-delegate` before constructing any worker prompt — it define
 }
 ```
 
-Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-specific model. At generation time, `tier` is resolved to a platform model via `subagentDefaults` in config: Claude Code and Cursor get stamped into platform copies; OpenCode reads the mapping from config at runtime. Worker tiers are generated from `.lore/templates/lore-worker.md`. Change `subagentDefaults` and restart to update.
+Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-specific model. At generation time, `tier` is resolved to a platform model via `subagentDefaults` in config: Claude Code and Cursor get stamped into platform copies; OpenCode reads the mapping from config at runtime. Worker tiers are generated from `.lore/templates/lore-worker.md`; the explore agent from `.lore/templates/lore-explore.md`. Change `subagentDefaults` and restart to update.
 
 ## Ownership
 
@@ -84,7 +86,7 @@ Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-speci
 
 - Harness skills: `lore-capture`, `lore-create-skill`, etc.
 - Operator skills: `bash-macos-compat`, etc.
-- Harness agents: `lore-worker`
+- Harness agents: `lore-worker`, `lore-explore`
 
 Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
@@ -126,7 +128,7 @@ Safety hooks (protect-memory, harness-guard) always fire regardless of profile.
 
 === LORE v0.12.9 ===
 
-WORKERS: lore-worker-fast, lore-worker-powerful, lore-worker
+WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
 SKILLS: mcp-stdio-content-length-framing, node-macos-stdin-fd, platform-command-collisions, pymdownx-extension-order
 
