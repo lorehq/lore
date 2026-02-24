@@ -112,19 +112,32 @@ const agentRules = stripFrontmatter(
   readOr(path.join(SOURCE, 'docs', 'context', 'agent-rules.md'))
 );
 
-// Agent list — scan .lore/agents/ filesystem for frontmatter names
+// Agent list — scan .lore/agents/ filesystem for frontmatter names + tier-resolved models
 const { parseFrontmatter } = require(path.join(SOURCE, '.lore', 'lib', 'frontmatter'));
+const { TIER_ALIASES } = require(path.join(SOURCE, '.lore', 'lib', 'generate-agents'));
+const { getConfig: getAgentCfg } = require(path.join(SOURCE, '.lore', 'lib', 'config'));
 let agentTable = '';
 try {
   const agentsDir = path.join(SOURCE, '.lore', 'agents');
+  const cursorCfg = getAgentCfg(SOURCE);
+  const cursorTiers = (cursorCfg.subagentDefaults && cursorCfg.subagentDefaults.cursor) || {};
   const rows = [];
   for (const f of fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'))) {
     const content = fs.readFileSync(path.join(agentsDir, f), 'utf8');
     const { attrs } = parseFrontmatter(content);
-    if (attrs.name) rows.push(`| ${attrs.name} | ${attrs.description || ''} |`);
+    if (!attrs.name) continue;
+    // Workers encode tier in their name; non-workers use the tier field.
+    let tier = attrs.tier || 'default';
+    if (f.startsWith('lore-worker')) {
+      if (f.includes('-fast')) tier = 'fast';
+      else if (f.includes('-powerful')) tier = 'powerful';
+      else tier = 'default';
+    }
+    const model = cursorTiers[tier] || TIER_ALIASES[tier] || TIER_ALIASES.default;
+    rows.push(`| ${attrs.name} | ${attrs.description || ''} | ${model} |`);
   }
   if (rows.length > 0) {
-    agentTable = '| Agent | Description |\n|-------|-------------|\n' + rows.join('\n');
+    agentTable = '| Agent | Description | Model |\n|-------|-------------|-------|\n' + rows.join('\n');
   }
 } catch (_) {}
 

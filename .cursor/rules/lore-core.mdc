@@ -76,7 +76,7 @@ Always load `/lore-delegate` before constructing any worker prompt — it define
 }
 ```
 
-When configured, worker tier variants are generated at session start from `.lore/templates/lore-worker.md`. Change `subagentDefaults` in config and restart to see updated tiers. OpenCode and Cursor tiers are informational — read from config at runtime.
+Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-specific model. At generation time, `tier` is resolved to a platform model via `subagentDefaults` in config: Claude Code and Cursor get stamped into platform copies; OpenCode reads the mapping from config at runtime. Worker tiers are generated from `.lore/templates/lore-worker.md`. Change `subagentDefaults` and restart to update.
 
 ## Ownership
 

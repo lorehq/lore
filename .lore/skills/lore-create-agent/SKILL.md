@@ -30,7 +30,7 @@ Scan `.lore/agents/`. If an agent exists for the purpose, update it. Otherwise c
 ---
 name: <purpose>-agent
 description: <Purpose> operations specialist.
-model: sonnet
+tier: default
 skills:
   - <skill-name>
 ---
@@ -53,7 +53,7 @@ Handles <purpose> operations.
 - `<skill-name>`
 ```
 
-The `model` field sets the default model for the agent. Per-platform overrides live in `.lore/config.json` under `subagentDefaults`.
+The `tier` field (`fast`, `default`, or `powerful`) is resolved to a platform-specific model at generation time using `subagentDefaults` in `.lore/config.json`. Omit `tier` to default to `default`.
 
 ### Step 3: Sync Platform Copies
 

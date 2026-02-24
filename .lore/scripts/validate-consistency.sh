@@ -3,8 +3,8 @@
 # Run after any structural change to catch drift.
 #
 # Checks (7 total):
-#   1. Skill frontmatter has required fields (name, description)
-#   2. Agent frontmatter has required fields (name, description, model or per-platform model)
+#   1. Skill frontmatter has required fields (name, description, user-invocable)
+#   2. Agent frontmatter has required fields (name, description); tier value valid if present
 #   3. Agent skill references point to existing directories
 #   4. Platform copies (.claude/skills/, .claude/agents/) match canonical source (.lore/)
 #   5. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
@@ -33,7 +33,7 @@ for dir in "$REPO_ROOT"/.lore/skills/*/; do
   sf="$dir/SKILL.md"
   [[ -f "$sf" ]] || continue
   name=$(basename "$dir")
-  for field in name description; do
+  for field in name description user-invocable; do
     val=$(extract_field "$field" "$sf")
     [[ -z "$val" ]] && fail "Skill '$name' missing '$field'"
   done
@@ -47,10 +47,10 @@ for f in "$REPO_ROOT"/.lore/agents/*.md; do
     val=$(extract_field "$field" "$f")
     [[ -z "$val" ]] && fail "Agent '$name' missing '$field'"
   done
-  # lore-worker tier variants are exempt — their model comes from subagentDefaults config, not frontmatter.
-  if [[ "$name" != "lore-worker" && "$name" != "lore-worker-fast" && "$name" != "lore-worker-powerful" ]]; then
-    lm=$(extract_field "model" "$f")
-    [[ -z "$lm" ]] && fail "Agent '$name' missing 'model' field"
+  # tier is optional (defaults to 'default'), but if present must be valid
+  lt=$(extract_field "tier" "$f")
+  if [[ -n "$lt" && "$lt" != "fast" && "$lt" != "default" && "$lt" != "powerful" ]]; then
+    fail "Agent '$name' has invalid tier '$lt' (must be fast, default, or powerful)"
   fi
 done
 
