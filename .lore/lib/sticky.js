@@ -25,6 +25,7 @@ function readSeed(directory, seedPath) {
 const SEED_CONVENTIONS = [
   { seed: 'coding.md', target: 'coding.md' },
   { seed: 'docs.md', target: 'documentation.md' },
+  { seed: 'prompt-engineering.md', target: 'prompt-engineering.md' },
   { seed: 'security.md', target: 'security.md' },
 ];
 
