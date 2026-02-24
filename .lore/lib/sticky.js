@@ -60,12 +60,22 @@ function ensureStickyFiles(directory) {
         `# Agent Rules
 
 <!-- Injected into every agent session as PROJECT context. -->
-<!-- Customize with your project identity and behavior rules. -->
+<!-- Once setup is complete, replace this file with your deployment details. -->
 <!-- Coding conventions belong in docs/context/conventions/ \u2014 also injected. -->
+
+## Deployment State
+
+This instance has just been deployed and has not yet been set up. The operator profile is blank, the environment is undocumented, and worker tier routing has not been verified.
+
+When the operator starts a session, guide them to complete first-session setup before taking on other work. The runbooks are at docs/knowledge/runbooks/first-session/ \u2014 ask which profile fits (knowledge-worker, homelab, or personal) and follow it phase by phase.
+
+Delete this section and fill in the fields below once setup is complete.
+
+---
 
 ## About
 
-Describe your project \u2014 what it is, what repos are involved, key constraints.
+Describe this deployment \u2014 operator name, role, org, repos involved, key constraints.
 
 ## Agent Behavior
 
