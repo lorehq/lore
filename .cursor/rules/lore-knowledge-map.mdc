@@ -10,6 +10,7 @@ docs/
 │   └── conventions/
 │       └── system/
 ├── guides/
+├── javascripts/
 ├── knowledge/
 │   ├── environment/
 │   │   ├── decisions/

@@ -2,6 +2,7 @@
 name: lore-delegate
 description: Delegation recipe — how to construct worker prompts with required context, scope, and return contract.
 banner-loaded: true
+user-invocable: false
 ---
 # Delegation Recipe
 

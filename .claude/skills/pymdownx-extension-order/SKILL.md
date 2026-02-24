@@ -1,6 +1,7 @@
 ---
 name: pymdownx-extension-order
 description: pymdownx.tilde must be listed before pymdownx.tasklist for strikethrough inside checkboxes
+user-invocable: false
 ---
 
 # pymdownx Extension Order

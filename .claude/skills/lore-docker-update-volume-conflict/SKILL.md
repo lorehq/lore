@@ -2,6 +2,7 @@
 name: lore-docker-update-volume-conflict
 description: Pulling a new lore-docker image fails with PermissionError on runtime_data volume — remove volumes before restart
 tags: [docker, lore-docker, volumes, upgrade]
+user-invocable: false
 ---
 
 # lore-docker-update-volume-conflict
