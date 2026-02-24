@@ -37,7 +37,12 @@ function generate(rootDir) {
     tiers.push({ file: 'lore-worker-fast.md', name: 'lore-worker-fast', model: claudeTiers.fast, alias: 'haiku' });
   }
   if (claudeTiers.powerful) {
-    tiers.push({ file: 'lore-worker-powerful.md', name: 'lore-worker-powerful', model: claudeTiers.powerful, alias: 'opus' });
+    tiers.push({
+      file: 'lore-worker-powerful.md',
+      name: 'lore-worker-powerful',
+      model: claudeTiers.powerful,
+      alias: 'opus',
+    });
   }
 
   const validFiles = new Set(tiers.map((t) => t.file));
