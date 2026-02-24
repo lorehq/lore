@@ -89,9 +89,15 @@ test('passes: fully consistent setup', (t) => {
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    ['---', 'name: test-skill', 'description: A complete test skill', 'type: command', 'user-invocable: false', '---', '# Test Skill'].join(
-      '\n',
-    ),
+    [
+      '---',
+      'name: test-skill',
+      'description: A complete test skill',
+      'type: command',
+      'user-invocable: false',
+      '---',
+      '# Test Skill',
+    ].join('\n'),
   );
   const copyDir = path.join(dir, '.claude', 'skills', 'test-skill');
   fs.mkdirSync(copyDir, { recursive: true });
