@@ -19,6 +19,7 @@ docs/
 │   │   └── reference/
 │   ├── local/
 │   └── runbooks/
+│       ├── first-session/
 │       └── system/
 └── work/
     ├── brainstorms/
