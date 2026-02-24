@@ -55,4 +55,4 @@ bash .lore/scripts/sync-platform-skills.sh
 
 Pattern: `<service>-<action>-<object>` (e.g., `github-create-pr`, `docker-orphan-cleanup`).
 
-**Do not use the `lore-` prefix** — that's reserved for framework commands. Operator and discovered skills use descriptive names without the prefix.
+**Do not use the `lore-` prefix** — that's reserved for harness commands. Operator and discovered skills use descriptive names without the prefix.

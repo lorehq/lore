@@ -61,6 +61,6 @@
 **These paths must not be renamed or moved by defrag or any reorganization.**
 
 - `docs/knowledge/local/` — gitignored operator profile.
-- `docs/knowledge/environment/` — environment facts; framework references this path.
+- `docs/knowledge/environment/` — environment facts; harness references this path.
 - `docs/knowledge/runbooks/` — runbooks; external references depend on this name.
 - The knowledge-defrag runbook reads this list before proposing any moves.

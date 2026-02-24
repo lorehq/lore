@@ -10,7 +10,7 @@ These appear in the TUI menu. Type the command name to invoke.
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-link <target>` | Link a work repo so hooks fire from the hub in IDE workflows |
 | `/lore-docker` | Start, stop, or check docs UI status (prefers Docker, falls back to local mkdocs) |
-| `/lore-update` | Pull latest framework files |
+| `/lore-update` | Pull latest harness files |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 
 OpenCode slash menu entries are defined in `.opencode/commands/` and ship with these Lore commands by default.

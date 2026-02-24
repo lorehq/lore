@@ -1,5 +1,5 @@
 # Operator-specific gitignore rules.
-# This file is never overwritten by framework updates.
-# Lines here are appended after framework rules in .gitignore on every sync.
+# This file is never overwritten by harness updates.
+# Lines here are appended after harness rules in .gitignore on every sync.
 #
 # Add your project-specific ignores below:

@@ -1,6 +1,6 @@
 ---
 name: lore-update
-description: Update Lore framework files to the latest version
+description: Update Lore harness files to the latest version
 type: command
 user-invocable: true
 allowed-tools: Bash, Read, Edit
@@ -8,7 +8,7 @@ allowed-tools: Bash, Read, Edit
 
 # Update Lore
 
-Pull the latest Lore framework files without touching operator content.
+Pull the latest Lore harness files without touching operator content.
 
 ## When to Use
 
@@ -25,11 +25,11 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
    **Critical**: always pass `"$tmp"` as the target — omitting it clones into the working directory as `lore/`.
 3. Read the source version from the cloned `.lore/config.json`
 4. Show the operator: current version, new version, what will be synced
-5. On approval, run **from the instance directory** (cwd), passing the framework clone as the argument:
+5. On approval, run **from the instance directory** (cwd), passing the harness repo clone as the argument:
    ```bash
-   bash "$tmp/.lore/scripts/sync-framework.sh" "$tmp"
+   bash "$tmp/.lore/scripts/sync-harness.sh" "$tmp"
    ```
-   **Direction: cwd = target instance, argument = source framework.** Getting this backwards overwrites the framework repo with stale instance files.
+   **Direction: cwd = target instance, argument = source harness repo.** Getting this backwards overwrites the harness repo with stale instance files.
 6. Update the `version` field in `.lore/config.json` to match the source
 7. **Seed review** — compare `.lore/templates/seeds/conventions/` to operator convention files in `docs/context/conventions/`. For each seed template where the operator file exists and differs:
    - Show the diff (seed template vs operator file)
@@ -41,7 +41,7 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 
 ## What Gets Synced
 
-**Overwritten (framework-owned):**
+**Overwritten (harness-owned):**
 - `.lore/hooks/`, `.lore/lib/`, `.lore/scripts/`, `.opencode/`
 - `.claude/settings.json`, `.lore/skills/<built-in>/`
 - `.lore/instructions.md`, `.gitignore`, `opencode.json`
@@ -59,7 +59,7 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 
 - Always show the version diff and file list before syncing — never auto-update
 - The sync script uses rsync semantics: overwrite existing, never delete operator files
-- If the operator has modified a framework file (e.g., edited CLAUDE.md), the update will overwrite it — warn about this
-- Operator-specific ignores go in `.lore/operator.gitignore` (never overwritten). The sync script appends them after framework rules automatically — no manual re-adding needed
+- If the operator has modified a harness-owned file (e.g., edited CLAUDE.md), the update will overwrite it — warn about this
+- Operator-specific ignores go in `.lore/operator.gitignore` (never overwritten). The sync script appends them after harness rules automatically — no manual re-adding needed
 - If `.lore/links` exists, remind the operator to run `/lore-link --refresh` to update linked repos with the new hooks
 - Always clean up the temp clone (`rm -rf "$tmp"`) even if sync fails — otherwise a `lore/` directory persists in the project root

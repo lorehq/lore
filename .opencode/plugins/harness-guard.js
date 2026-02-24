@@ -1,5 +1,5 @@
-// Framework Guard Plugin
-// Warns when writing to framework-owned files.
+// Harness Guard Plugin
+// Warns when writing to harness-owned files.
 // Covers two cases:
 //   1. Hub context: files synced from Lore source (overwritten by /lore-update)
 //   2. Linked repo context: generated configs (overwritten by /lore-link --refresh)
@@ -11,9 +11,9 @@ const path = require('path');
 const fs = require('fs');
 const { logHookEvent } = require('../../.lore/lib/hook-logger');
 
-// --- Hub: framework-owned paths (synced by scripts/sync-framework.sh) ---
+// --- Hub: harness-owned paths (synced by scripts/sync-harness.sh) ---
 
-const FRAMEWORK_PREFIXES = [
+const HARNESS_PREFIXES = [
   '.lore/hooks/',
   '.lore/lib/',
   '.lore/scripts/',
@@ -22,7 +22,7 @@ const FRAMEWORK_PREFIXES = [
   '.cursor/mcp/',
 ];
 
-const FRAMEWORK_PATTERNS = [
+const HARNESS_PATTERNS = [
   /^\.lore\/skills\/lore-/,
   /^\.lore\/agents\/lore-/,
   /^\.lore\/instructions\.md$/,
@@ -33,19 +33,19 @@ const FRAMEWORK_PATTERNS = [
   /^\.gitignore$/,
 ];
 
-function isFrameworkOwned(relative) {
+function isHarnessOwned(relative) {
   const normalized = relative.replace(/\\/g, '/');
-  for (const prefix of FRAMEWORK_PREFIXES) {
+  for (const prefix of HARNESS_PREFIXES) {
     if (normalized.startsWith(prefix)) return true;
   }
-  for (const pattern of FRAMEWORK_PATTERNS) {
+  for (const pattern of HARNESS_PATTERNS) {
     if (pattern.test(normalized)) return true;
   }
   return false;
 }
 
 // --- Linked repos: generated configs (created by scripts/lore-link.sh) ---
-// These are NOT the same as hub framework paths. A linked work repo's lib/
+// These are NOT the same as hub harness paths. A linked work repo's lib/
 // is application code — only the specific configs that /lore-link generates.
 
 const LINK_GENERATED_PREFIXES = ['.opencode/plugins/', '.opencode/commands/', '.cursor/rules/lore-', '.cursor/hooks/'];
@@ -83,7 +83,7 @@ function isLinkedRepo(dir) {
   }
 }
 
-export const FrameworkGuard = async ({ directory, client }) => {
+export const HarnessGuard = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
 
   return {
@@ -100,12 +100,12 @@ export const FrameworkGuard = async ({ directory, client }) => {
       let warningMsg = '';
       let logPath = '';
 
-      // Check 1: Write to framework-owned file inside the hub
+      // Check 1: Write to harness-owned file inside the hub
       if (resolved.startsWith(hubPrefix)) {
         const relative = resolved.slice(hubPrefix.length);
-        if (isFrameworkOwned(relative)) {
+        if (isHarnessOwned(relative)) {
           warningMsg =
-            `WARNING: Framework-owned file \u2014 ${relative} will be overwritten on next /lore-update. ` +
+            `WARNING: Harness-owned file \u2014 ${relative} will be overwritten on next /lore-update. ` +
             'Modify in the source repo to persist changes.';
           logPath = relative;
         }
@@ -126,11 +126,11 @@ export const FrameworkGuard = async ({ directory, client }) => {
       if (!warningMsg) return;
 
       await client.app.log({
-        body: { service: 'framework-guard', level: 'warn', message: warningMsg },
+        body: { service: 'harness-guard', level: 'warn', message: warningMsg },
       });
       logHookEvent({
         platform: 'opencode',
-        hook: 'framework-guard',
+        hook: 'harness-guard',
         event: 'tool.execute.before',
         outputSize: warningMsg.length,
         state: { path: logPath },

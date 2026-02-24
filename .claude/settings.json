@@ -29,8 +29,8 @@
       },
       {
         "matcher": "Write|Edit",
-        "hooks": [{ "type": "command", "command": "node .lore/hooks/framework-guard.js" }],
-        "description": "Warn when writing to framework-owned or link-generated files"
+        "hooks": [{ "type": "command", "command": "node .lore/hooks/harness-guard.js" }],
+        "description": "Warn when writing to harness-owned or link-generated files"
       }
     ],
     "PostToolUse": [

@@ -90,10 +90,10 @@ All generated files are added to the target repo's `.gitignore` automatically.
 | IDE agent (Cursor, or IDE-mode Claude Code) | `/lore-link` — link the work repo, open it in your IDE |
 | Quick cross-repo task from the hub | Launch from the Lore instance, reference the path |
 
-### After Framework Updates
+### After Harness Updates
 
 Run `/lore-link --refresh` after `/lore-update` to regenerate configs in all linked repos with the latest hooks.
 
-## Framework Updates
+## Harness Updates
 
-The Lore framework (hooks, scripts, built-in skills) updates separately from your knowledge. Run `/lore-update` to pull the latest framework files. Your docs, agents, and work items are never touched.
+The Lore harness (hooks, scripts, built-in skills) updates separately from your knowledge. Run `/lore-update` to pull the latest harness files. Your docs, agents, and work items are never touched.

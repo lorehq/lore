@@ -21,7 +21,7 @@ function setup(opts = {}) {
     'prompt-preamble.js',
     'knowledge-tracker.js',
     'protect-memory.js',
-    'framework-guard.js',
+    'harness-guard.js',
     'convention-guard.js',
     'context-path-guide.js',
   ];
@@ -140,12 +140,12 @@ test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
   }
 });
 
-// -- framework-guard: warns in both profiles --
+// -- harness-guard: warns in both profiles --
 
-test('framework-guard: warns on framework file write in minimal profile', () => {
+test('harness-guard: warns on harness-owned file write in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/hooks/framework-guard.js', {
+    const out = execSync('node .lore/hooks/harness-guard.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({

@@ -15,7 +15,7 @@ Reorganizes `docs/knowledge/` based on actual file content rather than the origi
 These paths are never moved or renamed. Workers must exclude them from all proposals:
 
 - `docs/knowledge/local/` — gitignored operator identity files
-- `docs/knowledge/environment/` — environment facts; framework hooks reference this path
+- `docs/knowledge/environment/` — environment facts; harness hooks reference this path
 - `docs/knowledge/runbooks/` — this runbook's own directory; external references depend on the name
 
 ## Phase 1: Inventory (parallel — haiku x3)

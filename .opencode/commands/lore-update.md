@@ -1,5 +1,5 @@
 ---
-description: Sync framework-owned files from latest Lore release
+description: Sync harness-owned files from latest Lore release
 ---
 Run the `lore-update` skill now.
 

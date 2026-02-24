@@ -102,7 +102,7 @@ fi
 NAV_SECTIONS=("knowledge" "context" "guides")
 
 # Emit work subsections (roadmaps, plans, brainstorms) under Work.
-# Work structure is framework-controlled — operators create items via
+# Work structure is harness-controlled — operators create items via
 # /lore-create-roadmap, /lore-create-plan, /lore-create-brainstorm but don't modify
 # the folder structure itself.
 emit_work_subsections() {
@@ -111,7 +111,7 @@ emit_work_subsections() {
   [[ -d "$work" ]] || return 0
 
   local title
-  # Always show all four — structure is framework-controlled, never skipped
+  # Always show all four — structure is harness-controlled, never skipped
   for subsection in roadmaps plans notes brainstorms; do
     [[ -d "$work/$subsection" ]] || continue
     title=$(to_title "$subsection")

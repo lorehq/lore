@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Syncs framework-owned files from a source directory into the current Lore instance.
-# Overwrites framework files, never deletes operator content.
+# Syncs harness-owned files from a source directory into the current Lore instance.
+# Overwrites harness files, never deletes operator content.
 #
-# Usage: .lore/scripts/sync-framework.sh <source-dir>
+# Usage: .lore/scripts/sync-harness.sh <source-dir>
 #
-# Framework-owned (synced):
+# Harness-owned (synced):
 #   .lore/hooks/, .lore/lib/, .lore/mcp/, .lore/scripts/, .lore/templates/,
 #   .opencode/, .cursor/, opencode.json, .mcp.json, .claude/settings.json,
 #   .lore/skills/lore-*/, .lore/agents/lore-*, .lore/instructions.md, .gitignore
@@ -13,18 +13,18 @@
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
 #   .lore/memory.local.md, .lore/operator.gitignore
 #
-# .gitignore is framework-owned but merged: framework rules are written first,
+# .gitignore is harness-owned but merged: harness rules are written first,
 # then .lore/operator.gitignore contents are appended (if non-empty).
 
 set -euo pipefail
 
-SOURCE="${1:?Usage: sync-framework.sh <source-dir>}"
+SOURCE="${1:?Usage: sync-harness.sh <source-dir>}"
 TARGET="$(pwd)"
 
 # --- Direction guard ---
 # This script copies FROM <source> INTO <cwd>.
-# Source = framework repo (or temp clone). Target = the instance being updated.
-# Getting this backwards overwrites framework files with stale instance copies.
+# Source = harness repo (or temp clone). Target = the instance being updated.
+# Getting this backwards overwrites harness files with stale instance copies.
 
 if [ "$(realpath "$SOURCE")" = "$(realpath "$TARGET")" ]; then
   echo "Error: source and target are the same directory" >&2
@@ -32,9 +32,9 @@ if [ "$(realpath "$SOURCE")" = "$(realpath "$TARGET")" ]; then
 fi
 
 if [ -f "$TARGET/test/lore-link.test.js" ] || [ -f "$TARGET/package.json" ]; then
-  echo "Error: target (cwd) looks like the framework repo, not an instance." >&2
-  echo "Direction: run FROM the instance, pass the framework repo as the argument." >&2
-  echo "  cd /path/to/my-instance && bash .lore/scripts/sync-framework.sh /path/to/lore" >&2
+  echo "Error: target (cwd) looks like the harness repo, not an instance." >&2
+  echo "Direction: run FROM the instance, pass the harness repo as the argument." >&2
+  echo "  cd /path/to/my-instance && bash .lore/scripts/sync-harness.sh /path/to/lore" >&2
   exit 1
 fi
 
@@ -48,18 +48,18 @@ if [ ! -d "$SOURCE/.lore/hooks" ]; then
   exit 1
 fi
 
-# Framework directories — overwrite contents, don't delete operator extras
+# Harness directories — overwrite contents, don't delete operator extras
 cp -Rf "$SOURCE/.lore/hooks/." "$TARGET/.lore/hooks/"
 cp -Rf "$SOURCE/.lore/lib/." "$TARGET/.lore/lib/"
 cp -Rf "$SOURCE/.lore/scripts/." "$TARGET/.lore/scripts/"
 cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
-# Selective .cursor/ sync — hooks and hooks.json are framework-owned,
-# but .cursor/rules/ contains both framework and instance-specific .mdc files.
-# Copy hooks directly, then copy only framework-owned rules.
+# Selective .cursor/ sync — hooks and hooks.json are harness-owned,
+# but .cursor/rules/ contains both harness and instance-specific .mdc files.
+# Copy hooks directly, then copy only harness-owned rules.
 cp -Rf "$SOURCE/.cursor/hooks/." "$TARGET/.cursor/hooks/"
 cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
 # MCP server — exposes lore_check_in and lore_context as Cursor tools.
-# Both the server script and the config are framework-owned.
+# Both the server script and the config are harness-owned.
 mkdir -p "$TARGET/.cursor/mcp"
 cp "$SOURCE/.cursor/mcp/lore-server.js" "$TARGET/.cursor/mcp/lore-server.js"
 cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
@@ -67,13 +67,13 @@ cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
 mkdir -p "$TARGET/.lore/mcp"
 cp "$SOURCE/.lore/mcp/search-server.js" "$TARGET/.lore/mcp/search-server.js"
 
-# Framework-owned rules (content derived from instructions.md, same across instances)
+# Harness-owned rules (content derived from instructions.md, same across instances)
 mkdir -p "$TARGET/.cursor/rules"
 for rule in lore-core lore-work-tracking lore-knowledge-routing lore-skill-creation lore-docs-formatting; do
   [ -f "$SOURCE/.cursor/rules/$rule.mdc" ] && cp "$SOURCE/.cursor/rules/$rule.mdc" "$TARGET/.cursor/rules/$rule.mdc"
 done
 
-# Framework skills (lore-* only) — overwrite existing, skip operator skills
+# Harness skills (lore-* only) — overwrite existing, skip operator skills
 if [ -d "$SOURCE/.lore/skills" ]; then
   mkdir -p "$TARGET/.lore/skills"
   for skill_dir in "$SOURCE/.lore/skills"/lore-*/; do
@@ -84,13 +84,13 @@ if [ -d "$SOURCE/.lore/skills" ]; then
   done
 fi
 
-# Framework agent templates — lore-worker.md lives in templates/, tiers generated at session start
+# Harness agent templates — lore-worker.md lives in templates/, tiers generated at session start
 if [ -d "$SOURCE/.lore/templates" ]; then
   mkdir -p "$TARGET/.lore/templates"
   cp -Rf "$SOURCE/.lore/templates/." "$TARGET/.lore/templates/"
 fi
 
-# Framework agents (lore-* only, non-worker) — overwrite existing, skip operator agents
+# Harness agents (lore-* only, non-worker) — overwrite existing, skip operator agents
 # Worker tiers are generated from template by generate-agents.js at session start
 if [ -d "$SOURCE/.lore/agents" ]; then
   mkdir -p "$TARGET/.lore/agents"
@@ -100,13 +100,13 @@ if [ -d "$SOURCE/.lore/agents" ]; then
   done
 fi
 
-# Framework-owned system conventions — always overwrite
+# Harness-owned system conventions — always overwrite
 if [ -d "$SOURCE/docs/context/conventions/system" ]; then
   mkdir -p "$TARGET/docs/context/conventions/system"
   cp -Rf "$SOURCE/docs/context/conventions/system/." "$TARGET/docs/context/conventions/system/"
 fi
 
-# Framework-owned system runbooks — always overwrite
+# Harness-owned system runbooks — always overwrite
 if [ -d "$SOURCE/docs/knowledge/runbooks/system" ]; then
   mkdir -p "$TARGET/docs/knowledge/runbooks/system"
   cp -Rf "$SOURCE/docs/knowledge/runbooks/system/." "$TARGET/docs/knowledge/runbooks/system/"
@@ -118,7 +118,7 @@ cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 # Bootstrap operator.gitignore on first sync — never overwrite if it exists
 [ -f "$TARGET/.lore/operator.gitignore" ] || cp "$SOURCE/.lore/operator.gitignore" "$TARGET/.lore/operator.gitignore"
-# Merge .gitignore: always inject framework rules, then append operator additions
+# Merge .gitignore: always inject harness rules, then append operator additions
 cp "$SOURCE/.gitignore" "$TARGET/.gitignore"
 if [ -s "$TARGET/.lore/operator.gitignore" ]; then
   printf '\n# --- operator rules (from .lore/operator.gitignore) ---\n' >> "$TARGET/.gitignore"
@@ -130,7 +130,7 @@ cp "$SOURCE/.mcp.json" "$TARGET/.mcp.json"
 # Generate platform copies from canonical .lore/ source
 bash "$TARGET/.lore/scripts/sync-platform-skills.sh"
 
-echo "Framework synced from $SOURCE"
+echo "Harness synced from $SOURCE"
 
 if [ -f "$TARGET/.lore/links" ]; then
   echo "Note: Run 'bash .lore/scripts/lore-link.sh --refresh' to update linked repos."

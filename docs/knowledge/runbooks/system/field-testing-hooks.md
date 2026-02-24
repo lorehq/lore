@@ -5,7 +5,7 @@ Validate that all 15 hooks across Claude Code, Cursor, and OpenCode fire correct
 ## Prerequisites
 
 - Lore source repo at latest (hook-logger.js must be present in lib/)
-- Instance synced via `/lore-update` or `sync-framework.sh`
+- Instance synced via `/lore-update` or `sync-harness.sh`
 
 ## Enable Logging
 

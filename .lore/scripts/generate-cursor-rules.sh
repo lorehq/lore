@@ -172,7 +172,7 @@ const docsFormatting = stripFrontmatter(
   readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'system', 'documentation.md'))
 );
 
-// ── Tree building (reuses framework lib) ─────────────────────────────────────
+// ── Tree building (reuses harness lib) ───────────────────────────────────────
 
 const { buildTree } = require(path.join(SOURCE, '.lore', 'lib', 'tree'));
 const { getConfig } = require(path.join(SOURCE, '.lore', 'lib', 'config'));
@@ -197,7 +197,7 @@ function buildKnowledgeMap() {
 
 // -- Tier 1: Always-on (loaded every session, including first auto-open) ------
 
-// 1. lore-core — full framework instructions + static banner items + MCP tool usage.
+// 1. lore-core — full harness instructions + static banner items + MCP tool usage.
 //    Static banner items (WORKERS, SEMANTIC SEARCH, SKILLS, banner-loaded skills) are
 //    baked in here so they don't need to be injected via the sessionStart hook.
 //    MCP section is appended because it's Cursor-specific.
@@ -230,7 +230,7 @@ if (coreBLSkills.length > 0) staticBannerBlock += '\n\n' + coreBLSkills.map(s =>
 
 const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.';
 writeMdc('lore-core.mdc',
-  'description: Lore framework instructions — core behaviors, knowledge routing, ownership, skill/agent creation\nalwaysApply: true',
+  'description: Lore harness instructions — core behaviors, knowledge routing, ownership, skill/agent creation\nalwaysApply: true',
   instructions + '\n\n' + staticBannerBlock + mcpSection
 );
 

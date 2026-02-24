@@ -1,6 +1,6 @@
 # Lore
 
-Knowledge-persistent coding agent framework.
+Coding agent harness.
 
 ## Identity
 
@@ -26,7 +26,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines, generic only — context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>`. Reserve `lore-` prefix for framework commands.
+Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines, generic only — context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>`. Reserve `lore-` prefix for harness commands.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
 
@@ -48,7 +48,7 @@ Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health ch
 
 ## Delegation
 
-One framework worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
+One harness worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
@@ -75,11 +75,11 @@ When configured, worker tier variants are generated at session start from `.lore
 
 ## Ownership
 
-`lore-*` prefix = framework-owned (overwritten on sync). Everything else = operator-owned (never touched by sync or generation scripts).
+`lore-*` prefix = harness-owned (overwritten on sync). Everything else = operator-owned (never touched by sync or generation scripts).
 
-- Framework skills: `lore-capture`, `lore-create-skill`, etc.
+- Harness skills: `lore-capture`, `lore-create-skill`, etc.
 - Operator skills: `bash-macos-compat`, etc.
-- Framework agents: `lore-worker`
+- Harness agents: `lore-worker`
 
 Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
@@ -102,7 +102,7 @@ Configure via `profile` in `.lore/config.json`:
 - **standard** — Default. All hooks active (nudge=15, warn=30).
 - **discovery** — All hooks active, lower thresholds (nudge=5, warn=10), aggressive capture instructions in banner.
 
-Safety hooks (protect-memory, framework-guard) always fire regardless of profile.
+Safety hooks (protect-memory, harness-guard) always fire regardless of profile.
 
 ## File Layout
 
@@ -110,9 +110,9 @@ Safety hooks (protect-memory, framework-guard) always fire regardless of profile
 - Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
 - Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
 - Context: `docs/context/` (rules, conventions — injected every session)
-- System conventions: `docs/context/conventions/system/` (framework-owned, overwritten on sync)
+- System conventions: `docs/context/conventions/system/` (harness-owned, overwritten on sync)
 - Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
-- System runbooks: `docs/knowledge/runbooks/system/` (framework-owned, overwritten on sync)
+- System runbooks: `docs/knowledge/runbooks/system/` (harness-owned, overwritten on sync)
 - Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/notes/`, `docs/work/brainstorms/`
 - Seed templates: `.lore/templates/seeds/` (default convention content for new instances)
 - Hooks: `.lore/hooks/`

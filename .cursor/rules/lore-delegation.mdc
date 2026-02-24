@@ -5,7 +5,7 @@ alwaysApply: true
 
 ## Delegation
 
-One framework worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
+One harness worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
