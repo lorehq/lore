@@ -31,6 +31,11 @@
         "matcher": "Write|Edit",
         "hooks": [{ "type": "command", "command": "node .lore/hooks/harness-guard.js" }],
         "description": "Warn when writing to harness-owned or link-generated files"
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [{ "type": "command", "command": "node .lore/hooks/search-guard.js" }],
+        "description": "Nudge to use semantic search instead of speculative reads"
       }
     ],
     "PostToolUse": [
