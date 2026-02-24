@@ -1,6 +1,6 @@
 // Generates all agent platform copies from canonical sources.
-// Workers: generated from template with tier variants based on config.
-// Non-workers: copied from .lore/agents/ with tier resolved to platform model.
+// Template-generated: workers (tier variants) and explore (single tier) from .lore/templates/.
+// Non-template: copied from .lore/agents/ with tier resolved to platform model.
 // Called at session start (session-init hooks) and during sync (sync-platform-skills.sh).
 // Idempotent — only writes when content changes, so git stays clean across sessions.
 
@@ -29,10 +29,13 @@ function generate(rootDir) {
   fs.mkdirSync(canonicalDir, { recursive: true });
   fs.mkdirSync(claudeDir, { recursive: true });
 
+  // Track all files produced by template generation so the non-worker loop skips them.
+  const templateGenerated = new Set();
+
   // -- Worker tiers: generated from template --
-  const templatePath = path.join(rootDir, '.lore', 'templates', 'lore-worker.md');
-  if (fs.existsSync(templatePath)) {
-    const template = fs.readFileSync(templatePath, 'utf8');
+  const workerTemplatePath = path.join(rootDir, '.lore', 'templates', 'lore-worker.md');
+  if (fs.existsSync(workerTemplatePath)) {
+    const template = fs.readFileSync(workerTemplatePath, 'utf8');
 
     // Default tier always present; fast/powerful only when configured.
     const tiers = [{ file: 'lore-worker.md', name: 'lore-worker', alias: TIER_ALIASES.default }];
@@ -54,6 +57,7 @@ function generate(rootDir) {
 
       const claude = stampModel(canonical, tier.alias);
       writeIfChanged(path.join(claudeDir, tier.file), claude);
+      templateGenerated.add(tier.file);
     }
 
     // Cleanup stale lore-worker*.md files from both directories
@@ -70,13 +74,27 @@ function generate(rootDir) {
       }
     }
   } else {
-    debug('generate-agents: no worker template at %s', templatePath);
+    debug('generate-agents: no worker template at %s', workerTemplatePath);
   }
 
-  // -- Non-worker agents: copy from .lore/agents/ with tier → model stamping --
+  // -- Explore agent: generated from template, single tier (fast or default fallback) --
+  const exploreTemplatePath = path.join(rootDir, '.lore', 'templates', 'lore-explore.md');
+  if (fs.existsSync(exploreTemplatePath)) {
+    const template = fs.readFileSync(exploreTemplatePath, 'utf8');
+    const alias = claudeTiers.fast ? TIER_ALIASES.fast : TIER_ALIASES.default;
+    const file = 'lore-explore.md';
+
+    writeIfChanged(path.join(canonicalDir, file), template);
+    writeIfChanged(path.join(claudeDir, file), stampModel(template, alias));
+    templateGenerated.add(file);
+  } else {
+    debug('generate-agents: no explore template at %s', exploreTemplatePath);
+  }
+
+  // -- Non-template agents: copy from .lore/agents/ with tier → model stamping --
   try {
     for (const file of fs.readdirSync(canonicalDir)) {
-      if (!file.endsWith('.md') || file.startsWith('lore-worker')) continue;
+      if (!file.endsWith('.md') || templateGenerated.has(file)) continue;
       const src = fs.readFileSync(path.join(canonicalDir, file), 'utf8');
       const { attrs } = parseFrontmatter(src);
       const tier = attrs.tier || 'default';
