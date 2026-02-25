@@ -97,7 +97,7 @@ SKILLS: mcp-stdio-content-length-framing, node-macos-stdin-fd, platform-command-
 Name what to load — workers read the files themselves.
 
 Include in every worker prompt:
-1. **Knowledge-base-first** — "Search the knowledge base before acting (semantic search if available, otherwise Glob/Grep)." This prevents redundant discovery and surfaces existing skills/knowledge early.
+1. **Knowledge-base-first** — "Search the knowledge base before acting (semantic search if available, otherwise Glob/Grep)." This prevents redundant discovery and surfaces existing skills/knowledge early. See **Search Discipline** below for how workers should use results.
 2. **Task description** — what needs doing and why
 3. **Resolve before delegating** — Workers execute, they don't interpret. Resolve ambiguous or relative inputs to concrete values before they reach the worker. If it requires reasoning or judgment, the orchestrator decides; the worker receives the decision.
    - Bad: "find large files" → worker decides what "large" means
@@ -112,6 +112,21 @@ Include in every worker prompt:
 You may also name specific skills to load — workers discover the rest via semantic search.
 
 Workers report findings — the orchestrator decides what to persist.
+
+## Search Discipline
+
+Semantic search indexes the knowledge base (`docs/`, `.lore/skills/`, `docs/context/`). Workers who understand this avoid wasted tool calls.
+
+**Act on what you find.** When a semantic snippet contains the answer (a URL, parameter, command), use it and move on. Don't gather more data once you have enough to act. If the snippet is partial and you need more from that file, Read it by path. Grep and Glob add nothing when the file is already identified.
+
+**Trust negative results.** Semantic search covers the knowledge base thoroughly. When a query returns nothing relevant, the KB doesn't have it — escalate to the orchestrator rather than re-searching the same directories with Grep/Glob. Filesystem search finds what semantic search misses only outside indexed paths (external repos, application code, generated files).
+
+**Match the tool to the territory:**
+- KB paths (`docs/`, `.lore/`, `docs/context/`) → semantic search, then Read by path
+- External repos and application code → Grep/Glob (not indexed)
+- Already-identified file → Read directly (skip search entirely)
+
+**Bail on dry holes.** If you haven't found what you need after a few searches, stop digging. Return to the orchestrator with what you tried and what you found — they have context you don't and can redirect. Spending 15 tool calls searching is always worse than returning early and getting pointed in the right direction.
 
 ## Parallel Workers
 
