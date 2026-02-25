@@ -57,7 +57,13 @@ Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health ch
 
 ## Delegation
 
-One harness worker: `lore-worker`. The orchestrator spawns it per-task with curated skills, conventions, and scope — the orchestrator's context is too valuable for execution details.
+The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, conventions, and scope. The orchestrator's context is too valuable for execution details.
+
+**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
+
+**Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
+
+**Race, don't wait.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions immediately. Use whichever returns useful results first.
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
@@ -67,9 +73,7 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 - `lore-worker` — general-purpose work requiring judgment, the safe middle ground
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
-Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
-
-Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
+Keep in the orchestrator only: quick answers, single reads, clarifications, capture writes. Everything else delegates.
 
 ## Work Management
 
@@ -84,7 +88,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 
 
-=== LORE v0.14.1 ===
+=== LORE v0.14.3 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
@@ -130,7 +134,16 @@ Semantic search indexes the knowledge base (`docs/`, `.lore/skills/`, `docs/cont
 
 ## Parallel Workers
 
-For independent subtasks, spawn parallel workers. Don't serialize what can run concurrently.
+**Parallelize by default.** Before spawning any worker, ask: can this task be split into independent chunks? If yes, spawn them concurrently — don't serialize what can run in parallel.
+
+Decomposition patterns:
+- **By target** — one worker per repo, service, file, or endpoint
+- **By concern** — separate research from implementation, validation from execution
+- **By independence** — any subtasks with no data dependency between them run concurrently
+
+Only serialize when one worker's output is another's input. When in doubt, parallelize — merging results is cheaper than waiting in sequence.
+
+**Race stuck workers.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions. The original will hit its bail-out limit eventually; use whichever returns useful results first. A stuck worker usually means the prompt was too broad — the fix is a better-scoped replacement, not more patience.
 
 ## After Worker Returns
 
