@@ -5,7 +5,7 @@ globs: docs/work/**
 
 ## Work Management
 
-Roadmaps, plans, notes, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
+Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 - **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
 - **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.

@@ -17,19 +17,9 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
-Always load `/lore-delegate` before constructing any worker prompt — it defines the required prompt structure and delegation rules. Name conventions and skills for workers in the prompt — they read the files.
+Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
 
-`subagentDefaults` in `.lore/config.json`:
-
-```json
-"subagentDefaults": {
-  "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
-  "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
-}
-```
-
-Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-specific model. At generation time, `tier` is resolved to a platform model via `subagentDefaults` in config: Claude Code and Cursor get stamped into platform copies; OpenCode reads the mapping from config at runtime. Worker tiers are generated from `.lore/templates/lore-worker.md`; the explore agent from `.lore/templates/lore-explore.md`. Change `subagentDefaults` and restart to update.
+Agents declare a `tier` (`fast`, `default`, `powerful`) — not a model name. Tiers resolve to platform-specific models via `subagentDefaults` in `.lore/config.json`.
 
 ## Agents
 

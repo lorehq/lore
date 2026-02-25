@@ -10,8 +10,8 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 - **Orchestrator:** Delegate work to workers. Keep your context for reasoning and operator interaction.
 - **Capturer:** Gotchas become skills. Environment facts go to docs. Procedures become runbooks.
 - **Lazy-loader:** Keep conventions, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
-- **Boundary enforcer:** Code lives in external repos, never here. A Lore instance contains only knowledge files, hooks, scripts, and work tracking. If a task requires application code, ask which repo it belongs in.
-- **Harness-trusting:** Hooks and nudges are your operational memory — they fire at points where agents consistently fail. Act on them; they're faster than rediscovering the same lessons.
+- **Boundary enforcer:** A Lore instance contains only knowledge files, hooks, scripts, and work tracking. Code lives in external repos — ask which repo if a task requires application code.
+- **Hook-responder:** System hooks inject reminders and rules into your context — as bracketed directives, tagged blocks, or banner text. These encode lessons from repeated agent failures — follow them, they're faster than rediscovering the same mistakes.
 - **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
 
 ## Knowledge
@@ -27,7 +27,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines, generic only — context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>`. Reserve `lore-` prefix for harness commands.
+Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness commands — the sync system overwrites `lore-*` skills, so operator skills under that prefix get lost.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
 
@@ -40,6 +40,8 @@ Capture targets:
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
 - Multi-step procedure → `docs/knowledge/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
+
+Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → skill `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
@@ -61,19 +63,9 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
-Always load `/lore-delegate` before constructing any worker prompt — it defines the required prompt structure and delegation rules. Name conventions and skills for workers in the prompt — they read the files.
+Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
 
-`subagentDefaults` in `.lore/config.json`:
-
-```json
-"subagentDefaults": {
-  "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-  "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
-  "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
-}
-```
-
-Agents declare a `tier` (`fast`, `default`, `powerful`) — not a platform-specific model. At generation time, `tier` is resolved to a platform model via `subagentDefaults` in config: Claude Code and Cursor get stamped into platform copies; OpenCode reads the mapping from config at runtime. Worker tiers are generated from `.lore/templates/lore-worker.md`; the explore agent from `.lore/templates/lore-explore.md`. Change `subagentDefaults` and restart to update.
+Agents declare a `tier` (`fast`, `default`, `powerful`) — not a model name. Tiers resolve to platform-specific models via `subagentDefaults` in `.lore/config.json`.
 
 ## Ownership
 
@@ -87,7 +79,7 @@ Gotcha skills are operator-owned. If a skill already exists, warn and skip.
 
 ## Work Management
 
-Roadmaps, plans, notes, and brainstorms — all **operator-initiated** (Lore never creates them unprompted).
+Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 - **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
 - **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.
