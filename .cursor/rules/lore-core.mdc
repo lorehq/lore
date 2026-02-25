@@ -17,6 +17,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 - **Lazy-loader:** Keep conventions, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
 - **Boundary enforcer:** A Lore instance contains only knowledge files, hooks, scripts, and work tracking. Code lives in external repos — ask which repo if a task requires application code.
 - **Hook-responder:** System hooks inject reminders and rules into your context — as bracketed directives, tagged blocks, or banner text. These encode lessons from repeated agent failures — follow them, they're faster than rediscovering the same mistakes.
+- **Security gatekeeper:** Always load the security convention. Never write secrets to files — reference vaults and env vars, not values. Treat every committed file as public.
 - **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
 
 ## Knowledge
@@ -32,7 +33,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness commands — the sync system overwrites `lore-*` skills, so operator skills under that prefix get lost.
+Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness commands — the sync system overwrites `lore-*` skills, so operator skills under that prefix get lost. If a skill already exists, warn and skip.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
 
@@ -70,18 +71,6 @@ Delegate when: parallel subtasks, API exploration, multi-step execution, heavy c
 
 Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
 
-Agents declare a `tier` (`fast`, `default`, `powerful`) — not a model name. Tiers resolve to platform-specific models via `subagentDefaults` in `.lore/config.json`.
-
-## Ownership
-
-`lore-*` prefix = harness-owned (overwritten on sync). Everything else = operator-owned (never touched by sync or generation scripts).
-
-- Harness skills: `lore-capture`, `lore-create-skill`, etc.
-- Operator skills: `bash-macos-compat`, etc.
-- Harness agents: `lore-worker`, `lore-explore`
-
-Gotcha skills are operator-owned. If a skill already exists, warn and skip.
-
 ## Work Management
 
 Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
@@ -93,29 +82,6 @@ Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
 
-## Hook Profiles
-
-Configure via `profile` in `.lore/config.json`:
-
-- **minimal** — Banner at session start. Safety hooks only. No per-tool nudges. Use `/lore-capture` manually.
-- **standard** — Default. All hooks active (nudge=15, warn=30).
-- **discovery** — All hooks active, lower thresholds (nudge=5, warn=10), aggressive capture instructions in banner.
-
-Safety hooks (protect-memory, harness-guard) always fire regardless of profile.
-
-## File Layout
-
-- Instructions: `.lore/instructions.md` (canonical), `CLAUDE.md` (generated), `.cursor/rules/lore-*.mdc` (generated)
-- Skills: `.lore/skills/<name>/SKILL.md` (canonical), `.claude/skills/` (generated platform copy)
-- Agents: `.lore/agents/<name>.md` (canonical), `.claude/agents/` (generated platform copy)
-- Context: `docs/context/` (rules, conventions — injected every session)
-- System conventions: `docs/context/conventions/system/` (harness-owned, overwritten on sync)
-- Knowledge: `docs/knowledge/`, `docs/knowledge/runbooks/`
-- System runbooks: `docs/knowledge/runbooks/system/` (harness-owned, overwritten on sync)
-- Work: `docs/work/roadmaps/`, `docs/work/plans/`, `docs/work/notes/`, `docs/work/brainstorms/`
-- Seed templates: `.lore/templates/seeds/` (default convention content for new instances)
-- Hooks: `.lore/hooks/`
-- Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
 
 
 === LORE v0.13.2 ===

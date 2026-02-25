@@ -19,8 +19,6 @@ Delegate when: parallel subtasks, API exploration, multi-step execution, heavy c
 
 Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
 
-Agents declare a `tier` (`fast`, `default`, `powerful`) — not a model name. Tiers resolve to platform-specific models via `subagentDefaults` in `.lore/config.json`.
-
 ## Agents
 
 | Agent | Description | Model |
