@@ -1,5 +1,7 @@
 # Working Across Repos
 
+> **Tip:** Your agent handles repo linking, config generation, and refresh. Just tell it which repos to connect.
+
 Lore is a knowledge hub — one project that tracks and performs work across all your other repositories. Work repos stay clean. Knowledge compounds here.
 
 ## How It Works

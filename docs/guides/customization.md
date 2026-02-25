@@ -1,5 +1,7 @@
 # Customization
 
+> **Tip:** Your agent handles all customization — conventions, rules, knowledge structure. Just describe what you want changed.
+
 Tell your agent what you want to change. It handles file creation, naming, and format.
 
 ## What Lives Where

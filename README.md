@@ -31,7 +31,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Sessions accelerate instead of resetting.** The harness loads your project identity, conventions, active work, available agents, and a map of everything your agent knows at session start. No re-explaining.
 
-**Semantic search and a live docs UI — highly recommended.** Run `/lore-docker` to start a local Docker sidecar that gives agents semantic search over the full knowledge base and opens a MkDocs site at `localhost` for browsing it visually. Without Docker, agents fall back to Grep/Glob search.
+**Semantic search and a live docs UI — highly recommended.** Tell your agent to start the docs sidecar — it pulls the Docker image, configures ports, and launches semantic search over the full knowledge base plus a live MkDocs site. Without Docker, agents fall back to Grep/Glob search.
 
 **Gotchas become skills that persist.** When your agent hits an API quirk, an encoding edge case, or a deployment gotcha, the harness captures that as a skill. That skill loads in every future session. The mistake happens once, the fix persists.
 
@@ -61,13 +61,7 @@ All hooks are plain JavaScript you can read in minutes. They don't make network 
 
 ## Working Across Repos
 
-Link work repos to a central Lore hub so hooks fire from the hub even when you open the work repo directly:
-
-```
-/lore-link ~/projects/my-app
-```
-
-One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq.github.io/lore-docs/guides/cross-repo-workflow/).
+Tell your agent to link work repos to the hub — it generates configs so hooks fire from the hub even when you open the work repo directly. One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq.github.io/lore-docs/guides/working-across-repos/).
 
 ## Commands
 
@@ -77,6 +71,7 @@ One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-link <path>` | Link a work repo to this hub |
 | `/lore-docker` | Start/stop the local Docker sidecar — semantic search + live MkDocs UI |
+| `/lore-field-repair` | Diagnose and fix a harness bug in source |
 
 ## Platforms
 

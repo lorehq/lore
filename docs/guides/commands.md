@@ -1,6 +1,8 @@
 # Commands
 
-Commands are things you say to your agent. You can also just describe what you want — these are shortcuts, not the only way.
+> **Tip:** You don't need to memorize these. Describe what you want and the agent routes to the right command. These exist for speed, not necessity.
+
+Commands are things you say to your agent — shortcuts for common operations.
 
 | Command | What it does |
 |---------|-------------|
