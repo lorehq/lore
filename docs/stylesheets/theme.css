@@ -45,6 +45,12 @@
   opacity: 0.6;
 }
 
+/* Center mermaid diagrams in panzoom viewport */
+.mermaid {
+  display: flex;
+  justify-content: center;
+}
+
 /* Hide right-hand TOC sidebar */
 .md-sidebar--secondary {
   display: none !important;
