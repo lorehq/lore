@@ -33,6 +33,9 @@ function setup() {
     path.join(dir, '.cursor', 'rules', 'lore-core.mdc'),
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
+  // Required conventions
+  fs.mkdirSync(path.join(dir, 'docs', 'context', 'conventions'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'context', 'conventions', 'security.md'), '# Security\n');
   return dir;
 }
 

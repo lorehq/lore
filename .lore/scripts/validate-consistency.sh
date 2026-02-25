@@ -164,10 +164,9 @@ fi
 
 # -- 8. Required conventions exist --
 echo "--- Required Conventions ---"
-for seed in security.md; do
-  target="$REPO_ROOT/docs/context/conventions/$seed"
-  [[ -f "$target" ]] || fail "Required convention missing: $seed — will regenerate on next session"
-done
+seed="security.md"
+target="$REPO_ROOT/docs/context/conventions/$seed"
+[[ -f "$target" ]] || fail "Required convention missing: $seed — will regenerate on next session"
 
 # -- 7. Linked repos --
 echo "--- Linked Repos ---"
