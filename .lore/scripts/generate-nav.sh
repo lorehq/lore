@@ -118,10 +118,8 @@ extra_javascript:
 plugins:
   - search
   - panzoom:
-      key: none
-      hint_location: disabled
-      always_show_hint: true
-      initial_zoom_level: 1.0
+      key: alt
+      hint_location: top
       full_screen: true
       include_selectors:
         - img
