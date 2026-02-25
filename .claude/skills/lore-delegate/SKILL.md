@@ -44,7 +44,16 @@ Semantic search indexes the knowledge base (`docs/`, `.lore/skills/`, `docs/cont
 
 ## Parallel Workers
 
-For independent subtasks, spawn parallel workers. Don't serialize what can run concurrently.
+**Parallelize by default.** Before spawning any worker, ask: can this task be split into independent chunks? If yes, spawn them concurrently — don't serialize what can run in parallel.
+
+Decomposition patterns:
+- **By target** — one worker per repo, service, file, or endpoint
+- **By concern** — separate research from implementation, validation from execution
+- **By independence** — any subtasks with no data dependency between them run concurrently
+
+Only serialize when one worker's output is another's input. When in doubt, parallelize — merging results is cheaper than waiting in sequence.
+
+**Race stuck workers.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions. The original will hit its bail-out limit eventually; use whichever returns useful results first. A stuck worker usually means the prompt was too broad — the fix is a better-scoped replacement, not more patience.
 
 ## After Worker Returns
 
