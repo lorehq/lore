@@ -19,7 +19,7 @@ Include in every worker prompt:
    - Bad: "get recent orders" → worker interprets "recent"
    - Good: "get orders with status pending" → worker filters on a concrete field
 4. **Conventions to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
-5. **Scope** — target repo path, which files may be modified
+5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
 6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
 7. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
 
