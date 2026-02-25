@@ -223,7 +223,7 @@ const coreProfile = getProf(SOURCE);
 const coreProfileTag = coreProfile !== 'standard' ? ` [${coreProfile.toUpperCase()}]` : '';
 const coreDocker = coreCfg.docker || {};
 const coreSearchUrl = coreDocker.search && coreDocker.search.address
-  ? `http://${coreDocker.search.address}:${coreDocker.search.port || 9185}/search`
+  ? `http://${coreDocker.search.address}:${coreDocker.search.port}/search`
   : '';
 const coreAgents = getAgents(SOURCE);
 const coreWorkerList = coreAgents.length > 0 ? coreAgents.map(a => a.name).join(', ') : '(none yet)';

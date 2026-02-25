@@ -125,7 +125,7 @@ function buildStaticBanner(directory) {
   const docker = cfg.docker || {};
   const semanticSearchUrl =
     docker.search && docker.search.address
-      ? `http://${docker.search.address}:${docker.search.port || 9185}/search`
+      ? `http://${docker.search.address}:${docker.search.port}/search`
       : '';
 
   const docsWork = path.join(directory, 'docs', 'work');

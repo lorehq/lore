@@ -171,12 +171,10 @@ gh repo list <org> --limit 200 --json name,description,updatedAt
 /lore-docker
 ```
 
-Or manually:
+Ports are auto-computed per project (hash-based). After starting, check the assigned port:
 
 ```bash
-docker compose -f .lore/docker-compose.yml up -d
-curl http://localhost:9185/health
-curl "http://localhost:9185/search?q=test&k=3"
+/lore-docker status
 ```
 
 On corporate networks, containers may need the org CA cert mounted. The embedding model (`BAAI/bge-small-en-v1.5`) is bundled in recent releases.

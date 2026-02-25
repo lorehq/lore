@@ -17,7 +17,6 @@
       "resultMode": "paths_min",
       "model": "BAAI/bge-small-en-v1.5"
     }
-    // "dynamicPorts": true  — compute unique ports per instance (for multi-instance setups)
   }
 
   // Hook verbosity: "minimal" | "standard" | "discovery"
