@@ -151,7 +151,13 @@ try {
 if (conventions.length === 0) process.exit(0);
 
 const msg = conventions.join('\n');
-const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
+const out = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'allow',
+    additionalContext: msg,
+  },
+});
 fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',

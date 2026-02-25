@@ -67,7 +67,13 @@ msg += isKnowledge
   ? 'Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)'
   : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
-const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
+const out = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'allow',
+    additionalContext: msg,
+  },
+});
 fs.writeSync(1, out + '\n');
 // Matched a docs/ write — track output size since this injects a full directory tree
 logHookEvent({

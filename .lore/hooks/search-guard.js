@@ -28,7 +28,13 @@ const msg =
   'EXACT PATH check: Do you have a specific filename already in hand? ' +
   'If you are guessing a location or category — STOP and run semantic search first.';
 
-const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
+const out = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'allow',
+    additionalContext: msg,
+  },
+});
 fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',

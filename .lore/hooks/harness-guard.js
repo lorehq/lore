@@ -128,7 +128,13 @@ if (resolved.startsWith(hubPrefix)) {
 
 if (!warningMsg) process.exit(0);
 
-const out = JSON.stringify({ decision: 'proceed', additional_context: warningMsg });
+const out = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'allow',
+    additionalContext: warningMsg,
+  },
+});
 fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',

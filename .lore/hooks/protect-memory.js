@@ -36,7 +36,13 @@ if (!result) {
   process.exit(0);
 }
 
-const out = JSON.stringify({ decision: 'block', reason: result.reason });
+const out = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'deny',
+    permissionDecisionReason: result.reason,
+  },
+});
 fs.writeSync(1, out + '\n');
 // Blocked — track how often MEMORY.md access attempts occur
 logHookEvent({
