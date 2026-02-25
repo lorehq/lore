@@ -39,6 +39,7 @@ docs/
 ├── lore-delegate/
 ├── lore-docker/
 ├── lore-docker-update-volume-conflict/
+├── lore-field-repair/
 ├── lore-link/
 ├── lore-semantic-search/
 ├── lore-status/

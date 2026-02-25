@@ -134,7 +134,8 @@ test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
         hook_event_name: 'PreToolUse',
       }),
     });
-    assert.ok(out.includes('"decision":"block"'), 'should block MEMORY.md write in minimal profile');
+    const parsed = JSON.parse(out);
+    assert.equal(parsed.hookSpecificOutput.permissionDecision, 'deny', 'should block MEMORY.md write in minimal profile');
   } finally {
     cleanup(dir);
   }
@@ -154,8 +155,9 @@ test('harness-guard: warns on harness-owned file write in minimal profile', () =
         hook_event_name: 'PreToolUse',
       }),
     });
-    assert.ok(out.includes('"decision":"proceed"'), 'should include proceed decision');
-    assert.ok(out.includes('WARNING'), 'should include WARNING in output');
+    const parsed = JSON.parse(out);
+    assert.equal(parsed.hookSpecificOutput.permissionDecision, 'allow', 'should include allow decision');
+    assert.ok(parsed.hookSpecificOutput.additionalContext.includes('WARNING'), 'should include WARNING in output');
   } finally {
     cleanup(dir);
   }

@@ -94,7 +94,7 @@ test('protect-memory with LORE_HUB: blocks hub MEMORY.md, not work repo', (t) =>
     { LORE_HUB: hub },
   );
   const parsed = JSON.parse(blocked.stdout);
-  assert.ok(parsed.decision === 'block');
+  assert.equal(parsed.hookSpecificOutput.permissionDecision, 'deny');
 
   // Should allow work repo's MEMORY.md (not at hub root)
   const allowed = runClaudeHook(
@@ -162,7 +162,7 @@ test('without LORE_HUB: hooks use cwd (existing behavior)', (t) => {
     {},
   );
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.decision === 'block');
+  assert.equal(parsed.hookSpecificOutput.permissionDecision, 'deny');
 });
 
 // ── Link Script ──
