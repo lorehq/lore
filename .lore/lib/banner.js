@@ -124,9 +124,7 @@ function buildStaticBanner(directory) {
   const treeDepth = cfg.treeDepth ?? 5;
   const docker = cfg.docker || {};
   const semanticSearchUrl =
-    docker.search && docker.search.address
-      ? `http://${docker.search.address}:${docker.search.port}/search`
-      : '';
+    docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
 
   const docsWork = path.join(directory, 'docs', 'work');
   const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
