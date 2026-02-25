@@ -22,4 +22,4 @@ Lore is a convention-based harness with no runtime server or network services. S
 
 | Version | Supported |
 |---------|-----------|
-| 0.13.x   | Yes       |
+| 0.14.x   | Yes       |

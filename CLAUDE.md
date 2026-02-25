@@ -62,8 +62,6 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 - `lore-worker` — general-purpose work requiring judgment, the safe middle ground
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
-**Prefer Lore workers over built-in agents (`Explore`, `general-purpose`, `Plan`).** Lore workers run at cheaper tiers — exploration and mechanical tasks don't need expensive reasoning. This applies to all repos, including external ones with no Lore context. Built-in agents are fallbacks only when Lore workers are unavailable.
-
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
 Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
@@ -79,7 +77,7 @@ Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
 
-=== LORE v0.13.2 ===
+=== LORE v0.14.0 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
