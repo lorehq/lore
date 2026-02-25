@@ -135,7 +135,11 @@ test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
       }),
     });
     const parsed = JSON.parse(out);
-    assert.equal(parsed.hookSpecificOutput.permissionDecision, 'deny', 'should block MEMORY.md write in minimal profile');
+    assert.equal(
+      parsed.hookSpecificOutput.permissionDecision,
+      'deny',
+      'should block MEMORY.md write in minimal profile',
+    );
   } finally {
     cleanup(dir);
   }
