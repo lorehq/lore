@@ -25,4 +25,5 @@ These aren't in the slash menu but the agent recognizes them. Just ask naturally
 |---------|-------------|
 | `lore-create-roadmap` | Create a strategic roadmap |
 | `lore-create-plan` | Create a tactical plan |
+| `lore-create-note` | Capture a quick note (bug, idea, observation) |
 | `lore-create-brainstorm` | Save a brainstorm for future reference |
