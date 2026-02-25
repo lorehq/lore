@@ -120,7 +120,7 @@ Safety hooks (protect-memory, harness-guard) always fire regardless of profile.
 - Hooks: `.lore/hooks/`
 - Docs UI: `.lore/docker-compose.yml` (optional — `/lore-docker`)
 
-=== LORE v0.13.0 ===
+=== LORE v0.13.1 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
