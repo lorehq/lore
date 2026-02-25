@@ -71,8 +71,22 @@ function extractPrinciples(filename) {
 // Determine which conventions apply based on path
 const conventions = [];
 
-// Security: always
-const security = extractPrinciples('security.md');
+// Security: always — self-heal from seed if deleted
+let security = extractPrinciples('security.md');
+if (security.length === 0) {
+  const secTarget = path.join(hubDir, 'docs', 'context', 'conventions', 'security.md');
+  const seedPath = path.join(hubDir, '.lore', 'templates', 'seeds', 'conventions', 'security.md');
+  try {
+    if (!fs.existsSync(secTarget) && fs.existsSync(seedPath)) {
+      fs.mkdirSync(path.dirname(secTarget), { recursive: true });
+      fs.writeFileSync(secTarget, fs.readFileSync(seedPath, 'utf8'));
+      debug('convention-guard: regenerated security.md from seed');
+      security = extractPrinciples('security.md');
+    }
+  } catch (e) {
+    debug('convention-guard: seed regeneration failed: %s', e.message);
+  }
+}
 if (security.length > 0) {
   conventions.push('Security: ' + security.join(' | '));
 }

@@ -51,8 +51,19 @@ export const ConventionGuard = async ({ directory, client }) => {
       const relative = resolved.slice(repoPrefix.length);
       const conventions = [];
 
-      // Security: always
-      const security = extractPrinciples(hub, 'security.md');
+      // Security: always — self-heal from seed if deleted
+      let security = extractPrinciples(hub, 'security.md');
+      if (security.length === 0) {
+        const secTarget = path.join(hub, 'docs', 'context', 'conventions', 'security.md');
+        const seedPath = path.join(hub, '.lore', 'templates', 'seeds', 'conventions', 'security.md');
+        try {
+          if (!fs.existsSync(secTarget) && fs.existsSync(seedPath)) {
+            fs.mkdirSync(path.dirname(secTarget), { recursive: true });
+            fs.writeFileSync(secTarget, fs.readFileSync(seedPath, 'utf8'));
+            security = extractPrinciples(hub, 'security.md');
+          }
+        } catch {}
+      }
       if (security.length > 0) conventions.push('Security: ' + security.join(' | '));
 
       // Docs convention for all docs/ paths

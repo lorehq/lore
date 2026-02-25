@@ -2,7 +2,7 @@
 # Validates cross-reference consistency between skills, agents, and platform copies.
 # Run after any structural change to catch drift.
 #
-# Checks (7 total):
+# Checks (8 total):
 #   1. Skill frontmatter has required fields (name, description, user-invocable)
 #   2. Agent frontmatter has required fields (name, description); tier value valid if present
 #   3. Agent skill references point to existing directories
@@ -10,6 +10,7 @@
 #   5. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
 #   6. Cursor hooks configuration references existing scripts
 #   7. Linked repos (.lore/links) still exist on disk
+#   8. Required conventions (e.g. security.md) exist on disk
 #
 # Exit code: 0 = all passed, 1 = inconsistencies found
 
@@ -160,6 +161,13 @@ if [[ -f "$REPO_ROOT/.cursor/hooks.json" ]]; then
     fi
   done < <(sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
 fi
+
+# -- 8. Required conventions exist --
+echo "--- Required Conventions ---"
+for seed in security.md; do
+  target="$REPO_ROOT/docs/context/conventions/$seed"
+  [[ -f "$target" ]] || fail "Required convention missing: $seed — will regenerate on next session"
+done
 
 # -- 7. Linked repos --
 echo "--- Linked Repos ---"
