@@ -58,7 +58,7 @@ The orchestrator reasons, decomposes, and delegates — it does not execute. One
 
 **Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
 
-**Race, don't wait.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions immediately. Use whichever returns useful results first.
+**Race, don't wait.** Launch exploratory workers non-blocking so you can poll progress and intervene. If a worker is burning tool calls without converging, spawn a replacement with narrower scope immediately — use whichever returns first. Block for short, predictable tasks; don't block for anything open-ended.
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
@@ -81,7 +81,7 @@ Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
 
-=== LORE v0.14.3 ===
+=== LORE v0.14.4 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
@@ -136,7 +136,11 @@ Decomposition patterns:
 
 Only serialize when one worker's output is another's input. When in doubt, parallelize — merging results is cheaper than waiting in sequence.
 
-**Race stuck workers.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions. The original will hit its bail-out limit eventually; use whichever returns useful results first. A stuck worker usually means the prompt was too broad — the fix is a better-scoped replacement, not more patience.
+**Block or don't block.** Blocking workers (foreground) tie up the orchestrator until they finish — fine for short, predictable tasks you trust to converge. Non-blocking workers (background) return control immediately so the orchestrator can monitor, intervene, or do other work. Use non-blocking for open-ended exploration (unknown APIs, undocumented services, broad searches) where divergence is plausible.
+
+**Poll, don't fire-and-forget.** When workers run non-blocking, check on them periodically. Don't launch background workers then immediately block waiting for the first one — that defeats the purpose. Poll to detect stuck workers early, then act on it.
+
+**Race stuck workers.** Racing requires non-blocking workers — you can only intervene on what you can observe. If a worker is burning tool calls without converging, spawn a replacement with narrower scope or clearer instructions. Use whichever returns useful results first. A stuck worker usually means the prompt was too broad — the fix is a better-scoped replacement, not more patience.
 
 ## After Worker Returns
 

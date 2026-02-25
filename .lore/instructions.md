@@ -58,7 +58,7 @@ The orchestrator reasons, decomposes, and delegates — it does not execute. One
 
 **Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
 
-**Race, don't wait.** If a worker is burning tool calls without converging, don't block on it — spawn a replacement with narrower scope or clearer instructions immediately. Use whichever returns useful results first.
+**Race, don't wait.** Launch exploratory workers non-blocking so you can poll progress and intervene. If a worker is burning tool calls without converging, spawn a replacement with narrower scope immediately — use whichever returns first. Block for short, predictable tasks; don't block for anything open-ended.
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
