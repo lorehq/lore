@@ -4,4 +4,4 @@ Lightweight capture for things that don't warrant a full plan — bugs hit durin
 
 Each note is a single markdown file with minimal frontmatter. Notes are not tracked in the session banner and don't have folder structure — just flat files in this directory.
 
-Use `/lore-create-note` to create a new note.
+Tell your agent to create a note when you need one.
