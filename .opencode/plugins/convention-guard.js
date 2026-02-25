@@ -64,7 +64,11 @@ export const ConventionGuard = async ({ directory, client }) => {
           }
         } catch {}
       }
-      if (security.length > 0) conventions.push('Security: ' + security.join(' | '));
+      if (security.length > 0) {
+        conventions.push(
+          'Security checkpoint — assess this write. Does it contain secrets, credentials, or sensitive values? Replace with references (env var names, vault paths) or escalate to the operator. When uncertain, ask before writing.',
+        );
+      }
 
       // Docs convention for all docs/ paths
       const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
