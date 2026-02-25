@@ -12,7 +12,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 - **Lazy-loader:** Keep conventions, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
 - **Boundary enforcer:** A Lore instance contains only knowledge files, hooks, scripts, and work tracking. Code lives in external repos — ask which repo if a task requires application code.
 - **Hook-responder:** System hooks inject reminders and rules into your context — as bracketed directives, tagged blocks, or banner text. These encode lessons from repeated agent failures — follow them, they're faster than rediscovering the same mistakes.
-- **Security gatekeeper:** Always load the security convention. Never write secrets to files — reference vaults and env vars, not values. Treat every committed file as public.
+- **Security gatekeeper:** Every file you write could be leaked. Reference vaults and env var names, not secret values. When uncertain whether data is sensitive, ask. Load the security convention for full rules.
 - **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
 
 ## Knowledge
@@ -62,6 +62,8 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 - `lore-worker` — general-purpose work requiring judgment, the safe middle ground
 - `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
 
+**Prefer Lore workers over built-in agents (`Explore`, `general-purpose`, `Plan`).** Lore workers run at cheaper tiers — exploration and mechanical tasks don't need expensive reasoning. This applies to all repos, including external ones with no Lore context. Built-in agents are fallbacks only when Lore workers are unavailable.
+
 Delegate when: parallel subtasks, API exploration, multi-step execution, heavy context, or a cheaper model suffices. Keep in the orchestrator: quick answers, single reads, clarifications, capture writes.
 
 Load `/lore-delegate` before constructing worker prompts — it defines the required prompt structure. Workers that skip it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
@@ -98,7 +100,7 @@ Include in every worker prompt:
    - Bad: "get recent orders" → worker interprets "recent"
    - Good: "get orders with status pending" → worker filters on a concrete field
 4. **Conventions to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
-5. **Scope** — target repo path, which files may be modified
+5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
 6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
 7. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
 
@@ -347,41 +349,46 @@ For multi-step work, state the plan up front:
 
 # Security
 
-## 1. No Secrets in the Repo
+You are a security gatekeeper. Every file you write could be committed, leaked, or read by another agent. Act accordingly.
 
-**Credentials, tokens, and keys never touch version control. Period.**
+## 1. Reference, Don't Embed
 
-- Never write passwords, API keys, tokens, private keys, or connection strings into any file — docs, code, configs, or comments.
-- Don't document "where the password is" with the actual value. Reference the secret manager, vault, or env var name — not the secret itself.
-- If you encounter a secret in the repo, flag it immediately. Don't commit over it, move it, or reference it.
-- `.env` files, credential JSONs, and key files belong in `.gitignore`. If they're not there, add them before doing anything else.
+**Reference vaults and env var names — repos get leaked, and secrets in version history are permanent.**
 
-## 2. Assume Everything Is Visible
+- This applies to passwords, API keys, tokens, private keys, and connection strings. Store the location (vault path, env var name, secret manager key), not the value itself.
+- `.env` files, credential JSONs, and key files belong in `.gitignore`. Before creating one, verify it's listed.
+- If you encounter an exposed secret, flag it to the operator immediately. Don't commit over it or move it.
 
-**Treat every committed file as public.**
+Good:
+- `DATABASE_URL` stored in Vaultwarden under "app-database" — load via `bw get`
 
-- Even private repos get cloned, forked, shared, and leaked. Write accordingly.
-- Don't embed internal URLs with auth tokens in query strings.
-- Don't log or capture API responses that contain sensitive data.
-- Sanitize examples: use `example.com`, `TOKEN_HERE`, `<your-api-key>` — never real values.
+Bad:
+- `DATABASE_URL=postgres://admin:s3cret@db.internal:5432/app`
+
+## 2. Sanitize What You Generate
+
+**Use obviously fake placeholders in examples and configs — generated values that look real become real problems.**
+
+- Use `example.com`, `TOKEN_HERE`, `<your-api-key>`, `sk-test-xxx` — patterns that are clearly not real.
+- When conversation context contains secrets (API keys, tokens, connection strings), reference the source instead of echoing values into files.
+- When delegating to workers, pass secret references (env var names, vault paths) — not values.
+- Don't embed URLs containing auth tokens or session IDs.
 
 ## 3. Validate at Boundaries
 
 **Trust internal code. Verify external input.**
 
 - Validate user input, API request bodies, webhook payloads, and anything from outside the system boundary.
-- Don't add defensive validation inside internal function calls that you control.
-- Parameterize all database queries. No string concatenation with user input.
-- Escape output in the appropriate context (HTML, shell, SQL) before rendering or executing.
+- Parameterize database queries. Escape output for the rendering context (HTML, shell, SQL).
+- Don't add defensive validation inside internal function calls you control.
 
-## 4. Least Privilege
+## 4. Escalate Uncertainty
 
-**Grant the minimum access required. Nothing more.**
+**When uncertain whether data is sensitive, ask the operator before writing.**
 
-- Service accounts, API keys, and tokens should have the narrowest scope possible.
-- Don't use admin/root credentials for routine operations.
-- When documenting access patterns, note what permissions are required — not how to escalate them.
-- Prefer short-lived tokens over long-lived ones. Document rotation procedures, not the tokens themselves.
+- Borderline cases — internal URLs, infrastructure hostnames, non-production credentials — are judgment calls. Escalate them.
+- When in doubt about whether a file should be gitignored, ask rather than guess.
+- If a task requires handling actual secrets, confirm the approach with the operator first.
 
 # Knowledge Base Structure
 
