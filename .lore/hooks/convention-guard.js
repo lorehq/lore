@@ -88,7 +88,9 @@ if (security.length === 0) {
   }
 }
 if (security.length > 0) {
-  conventions.push('Security: ' + security.join(' | '));
+  conventions.push(
+    'Security checkpoint — assess this write. Does it contain secrets, credentials, or sensitive values? Replace with references (env var names, vault paths) or escalate to the operator. When uncertain, ask before writing.',
+  );
 }
 
 // Path-specific conventions
@@ -150,7 +152,7 @@ if (conventions.length === 0) process.exit(0);
 
 const msg = conventions.join('\n');
 const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
-console.log(out);
+fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',
   hook: 'convention-guard',

@@ -37,7 +37,7 @@ if (!result) {
 }
 
 const out = JSON.stringify({ decision: 'block', reason: result.reason });
-console.log(out);
+fs.writeSync(1, out + '\n');
 // Blocked — track how often MEMORY.md access attempts occur
 logHookEvent({
   platform: 'claude',

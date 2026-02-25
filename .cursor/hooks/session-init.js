@@ -34,7 +34,7 @@ try {
 
 // Only output dynamic content — static content lives in .cursor/rules/lore-*.mdc
 const banner = buildCursorBanner(hub);
-console.log(JSON.stringify({ additional_context: banner, continue: true }));
+require('fs').writeSync(1, JSON.stringify({ additional_context: banner, continue: true }) + '\n');
 logHookEvent({
   platform: 'cursor',
   hook: 'session-init',

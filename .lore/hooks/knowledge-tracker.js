@@ -70,7 +70,7 @@ writeState(state);
 
 if (result.silent) {
   const out = JSON.stringify({ hookSpecificOutput: { hookEventName: event } });
-  console.log(out);
+  fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'claude',
     hook: 'knowledge-tracker',
@@ -83,7 +83,7 @@ if (result.silent) {
   const out = JSON.stringify({
     hookSpecificOutput: { hookEventName: event, additionalContext: result.message },
   });
-  console.log(out);
+  fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'claude',
     hook: 'knowledge-tracker',

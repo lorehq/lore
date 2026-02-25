@@ -43,7 +43,7 @@ if (!result) {
 
 if (isPreToolUse) {
   const out = JSON.stringify({ decision: 'deny', reason: result.reason });
-  console.log(out);
+  fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'cursor',
     hook: 'protect-memory',
@@ -54,7 +54,7 @@ if (isPreToolUse) {
   });
 } else {
   const out = JSON.stringify({ permission: 'deny', user_message: result.reason });
-  console.log(out);
+  fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'cursor',
     hook: 'protect-memory',

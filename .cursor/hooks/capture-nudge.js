@@ -21,7 +21,7 @@ const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;
 
 if (getProfile(hubDir) === 'minimal') {
-  console.log(JSON.stringify({ permission: 'allow' }));
+  fs.writeSync(1, JSON.stringify({ permission: 'allow' }) + '\n');
   logHookEvent({
     platform: 'cursor',
     hook: 'capture-nudge',
@@ -115,7 +115,7 @@ if (hadFailure) {
 
 // Output — permission: allow lets the command proceed, agent_message reaches the agent
 const out = JSON.stringify({ permission: 'allow', agent_message: msg });
-console.log(out);
+fs.writeSync(1, out + '\n');
 // Highest-frequency Cursor hook — captures full state snapshot for correlating
 // nudge escalation with actual shell command patterns
 logHookEvent({

@@ -68,7 +68,7 @@ msg += isKnowledge
   : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
 
 const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
-console.log(out);
+fs.writeSync(1, out + '\n');
 // Matched a docs/ write — track output size since this injects a full directory tree
 logHookEvent({
   platform: 'claude',

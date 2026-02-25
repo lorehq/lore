@@ -29,7 +29,7 @@ const msg =
   'If you are guessing a location or category — STOP and run semantic search first.';
 
 const out = JSON.stringify({ decision: 'proceed', additional_context: msg });
-console.log(out);
+fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',
   hook: 'search-guard',

@@ -54,7 +54,7 @@ try {
 }
 
 const msg = preamble + ambiguityNote;
-console.log(msg);
+fs.writeSync(1, msg + '\n');
 logHookEvent({
   platform: 'claude',
   hook: 'prompt-preamble',

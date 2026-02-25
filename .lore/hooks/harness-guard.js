@@ -129,7 +129,7 @@ if (resolved.startsWith(hubPrefix)) {
 if (!warningMsg) process.exit(0);
 
 const out = JSON.stringify({ decision: 'proceed', additional_context: warningMsg });
-console.log(out);
+fs.writeSync(1, out + '\n');
 logHookEvent({
   platform: 'claude',
   hook: 'harness-guard',

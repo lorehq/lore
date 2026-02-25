@@ -33,7 +33,7 @@ try {
 
 // Only output dynamic content (operator profile + local memory) — static content is in CLAUDE.md
 const banner = buildDynamicBanner(root);
-if (banner) console.log(banner);
+if (banner) require('fs').writeSync(1, banner + '\n');
 // Log banner size to track one-time session start context cost
 logHookEvent({
   platform: 'claude',
