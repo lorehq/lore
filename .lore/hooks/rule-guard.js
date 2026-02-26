@@ -140,9 +140,7 @@ try {
   const allFiles = [...operatorFiles, ...systemFiles];
   if (allFiles.length > 0) {
     const names = allFiles.map((f) => f.replace(/\.md$/, ''));
-    rules.push(
-      'Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant',
-    );
+    rules.push('Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant');
   }
 } catch (e) {
   debug('rule-guard: could not list rules: %s', e.message);

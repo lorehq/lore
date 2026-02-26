@@ -254,10 +254,7 @@ test('does not overwrite existing rules directory with scaffold', (t) => {
   const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'rules', 'index.md'), 'utf8');
   assert.ok(content.includes('My Rules'), 'should preserve operator content');
   // Seed files are created individually even when dir exists
-  assert.ok(
-    fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'coding.md')),
-    'should create seed rule files',
-  );
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'coding.md')), 'should create seed rule files');
 });
 
 test('hook output excludes static knowledge map regardless of treeDepth', (t) => {

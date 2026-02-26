@@ -93,10 +93,7 @@ function scanWork(dir) {
 // Scans both .lore/skills/ and .lore/fieldnotes/.
 function getBannerLoadedSkills(directory) {
   const loaded = [];
-  const dirs = [
-    path.join(directory, '.lore', 'skills'),
-    path.join(directory, '.lore', 'fieldnotes'),
-  ];
+  const dirs = [path.join(directory, '.lore', 'skills'), path.join(directory, '.lore', 'fieldnotes')];
   for (const skillsDir of dirs) {
     try {
       for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {

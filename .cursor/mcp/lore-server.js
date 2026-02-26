@@ -191,9 +191,7 @@ function loreWriteGuard(filePath) {
     const files = fs.readdirSync(_rulesDir).filter((f) => f.endsWith('.md') && !injected.has(f));
     if (files.length > 0) {
       const names = files.map((f) => f.replace(/\.md$/, ''));
-      rules.push(
-        'Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant',
-      );
+      rules.push('Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant');
     }
   } catch {}
 
