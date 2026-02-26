@@ -37,7 +37,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Conventions are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
 
-**One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift.
+**One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
 
 **Complex work delegates to focused workers.** The harness orchestrates delegation: when work benefits from a fresh context window, it spawns workers loaded with curated skills and conventions. Compound tasks split across parallel workers for maximum throughput.
 
