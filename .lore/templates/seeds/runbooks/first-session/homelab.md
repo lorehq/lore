@@ -25,7 +25,7 @@ Minimum fields:
 - Accounts: GitHub (personal), self-hosted Gitea/Forgejo if applicable
 - Tool and CLI preferences
 
-This is the first thing the agent reads each session. Without it, every session starts cold.
+Without it, the agent has no operator context — it knows the KB but not who it's working for.
 
 ### Agent Rules
 

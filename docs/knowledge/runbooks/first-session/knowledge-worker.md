@@ -22,7 +22,7 @@ Minimum fields:
 - Working style preferences (tone, parallel execution, output format)
 - Tool and CLI preferences
 
-This is the first thing the agent reads each session. Without it, every session starts cold.
+Without it, the agent has no operator context — it knows the KB but not who it's working for.
 
 ### Agent Rules
 
