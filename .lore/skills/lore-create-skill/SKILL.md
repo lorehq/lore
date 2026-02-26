@@ -10,13 +10,13 @@ allowed-tools: Write, Edit, Read, Glob
 
 Skills are **procedural capabilities** — reusable command procedures, multi-step workflows, harness operations. They live in `.lore/skills/` with the `lore-` prefix.
 
-**Gotchas go in fieldnotes, not skills.** Auth quirks, encoding issues, parameter tricks, platform incompatibilities → use `/lore-create-fieldnote` instead.
+**Snags (gotchas, quirks) go in fieldnotes, not skills.** Auth quirks, encoding issues, parameter tricks, platform incompatibilities → use `/lore-create-fieldnote` instead.
 
 ## When to Create
 
 **Mandatory**: Multi-step harness commands, reusable procedural workflows.
 
-**Not skills**: Environmental gotchas (use fieldnotes), simple tool wrappers, commands with good `--help`, one-off operations.
+**Not skills**: Environmental snags (use fieldnotes), simple tool wrappers, commands with good `--help`, one-off operations.
 
 ## Process
 
@@ -37,7 +37,7 @@ allowed-tools: Bash, Read, etc
 
 [How to use — 2-3 lines]
 
-## Gotchas
+## Snags
 [The actual value — what surprised you]
 ```
 

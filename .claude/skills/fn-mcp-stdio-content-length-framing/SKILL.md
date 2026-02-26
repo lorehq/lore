@@ -25,7 +25,7 @@ rl.on('line', (line) => {
 });
 ```
 
-## Gotchas
+## Snags
 
 - **Not Content-Length framed**: Despite the MCP spec describing LSP-style
   `Content-Length: N\r\n\r\n{...}` framing, Cursor sends plain `{...}\n`.

@@ -21,11 +21,13 @@ docs/
 │   └── runbooks/
 │       ├── first-session/
 │       └── system/
-└── work/
+└── workflow/
     ├── brainstorms/
-    ├── notes/
-    ├── plans/
-    └── roadmaps/
+    ├── in-flight/
+    │   ├── epics/
+    │   ├── initiatives/
+    │   └── items/
+    └── notes/
 .lore/fieldnotes/
 ├── mcp-stdio-content-length-framing/
 ├── node-macos-stdin-fd/
@@ -36,10 +38,11 @@ docs/
 ├── lore-consolidate/
 ├── lore-create-agent/
 ├── lore-create-brainstorm/
+├── lore-create-epic/
 ├── lore-create-fieldnote/
+├── lore-create-initiative/
+├── lore-create-item/
 ├── lore-create-note/
-├── lore-create-plan/
-├── lore-create-roadmap/
 ├── lore-create-skill/
 ├── lore-create-todo-with-capture/
 ├── lore-delegate/

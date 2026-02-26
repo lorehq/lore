@@ -25,7 +25,7 @@ The operator types `/lore-field-repair` when a hook, script, skill, or rule is b
    - Reproduce → Isolate → Fix in source → Test → Push and sync → Report → Capture
 4. Use TaskCreate to track each step if the repair spans multiple turns
 
-## Gotchas
+## Snags
 
 - Debug output goes to `/tmp`, never stderr — stderr corrupts hook responses
 - Copy fixed files into the instance for testing, but revert before syncing

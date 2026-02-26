@@ -41,7 +41,7 @@ summary: [one-liner]     # optional — shown in session banner
 bash .lore/scripts/ensure-structure.sh && bash .lore/scripts/validate-consistency.sh
 ```
 
-## Gotchas
+## Snags
 
 - Roadmap plans are nested under the roadmap folder — don't set a `roadmap:` field for those
 - `roadmap` field = folder name (e.g., `cloud-migration`), not a path; only for standalone plans

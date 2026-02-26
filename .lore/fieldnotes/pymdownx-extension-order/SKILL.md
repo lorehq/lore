@@ -10,7 +10,7 @@ user-invocable: false
 
 When using `pymdownx.tilde` (strikethrough) and `pymdownx.tasklist` together in MkDocs Material.
 
-## The Gotcha
+## The Snag
 
 `pymdownx.tilde` must be listed **before** `pymdownx.tasklist` in `mkdocs.yml` `markdown_extensions`. If tasklist comes first, `~~strikethrough~~` inside task list items renders as literal tildes instead of struck-through text.
 

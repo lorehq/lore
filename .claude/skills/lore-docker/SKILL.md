@@ -76,7 +76,7 @@ Interpret intent from user input:
 2. Check local mkdocs process and verify HTTP response at `localhost:8000`.
 3. Report one of: Docker active (with semantic search status), local active (docs only), neither active.
 
-## Gotchas
+## Snags
 
 - `docker compose` project name defaults to the directory containing the compose file (`.lore` → `lore`), not the project root. Always export `COMPOSE_PROJECT_NAME="$(basename "$PWD")"` before any `docker compose` call so containers are named after the instance (e.g. `my-project-lore-runtime-1`).
 - Always pass `--livereload` for local mkdocs.
@@ -84,4 +84,4 @@ Interpret intent from user input:
 - Docker may be installed but daemon not running; treat that as fallback-to-local, not a hard error.
 - If both Docker and local are running, prefer reporting Docker URL first and note both are active.
 - Semantic search model loading can take 30-60 seconds on first start. Report the health endpoint URL so the user can check back.
-- After image pull + container recreation, the search endpoint returns connection refused (HTTP 000) for 60-120 seconds while uvicorn starts and the embedding model loads. This is normal startup behavior — poll `/health` until `ok: true` rather than treating the first failure as an error. Distinct from the volume conflict gotcha (`lore-docker-update-volume-conflict`).
+- After image pull + container recreation, the search endpoint returns connection refused (HTTP 000) for 60-120 seconds while uvicorn starts and the embedding model loads. This is normal startup behavior — poll `/health` until `ok: true` rather than treating the first failure as an error. Distinct from the volume conflict snag (`lore-docker-update-volume-conflict`).

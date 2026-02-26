@@ -14,7 +14,7 @@ Brainstorms capture conversation artifacts for future reference. **Operator-init
 
 1. **Read rules**: Check `docs/context/rules.md` or `docs/context/rules/index.md` for docs formatting rules. Apply these when writing content.
 
-2. **Create folder**: `docs/work/brainstorms/<slug>/`
+2. **Create folder**: `docs/workflow/brainstorms/<slug>/`
 
 3. **Create index.md** with minimal frontmatter:
 
@@ -27,8 +27,8 @@ created: [today's date]
 
 4. **Validate**: `bash .lore/scripts/ensure-structure.sh && bash .lore/scripts/validate-consistency.sh`
 
-## Gotchas
+## Snags
 
-- **Always in `brainstorms/`** — never nest inside roadmap or plan folders
+- **Always in `brainstorms/`** — never nest inside initiative or epic folders
 - **No `status` field** — brainstorms are reference material, not tracked work
-- To promote to a plan or roadmap: archive the brainstorm, create the new item fresh
+- To promote to an initiative or epic: archive the brainstorm, create the new item fresh

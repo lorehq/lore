@@ -22,4 +22,4 @@ All user-invocable Lore skills use the `lore-` prefix. This eliminates collision
 
 ## When Creating New Skills or Fieldnotes
 
-All user-invocable skills MUST be named `lore-<action>` (e.g., `/lore-capture`, `/lore-docker`). Non-user-invocable fieldnotes (internal gotcha captures) don't need the prefix.
+All user-invocable skills MUST be named `lore-<action>` (e.g., `/lore-capture`, `/lore-docker`). Non-user-invocable fieldnotes (internal snag captures) don't need the prefix.

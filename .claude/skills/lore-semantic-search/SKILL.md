@@ -39,7 +39,7 @@ node -e "const c=require('./.lore/lib/config').getConfig('.');console.log(c.dock
 
 If output is `unavailable`, skip to Grep/Glob fallback immediately.
 
-## Gotchas
+## Snags
 
 - **MAX_K defaults to 2** — queries requesting `k` higher than `MAX_K` raise a validation error. Set `-e MAX_K=10` when starting the container.
 - **Paths in responses are relative** to the mounted volume root. Prepend the local mount path to read them.

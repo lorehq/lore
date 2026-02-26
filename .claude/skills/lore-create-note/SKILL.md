@@ -8,7 +8,7 @@ allowed-tools: Bash, Write
 
 # Create Note
 
-Create a lightweight note in `docs/work/notes/` for quick capture — bugs hit during deep work, ideas to revisit, observations worth preserving.
+Create a lightweight note in `docs/workflow/notes/` for quick capture — bugs hit during deep work, ideas to revisit, observations worth preserving.
 
 ## When to Use
 
@@ -19,7 +19,7 @@ The operator types `/lore-create-note` or asks to "jot down" / "note" something 
 1. Ask the operator for:
    - **Title** — short descriptive name (becomes the filename slug and frontmatter title)
    - **Content** — what to capture (can be rough, doesn't need polish)
-2. Generate the filename: kebab-case slug from the title (e.g., `docs/work/notes/flaky-auth-timeout.md`)
+2. Generate the filename: kebab-case slug from the title (e.g., `docs/workflow/notes/flaky-auth-timeout.md`)
 3. Write the file with this format:
 
 ```markdown

@@ -33,7 +33,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Semantic search and a live docs UI — highly recommended.** Tell your agent to start the docs sidecar — it pulls the Docker image, configures ports, and launches semantic search over the full knowledge base plus a live MkDocs site. Without Docker, agents fall back to Grep/Glob search.
 
-**Gotchas become fieldnotes that persist.** When your agent hits an API quirk, an encoding edge case, or a deployment gotcha, the harness captures that as a fieldnote. That fieldnote loads in every future session. The mistake happens once, the fix persists.
+**Snags, gotchas, quirks become fieldnotes that persist.** When your agent hits an API quirk, an encoding edge case, or a deployment snag, the harness captures that as a fieldnote. That fieldnote loads in every future session. The mistake happens once, the fix persists.
 
 **Rules are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
 
@@ -51,7 +51,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 Lore is a harness built from markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
-- **Fieldnotes** (`.lore/fieldnotes/`) — Gotchas and patterns captured from real work. Available on-demand in every session.
+- **Fieldnotes** (`.lore/fieldnotes/`) — Snags and patterns captured from real work. Available on-demand in every session.
 - **Skills** (`.lore/skills/`) — Procedural capabilities and reusable commands.
 - **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills and fieldnotes per-task.
 - **Docs** (`docs/`) — Project context, rules, environment knowledge, runbooks, and work tracking.

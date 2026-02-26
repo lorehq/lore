@@ -1,6 +1,6 @@
 ---
 name: lore-create-fieldnote
-description: Create a new fieldnote when an operation hit a non-obvious environmental gotcha
+description: Create a new fieldnote when an operation hit a non-obvious environmental snag (gotcha, quirk)
 type: command
 user-invocable: false
 allowed-tools: Write, Edit, Read, Glob
@@ -8,7 +8,7 @@ allowed-tools: Write, Edit, Read, Glob
 
 # Create Fieldnote
 
-**Every gotcha becomes a fieldnote. No exceptions.**
+**Every snag (gotcha, quirk) becomes a fieldnote. No exceptions.**
 
 Fieldnotes capture environmental knowledge from failures — auth quirks, encoding issues, parameter tricks, platform incompatibilities. They live in `.lore/fieldnotes/` and use the same `SKILL.md` file format for platform compatibility.
 
@@ -37,7 +37,7 @@ allowed-tools: Bash, Read, etc
 
 [Context — 2-3 lines on when this applies]
 
-## Gotchas
+## Snags
 [The actual value — what surprised you]
 
 ## Workaround

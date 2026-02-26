@@ -188,7 +188,7 @@ Paths are defaults — check `docs/knowledge/environment/repo-relationships.md` 
 
 **Turn the fix into knowledge.**
 
-- Gotcha → create a fieldnote (mandatory for non-obvious failures).
+- Snag → create a fieldnote (mandatory for non-obvious failures).
 - Environment fact → `docs/knowledge/environment/`.
 - Affected procedure → update the relevant runbook.
 - If none apply, state "No capture needed" with a one-line reason.

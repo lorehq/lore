@@ -55,7 +55,7 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 - `docs/` (except `system/` subdirs), `.lore/agents/`, `mkdocs.yml`
 - `.lore/config.json`, `.lore/memory.local.md`, `.lore/operator.gitignore`
 
-## Gotchas
+## Snags
 
 - Always show the version diff and file list before syncing — never auto-update
 - The sync script uses rsync semantics: overwrite existing, never delete operator files

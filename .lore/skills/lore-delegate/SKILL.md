@@ -21,7 +21,7 @@ Include in every worker prompt:
 4. **Rules to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
 5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
 6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
-7. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
+7. **Return contract** — "End with a Captures section: (A) Snags (gotchas, quirks), (B) Environment facts, (C) Procedures — or 'none' for each."
 
 You may also name specific skills to load — workers discover the rest via semantic search.
 
@@ -61,7 +61,7 @@ Only serialize when one worker's output is another's input. When in doubt, paral
 
 ## After Worker Returns
 
-1. Gotchas reported? → create fieldnote
+1. Snags reported? → create fieldnote
 2. Environment facts? → write to `docs/knowledge/environment/`
 3. Procedures? → write to `docs/knowledge/runbooks/`
 4. Nothing? → move on

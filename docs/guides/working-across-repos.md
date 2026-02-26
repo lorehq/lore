@@ -20,7 +20,7 @@ flowchart TD
 
 1. **Connect** — CLI agents launch from here. IDE agents use `/lore-link` to work from the code repo with hooks firing from the hub.
 2. **Work** — the agent reads, writes, and runs commands across repos using absolute paths.
-3. **Capture** — gotchas become fieldnotes, endpoints become context docs, procedures become runbooks — all stored here.
+3. **Capture** — snags (gotchas, quirks) become fieldnotes, endpoints become context docs, procedures become runbooks — all stored here.
 
 ## Two Workflows
 

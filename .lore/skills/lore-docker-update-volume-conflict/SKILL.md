@@ -7,7 +7,7 @@ user-invocable: false
 
 # lore-docker-update-volume-conflict
 
-## Gotcha
+## The Snag
 
 After pulling a new `lorehq/lore-docker` image, the container crashes on startup with:
 

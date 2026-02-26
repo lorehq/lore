@@ -24,7 +24,7 @@ function checkMemoryAccess(tool, filePath, rootDir) {
   return {
     reason:
       'Memory relocated to .lore/memory.local.md. Route your knowledge:\n' +
-      '  GOTCHA \u2192 /lore-create-fieldnote (no exceptions)\n' +
+      '  SNAG \u2192 /lore-create-fieldnote (no exceptions)\n' +
       '  KNOWLEDGE \u2192 docs/knowledge/environment/\n' +
       '  TEMPORARY \u2192 .lore/memory.local.md',
   };

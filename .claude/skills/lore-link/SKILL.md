@@ -36,7 +36,7 @@ Report the output to the operator.
 - **List**: Operator wants to see which repos are linked and detect stale links
 - **Refresh**: After `/lore-update`, to regenerate configs with the latest hooks
 
-## Gotchas
+## Snags
 
 - The script must run from the hub directory (it resolves the hub path from its own location)
 - All generated files in the target are auto-gitignored — no cleanup needed

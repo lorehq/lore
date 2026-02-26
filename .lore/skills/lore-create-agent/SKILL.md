@@ -45,7 +45,7 @@ Handles <purpose> operations.
 - If scope has independent branches, run them in parallel subagents; keep dependency-gated steps sequential.
 
 ## Self-Learning
-- Non-obvious gotcha during execution -> create or update a fieldnote under `.lore/fieldnotes/`.
+- Non-obvious snag (gotcha, quirk) during execution -> create or update a fieldnote under `.lore/fieldnotes/`.
 - New environment facts -> update `docs/knowledge/environment/`.
 - Multi-step procedures discovered -> add/update `docs/knowledge/runbooks/`.
 
