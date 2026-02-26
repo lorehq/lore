@@ -111,31 +111,24 @@ if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
     fail ".claude/skills/ missing — run: bash .lore/scripts/sync-platform-skills.sh"
   fi
 fi
-# Fieldnotes platform sync
+# Fieldnotes platform sync (merged into .claude/skills/fn-*)
 if [[ -d "$REPO_ROOT/.lore/fieldnotes" ]]; then
-  if [[ -d "$REPO_ROOT/.claude/fieldnotes" ]]; then
-    sync_ok=true
-    for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
-      name=$(basename "$dir")
-      sf="$dir/SKILL.md"
-      [[ -f "$sf" ]] || continue
-      if [[ ! -d "$REPO_ROOT/.claude/fieldnotes/$name" ]]; then
-        sync_ok=false; break
-      fi
-      diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/fieldnotes/$name" 2>&1) || true
-      if [[ -n "$diff_out" ]]; then
-        sync_ok=false; break
-      fi
-    done
-    $sync_ok || fail ".claude/fieldnotes/ out of sync with .lore/fieldnotes/ — run: bash .lore/scripts/sync-platform-skills.sh"
-  else
-    # Only fail if there are actual fieldnotes to sync
-    has_fieldnotes=false
-    for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
-      [[ -f "$dir/SKILL.md" ]] && { has_fieldnotes=true; break; }
-    done
-    $has_fieldnotes && fail ".claude/fieldnotes/ missing — run: bash .lore/scripts/sync-platform-skills.sh"
-  fi
+  sync_ok=true
+  for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
+    name=$(basename "$dir")
+    sf="$dir/SKILL.md"
+    [[ -f "$sf" ]] || continue
+    if [[ ! -d "$REPO_ROOT/.claude/skills/fn-$name" ]]; then
+      sync_ok=false; break
+    fi
+    diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/skills/fn-$name" 2>&1) || true
+    if [[ -n "$diff_out" ]]; then
+      sync_ok=false; break
+    fi
+  done
+  $sync_ok || fail ".claude/skills/fn-* out of sync with .lore/fieldnotes/ — run: bash .lore/scripts/sync-platform-skills.sh"
+  # Legacy cleanup check
+  [[ -d "$REPO_ROOT/.claude/fieldnotes" ]] && fail ".claude/fieldnotes/ is legacy — run: bash .lore/scripts/sync-platform-skills.sh"
 fi
 # Agent platform copies are transformed (model cascade), so check existence not content
 if [[ -d "$REPO_ROOT/.lore/agents" ]]; then

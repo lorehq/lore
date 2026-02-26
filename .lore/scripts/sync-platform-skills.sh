@@ -34,25 +34,31 @@ if [ -d "$REPO_ROOT/.lore/skills" ]; then
   " "$REPO_ROOT"
 fi
 
-# -- Claude Code fieldnotes --
-# Copy ALL lore fieldnotes to .claude/fieldnotes/ so Claude can discover and use them.
+# -- Claude Code fieldnotes → .claude/skills/fn-* --
+# Merge fieldnotes into .claude/skills/ with fn- prefix for unified discovery.
+# Canonical source remains .lore/fieldnotes/ — this is a platform projection.
 if [ -d "$REPO_ROOT/.lore/fieldnotes" ]; then
-  mkdir -p "$REPO_ROOT/.claude/fieldnotes"
+  mkdir -p "$REPO_ROOT/.claude/skills"
   node -e "
     const fs = require('fs');
     const path = require('path');
     const root = process.argv[1];
     const srcDir = path.join(root, '.lore', 'fieldnotes');
-    const outDir = path.join(root, '.claude', 'fieldnotes');
+    const outDir = path.join(root, '.claude', 'skills');
 
     for (const d of fs.readdirSync(srcDir, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
       const skillFile = path.join(srcDir, d.name, 'SKILL.md');
       if (!fs.existsSync(skillFile)) continue;
-      const outNoteDir = path.join(outDir, d.name);
+      const outNoteDir = path.join(outDir, 'fn-' + d.name);
       fs.cpSync(path.join(srcDir, d.name), outNoteDir, { recursive: true, force: true });
     }
   " "$REPO_ROOT"
+  # Cleanup legacy .claude/fieldnotes/ if present
+  if [ -d "$REPO_ROOT/.claude/fieldnotes" ]; then
+    rm -rf "$REPO_ROOT/.claude/fieldnotes"
+    echo "Cleaned up legacy .claude/fieldnotes/"
+  fi
 fi
 
 # All agents — workers from template, non-workers from .lore/agents/ with tier → model stamping
