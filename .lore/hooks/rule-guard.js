@@ -2,8 +2,8 @@
 // Matches Write and Edit. Injects concise rule reminders based on
 // the target file path:
 //   - Security: always, for any write to any file in the repo
-//   - Docs: writes to docs/work/, docs/knowledge/, or docs/ generally
-//   - Work Items: writes to docs/work/ (in addition to Docs)
+//   - Docs: writes to docs/workflow/, docs/knowledge/, or docs/ generally
+//   - Work Items: writes to docs/workflow/ (in addition to Docs)
 //   - Knowledge Capture: writes to docs/knowledge/ (in addition to Docs)
 //
 // After hardcoded injections, lists any remaining rules as a menu
@@ -94,7 +94,7 @@ if (security.length > 0) {
 }
 
 // Path-specific rules
-const isWork = relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\');
+const isWork = relative.startsWith('docs/workflow/') || relative.startsWith('docs\\workflow\\');
 const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
 const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
 

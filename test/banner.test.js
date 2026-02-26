@@ -22,8 +22,8 @@ function setup(opts = {}) {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-banner-')));
 
   // Minimal required directories
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'fieldnotes'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
@@ -166,9 +166,9 @@ function makeWorkItem(dir, slug, frontmatter) {
 test('scanWork: returns active items with title and summary', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  makeWorkItem(roadmapsDir, 'my-roadmap', { title: 'My Roadmap', status: 'active', summary: 'Phase 1' });
-  const labels = scanWork(roadmapsDir);
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  makeWorkItem(initiativesDir, 'my-initiative', { title: 'My Roadmap', status: 'active', summary: 'Phase 1' });
+  const labels = scanWork(initiativesDir);
   assert.equal(labels.length, 1);
   assert.equal(labels[0], 'My Roadmap (Phase 1)');
 });
@@ -176,9 +176,9 @@ test('scanWork: returns active items with title and summary', (t) => {
 test('scanWork: includes on-hold items with [ON HOLD] label', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  makeWorkItem(roadmapsDir, 'paused', { title: 'Paused Roadmap', status: 'on-hold' });
-  const labels = scanWork(roadmapsDir);
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  makeWorkItem(initiativesDir, 'paused', { title: 'Paused Roadmap', status: 'on-hold' });
+  const labels = scanWork(initiativesDir);
   assert.equal(labels.length, 1);
   assert.ok(labels[0].includes('[ON HOLD]'));
   assert.ok(labels[0].includes('Paused Roadmap'));
@@ -187,21 +187,21 @@ test('scanWork: includes on-hold items with [ON HOLD] label', (t) => {
 test('scanWork: skips archive directories', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  const archiveDir = path.join(roadmapsDir, 'archive');
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  const archiveDir = path.join(initiativesDir, 'archive');
   fs.mkdirSync(archiveDir, { recursive: true });
-  makeWorkItem(archiveDir, 'old-roadmap', { title: 'Old Roadmap', status: 'active' });
-  const labels = scanWork(roadmapsDir);
+  makeWorkItem(archiveDir, 'old-initiative', { title: 'Old Initiative', status: 'active' });
+  const labels = scanWork(initiativesDir);
   assert.deepEqual(labels, []);
 });
 
 test('scanWork: skips non-active statuses (completed, draft)', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  makeWorkItem(roadmapsDir, 'done', { title: 'Done Roadmap', status: 'completed' });
-  makeWorkItem(roadmapsDir, 'draft', { title: 'Draft Roadmap', status: 'draft' });
-  const labels = scanWork(roadmapsDir);
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  makeWorkItem(initiativesDir, 'done', { title: 'Done Initiative', status: 'completed' });
+  makeWorkItem(initiativesDir, 'draft', { title: 'Draft Initiative', status: 'draft' });
+  const labels = scanWork(initiativesDir);
   assert.deepEqual(labels, []);
 });
 
@@ -213,12 +213,12 @@ test('scanWork: returns empty array when directory does not exist', () => {
 test('scanWork: uses slug as title when title frontmatter is absent', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
   // Write index.md with status only — no title
-  const itemDir = path.join(roadmapsDir, 'my-slug');
+  const itemDir = path.join(initiativesDir, 'my-slug');
   fs.mkdirSync(itemDir, { recursive: true });
   fs.writeFileSync(path.join(itemDir, 'index.md'), '---\nstatus: active\n---\n# heading');
-  const labels = scanWork(roadmapsDir);
+  const labels = scanWork(initiativesDir);
   assert.equal(labels.length, 1);
   assert.equal(labels[0], 'my-slug');
 });
@@ -278,23 +278,23 @@ test('buildBanner: includes FIELDNOTES section when fieldnotes exist', (t) => {
   assert.ok(fieldnotesLine, 'FIELDNOTES line should exist');
 });
 
-test('buildBanner: includes ACTIVE ROADMAPS when active roadmaps exist', (t) => {
+test('buildBanner: includes ACTIVE INITIATIVES when active initiatives exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  makeWorkItem(roadmapsDir, 'big-initiative', { title: 'Big Initiative', status: 'active', summary: 'Q1 work' });
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  makeWorkItem(initiativesDir, 'big-initiative', { title: 'Big Initiative', status: 'active', summary: 'Q1 work' });
   const out = buildBanner(dir);
-  assert.ok(out.includes('ACTIVE ROADMAPS:'));
+  assert.ok(out.includes('ACTIVE INITIATIVES:'));
   assert.ok(out.includes('Big Initiative (Q1 work)'));
 });
 
-test('buildBanner: includes ACTIVE PLANS when active plans exist', (t) => {
+test('buildBanner: includes ACTIVE EPICS when active epics exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const plansDir = path.join(dir, 'docs', 'work', 'plans');
-  makeWorkItem(plansDir, 'sprint-1', { title: 'Sprint 1', status: 'active' });
+  const epicsDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'epics');
+  makeWorkItem(epicsDir, 'sprint-1', { title: 'Sprint 1', status: 'active' });
   const out = buildBanner(dir);
-  assert.ok(out.includes('ACTIVE PLANS:'));
+  assert.ok(out.includes('ACTIVE EPICS:'));
   assert.ok(out.includes('Sprint 1'));
 });
 
@@ -458,24 +458,24 @@ test('buildCursorBanner: includes version header', (t) => {
   assert.ok(out.includes('=== LORE v1.5.0 ==='));
 });
 
-test('buildCursorBanner: includes active roadmaps', (t) => {
+test('buildCursorBanner: includes active initiatives', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const roadmapsDir = path.join(dir, 'docs', 'work', 'roadmaps');
-  makeWorkItem(roadmapsDir, 'cursor-roadmap', { title: 'Cursor Roadmap', status: 'active' });
+  const initiativesDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives');
+  makeWorkItem(initiativesDir, 'cursor-initiative', { title: 'Cursor Initiative', status: 'active' });
   const out = buildCursorBanner(dir);
-  assert.ok(out.includes('ACTIVE ROADMAPS:'));
-  assert.ok(out.includes('Cursor Roadmap'));
+  assert.ok(out.includes('ACTIVE INITIATIVES:'));
+  assert.ok(out.includes('Cursor Initiative'));
 });
 
-test('buildCursorBanner: includes active plans', (t) => {
+test('buildCursorBanner: includes active epics', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const plansDir = path.join(dir, 'docs', 'work', 'plans');
-  makeWorkItem(plansDir, 'cursor-plan', { title: 'Cursor Plan', status: 'active' });
+  const epicsDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'epics');
+  makeWorkItem(epicsDir, 'cursor-epic', { title: 'Cursor Epic', status: 'active' });
   const out = buildCursorBanner(dir);
-  assert.ok(out.includes('ACTIVE PLANS:'));
-  assert.ok(out.includes('Cursor Plan'));
+  assert.ok(out.includes('ACTIVE EPICS:'));
+  assert.ok(out.includes('Cursor Epic'));
 });
 
 test('buildCursorBanner: includes operator profile when customized', (t) => {

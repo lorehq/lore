@@ -259,22 +259,22 @@ writeMdc('lore-project.mdc',
 
 // -- Tier 2: Glob-based (loaded when matching files are touched) --------------
 
-// 3. lore-work-tracking — work management rules + Cursor-specific plan routing.
-//    The Cursor note preserves context from the old work-tracking.mdc: Lore plans
+// 3. lore-work-tracking — workflow management rules + Cursor-specific plan routing.
+//    The Cursor note preserves context from the old work-tracking.mdc: Lore epics
 //    vs Cursor's built-in .cursor/plans/ (which are session-scoped throwaway).
-const workSection = extractSection(instructions, 'Work Management');
+const workSection = extractSection(instructions, 'Workflow');
 const cursorPlanNote = [
-  '## Cursor Plans vs Lore Plans',
+  '## Cursor Plans vs Lore Epics',
   '',
-  'Plans that should persist across sessions use `/lore-create-plan` and live in',
-  '`docs/work/plans/` or under a roadmap. Cursor\'s built-in `.cursor/plans/` is for',
+  'Epics that should persist across sessions use `/lore-create-epic` and live in',
+  '`docs/workflow/in-flight/epics/` or under an initiative. Cursor\'s built-in `.cursor/plans/` is for',
   'throwaway session-scoped implementation checklists only.',
   '',
   'When the operator asks to "create a plan", default to Lore\'s system unless the',
   'task is clearly a one-off implementation checklist that won\'t outlive the session.',
 ].join('\n');
 writeMdc('lore-work-tracking.mdc',
-  'description: Rules for managing roadmaps, plans, and brainstorms in Lore work system\nglobs: docs/work/**',
+  'description: Rules for managing initiatives, epics, and items in Lore workflow system\nglobs: docs/workflow/**',
   workSection + '\n\n' + cursorPlanNote
 );
 

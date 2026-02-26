@@ -15,8 +15,8 @@ const hasSemanticSearch = !!(docker.search && docker.search.address);
 // -- Static preamble (identity roles) --
 const search = hasSemanticSearch
   ? 'Curator: search KB first \u2014 if results answer the question, respond directly'
-  : 'Curator: search docs/knowledge/ \u2192 docs/work/ \u2192 docs/context/ first \u2014 if results answer the question, respond directly';
-const preamble = `[${search}. Orchestrator: delegate API calls, curl, multi-step exploration, and parallel work to workers (load /lore-delegate first) \u2014 don\u2019t execute directly. Capturer: gotcha \u2192 fieldnote, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.]`;
+  : 'Curator: search docs/knowledge/ \u2192 docs/workflow/ \u2192 docs/context/ first \u2014 if results answer the question, respond directly';
+const preamble = `[${search}. Orchestrator: delegate API calls, curl, multi-step exploration, and parallel work to workers (load /lore-delegate first) \u2014 don\u2019t execute directly. Capturer: snag \u2192 fieldnote, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.]`;
 
 // -- Dynamic ambiguity scan --
 // Patterns that signal inputs the orchestrator should resolve or clarify

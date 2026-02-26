@@ -36,8 +36,8 @@ function setup(opts = {}) {
   }
 
   // Minimal project structure
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.git'));
 
@@ -103,19 +103,19 @@ test('session-init: creates sticky files', (t) => {
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
-test('session-init: includes active roadmaps in dynamic banner', (t) => {
+test('session-init: includes active initiatives in dynamic banner', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
+  const rmDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'my-initiative');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(
     path.join(rmDir, 'index.md'),
-    ['---', 'title: My Roadmap', 'status: active', 'summary: Phase 1', '---'].join('\n'),
+    ['---', 'title: My Initiative', 'status: active', 'summary: Phase 1', '---'].join('\n'),
   );
   const { stdout } = runHook(dir, 'session-init.js');
   const parsed = JSON.parse(stdout);
-  assert.ok(parsed.additional_context.includes('ACTIVE ROADMAPS:'));
-  assert.ok(parsed.additional_context.includes('My Roadmap (Phase 1)'));
+  assert.ok(parsed.additional_context.includes('ACTIVE INITIATIVES:'));
+  assert.ok(parsed.additional_context.includes('My Initiative (Phase 1)'));
 });
 
 // ── Protect Memory ──

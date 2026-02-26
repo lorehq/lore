@@ -2,8 +2,8 @@
 // Reinforce rules at the point of write based on target file path.
 // Fires on Write and Edit. Injects rule reminders via client.app.log.
 //   - Security: always, for any write inside the repo
-//   - Docs: all docs/ paths (including work/ and knowledge/)
-//   - Work Items: docs/work/
+//   - Docs: all docs/ paths (including workflow/ and knowledge/)
+//   - Work Items: docs/workflow/
 //   - Knowledge Capture: docs/knowledge/
 //
 // Reads bold principle lines from the actual rule files so
@@ -78,7 +78,7 @@ export const RuleGuard = async ({ directory, client }) => {
       }
 
       // Domain-specific
-      const isWork = relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\');
+      const isWork = relative.startsWith('docs/workflow/') || relative.startsWith('docs\\workflow\\');
       const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
       if (isWork) {
         const workItems = extractPrinciples(hub, 'work-items.md');

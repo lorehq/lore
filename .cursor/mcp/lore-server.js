@@ -71,9 +71,9 @@ function loreCheckIn() {
     if (state.bash >= warn) {
       msg = `>>> ${state.bash} consecutive commands \u2014 capture what you learned \u2192 lore-create-fieldnote <<<`;
     } else if (state.bash >= nudge) {
-      msg = `>>> ${state.bash} commands in a row \u2014 gotcha worth a fieldnote? <<<`;
+      msg = `>>> ${state.bash} commands in a row \u2014 snag worth a fieldnote? <<<`;
     } else {
-      msg = 'Gotcha? \u2192 fieldnote | New context? \u2192 docs/knowledge/';
+      msg = 'Snag (gotcha, quirk)? \u2192 fieldnote | New context? \u2192 docs/knowledge/';
     }
   }
 
@@ -94,10 +94,10 @@ function loreContext() {
   const treeDepth = cfg.treeDepth ?? 5;
   const agents = getAgentNames(hubDir);
 
-  // Scan active roadmaps and plans from docs/work/ frontmatter
-  const docsWork = path.join(hubDir, 'docs', 'work');
-  const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
-  const plans = scanWork(path.join(docsWork, 'plans'));
+  // Scan active initiatives and epics from docs/workflow/in-flight/ frontmatter
+  const inFlight = path.join(hubDir, 'docs', 'workflow', 'in-flight');
+  const initiatives = scanWork(path.join(inFlight, 'initiatives'));
+  const epics = scanWork(path.join(inFlight, 'epics'));
 
   // Build ASCII directory tree — same three roots as the session banner
   const trees = [];
@@ -122,8 +122,8 @@ function loreContext() {
   // Assemble output — version and delegation always present, rest conditional
   const parts = [`Lore ${version}`];
   parts.push(`Agents: ${agents.length > 0 ? agents.join(', ') : '(none)'}`);
-  if (roadmaps.length > 0) parts.push(`Active roadmaps: ${roadmaps.join('; ')}`);
-  if (plans.length > 0) parts.push(`Active plans: ${plans.join('; ')}`);
+  if (initiatives.length > 0) parts.push(`Active initiatives: ${initiatives.join('; ')}`);
+  if (epics.length > 0) parts.push(`Active epics: ${epics.join('; ')}`);
   if (trees.length > 0) parts.push(`\nKnowledge map:\n${trees.join('\n')}`);
   if (memory) parts.push(`\nLocal memory:\n${memory}`);
 
@@ -170,7 +170,7 @@ function loreWriteGuard(filePath) {
   }
 
   // Domain-specific
-  const isWork = relative.startsWith('docs/work/') || relative.startsWith('docs\\work\\');
+  const isWork = relative.startsWith('docs/workflow/') || relative.startsWith('docs\\workflow\\');
   const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
   if (isWork) {
     const workItems = extractPrinciples('work-items.md');

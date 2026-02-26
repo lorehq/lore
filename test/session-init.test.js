@@ -32,8 +32,8 @@ function setup(opts = {}) {
   fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Minimal structure so the hook doesn't error
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
 
   if (opts.config) {
@@ -95,26 +95,26 @@ test('hook output excludes static worker list', (t) => {
   assert.ok(!out.includes('(none yet)'), 'worker list belongs in CLAUDE.md, not hook output');
 });
 
-test('hook output excludes static roadmaps', (t) => {
+test('hook output excludes static initiatives', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'my-roadmap');
+  const rmDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'my-initiative');
   fs.mkdirSync(rmDir, { recursive: true });
   fs.writeFileSync(
     path.join(rmDir, 'index.md'),
-    ['---', 'title: My Roadmap', 'status: active', 'summary: Phase 1 in progress', '---', '# My Roadmap'].join('\n'),
+    ['---', 'title: My Initiative', 'status: active', 'summary: Phase 1 in progress', '---', '# My Initiative'].join('\n'),
   );
   const out = runHook(dir);
-  // Roadmaps are static content — baked into CLAUDE.md
-  assert.ok(!out.includes('ACTIVE ROADMAPS:'), 'roadmaps belong in CLAUDE.md, not hook output');
+  // Initiatives are static content — baked into CLAUDE.md
+  assert.ok(!out.includes('ACTIVE INITIATIVES:'), 'initiatives belong in CLAUDE.md, not hook output');
 });
 
 test('hook output excludes static on-hold labels', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'paused');
+  const rmDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'paused');
   fs.mkdirSync(rmDir, { recursive: true });
-  fs.writeFileSync(path.join(rmDir, 'index.md'), ['---', 'title: Paused Roadmap', 'status: on-hold', '---'].join('\n'));
+  fs.writeFileSync(path.join(rmDir, 'index.md'), ['---', 'title: Paused Initiative', 'status: on-hold', '---'].join('\n'));
   const out = runHook(dir);
   // On-hold labels are static content — baked into CLAUDE.md
   assert.ok(!out.includes('[ON HOLD]'), 'on-hold labels belong in CLAUDE.md, not hook output');
@@ -153,8 +153,8 @@ test('hook output excludes static knowledge map', (t) => {
 test('dirs-only tree skips archive directories', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'docs', 'work', 'roadmaps', 'archive', 'old-item', 'index.md'), '# Old');
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'archive', 'old-item'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'archive', 'old-item', 'index.md'), '# Old');
   const out = runHook(dir);
   assert.ok(!out.includes('archive/'), 'archive/ should be skipped from tree');
 });

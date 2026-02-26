@@ -187,7 +187,7 @@ Arr stack, Jellyfin/Plex, Immich, Home Assistant — document each service's rol
 
 Write service docs to `docs/knowledge/environment/` — one per logical group (containers, dns, backups, media) or one per host, based on operator preference. Propose the structure and wait for approval before writing.
 
-**Gotchas become fieldnotes.** During service mapping, quirks will surface — a container needing a specific network mode, a backup that fails silently, a DNS rebinding issue. Each is a fieldnote candidate. Propose; create after operator approval.
+**Snags, gotchas, quirks become fieldnotes.** During service mapping, snags will surface — a container needing a specific network mode, a backup that fails silently, a DNS rebinding issue. Each is a fieldnote candidate. Propose; create after operator approval.
 
 ---
 
@@ -237,7 +237,7 @@ git checkout -b knowledge-defrag-$(date +%Y%m%d)
 
 ### First Work Item
 
-If the operator has a current project (migrating a service, expanding storage, new backup target), create a plan or roadmap now — the agent has full context to scope it.
+If the operator has a current project (migrating a service, expanding storage, new backup target), create an epic or initiative now — the agent has full context to scope it.
 
 ---
 
@@ -251,11 +251,11 @@ If the operator has a current project (migrating a service, expanding storage, n
 - [ ] Hypervisors and compute inventory current
 - [ ] Services cataloged with ports, hosts, and purposes
 - [ ] Semantic search returning results for infrastructure terms
-- [ ] Active work items created for current projects (if any)
+- [ ] Active initiatives and epics created for current projects (if any)
 
 ---
 
-## Gotchas
+## Snags
 
 - **Network before compute** — map VLANs and subnets before inventorying hosts. Every VM and container references network context; without the map, docs are incomplete.
 - **Keystore before credentials** — configure Phase 3 before authenticating CLIs. Credentials ingested first have nowhere secure to go.

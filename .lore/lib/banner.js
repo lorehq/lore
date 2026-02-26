@@ -43,7 +43,7 @@ function getAgentEntries(directory) {
   }
 }
 
-// Returns fieldnotes (gotcha collections) with descriptions from .lore/fieldnotes/*/SKILL.md.
+// Returns fieldnotes (snag collections) with descriptions from .lore/fieldnotes/*/SKILL.md.
 function getFieldnotes(directory) {
   try {
     const fieldnotesDir = path.join(directory, '.lore', 'fieldnotes');
@@ -128,11 +128,12 @@ function buildStaticBanner(directory) {
   const semanticSearchUrl =
     docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
 
-  const docsWork = path.join(directory, 'docs', 'work');
-  const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
-  const plans = scanWork(path.join(docsWork, 'plans'));
+  const inFlight = path.join(directory, 'docs', 'workflow', 'in-flight');
+  const initiatives = scanWork(path.join(inFlight, 'initiatives'));
+  const epics = scanWork(path.join(inFlight, 'epics'));
+  const items = scanWork(path.join(inFlight, 'items'));
 
-  // Notes (docs/work/notes/) intentionally excluded from scanning — lightweight capture, no banner inclusion
+  // Notes (docs/workflow/notes/) intentionally excluded from scanning — lightweight capture, no banner inclusion
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
 
@@ -158,8 +159,9 @@ WORKERS: ${workerList}`;
     output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
   }
 
-  if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
-  if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
+  if (initiatives.length > 0) output += `\n\nACTIVE INITIATIVES: ${initiatives.join('; ')}`;
+  if (epics.length > 0) output += `\n\nACTIVE EPICS: ${epics.join('; ')}`;
+  if (items.length > 0) output += `\n\nACTIVE ITEMS: ${items.join('; ')}`;
 
   try {
     const raw = fs.readFileSync(path.join(directory, 'docs', 'context', 'agent-rules.md'), 'utf8');
@@ -293,21 +295,23 @@ function buildBanner(directory) {
 // rules, knowledge map, delegation, and other static context.
 // This banner provides only what changes between sessions:
 //   - Version header
-//   - Active roadmaps/plans (scanned from docs/work/ frontmatter)
+//   - Active initiatives/epics/items (scanned from docs/workflow/in-flight/ frontmatter)
 //   - Local memory (.lore/memory.local.md, gitignored)
 function buildCursorBanner(directory) {
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
 
   // Active work items — changes frequently, can't be static
-  const docsWork = path.join(directory, 'docs', 'work');
-  const roadmaps = scanWork(path.join(docsWork, 'roadmaps'));
-  const plans = scanWork(path.join(docsWork, 'plans'));
+  const inFlight = path.join(directory, 'docs', 'workflow', 'in-flight');
+  const initiatives = scanWork(path.join(inFlight, 'initiatives'));
+  const epics = scanWork(path.join(inFlight, 'epics'));
+  const items = scanWork(path.join(inFlight, 'items'));
 
   let output = `=== LORE${version} ===`;
 
-  if (roadmaps.length > 0) output += `\n\nACTIVE ROADMAPS: ${roadmaps.join('; ')}`;
-  if (plans.length > 0) output += `\n\nACTIVE PLANS: ${plans.join('; ')}`;
+  if (initiatives.length > 0) output += `\n\nACTIVE INITIATIVES: ${initiatives.join('; ')}`;
+  if (epics.length > 0) output += `\n\nACTIVE EPICS: ${epics.join('; ')}`;
+  if (items.length > 0) output += `\n\nACTIVE ITEMS: ${items.join('; ')}`;
 
   // Operator profile — gitignored, can't be in .mdc rules
   try {

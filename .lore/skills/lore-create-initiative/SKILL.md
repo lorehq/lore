@@ -1,23 +1,23 @@
 ---
-name: lore-create-roadmap
-description: Create a roadmap folder with frontmatter and validation
+name: lore-create-initiative
+description: Create an initiative folder with frontmatter and validation
 type: command
 user-invocable: false
 allowed-tools: Write, Read, Bash, Glob
 ---
 
-# Create Roadmap
+# Create Initiative
 
-Roadmaps are **operator-initiated**. Never create one unprompted.
+Initiatives are **operator-initiated**. Never create one unprompted.
 
 ## Process
 
 1. **Read rules**: Check `docs/context/rules.md` or `docs/context/rules/index.md` for docs formatting rules. Apply these when writing content.
 
-2. **Create folder**: `docs/work/roadmaps/<slug>/`
+2. **Create folder**: `docs/workflow/in-flight/initiatives/<slug>/`
 
-   Also create a `plans/` subfolder with a placeholder:
-   `docs/work/roadmaps/<slug>/plans/README.md`
+   Also create an `epics/` subfolder with a placeholder:
+   `docs/workflow/in-flight/initiatives/<slug>/epics/README.md`
 
 3. **Create index.md** with frontmatter:
 
@@ -31,14 +31,23 @@ summary: [one-liner]    # optional — shown in session banner
 ---
 ```
 
-4. **Validate**:
+4. **Create tasks.md** — agent execution checklist:
+
+```markdown
+# Tasks
+
+- [ ] [First task placeholder]
+```
+
+5. **Validate**:
 
 ```bash
 bash .lore/scripts/ensure-structure.sh && bash .lore/scripts/validate-consistency.sh
 ```
 
-## Gotchas
+## Snags
 
 - Only `title`, `status`, `created`, `updated` are required — don't add unused optional fields
 - `summary` is what operators see every session in the banner — keep it short
-- Roadmap folders contain only `plans/`, `archive/`, flat `.md` supporting docs, and asset dirs
+- Initiative folders contain only `epics/`, `archive/`, flat `.md` supporting docs, and asset dirs
+- `index.md` syncs to external PM tools — `tasks.md` is agent-only and never syncs

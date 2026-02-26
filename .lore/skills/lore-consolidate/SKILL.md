@@ -27,19 +27,19 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 
 ### Tier 1: Structural Scans
 
-1. **Stale work items**: Glob `docs/work/roadmaps/*/index.md`, `docs/work/plans/*/index.md`, and nested `docs/work/roadmaps/*/plans/*/index.md`. Exclude `archive/`. Check `updated` field against thresholds.
+1. **Stale work items**: Glob `docs/workflow/in-flight/initiatives/*/index.md`, `docs/workflow/in-flight/epics/*/index.md`, `docs/workflow/in-flight/items/*/index.md`, and nested `docs/workflow/in-flight/initiatives/*/epics/*/index.md`. Exclude `archive/`. Check `updated` field against thresholds.
 
-2. **Aging brainstorms**: Glob `docs/work/brainstorms/*/index.md`. Exclude `archive/`. Flag if `created` older than 21 days. Suggest: promote or archive.
+2. **Aging brainstorms**: Glob `docs/workflow/brainstorms/*/index.md`. Exclude `archive/`. Flag if `created` older than 21 days. Suggest: promote or archive.
 
 3. **Knowledge doc staleness**: For `.md` files in `docs/knowledge/` (recursive), check last git commit date. Flag files >30 days stale. Skip `index.md` files.
 
-4. **Archive cleanup**: Glob `archive/` directories under `docs/work/`. Check `updated` field. Flag items older than 60 days as deletion candidates. Archives exist for visibility — not permanent storage.
+4. **Archive cleanup**: Glob `archive/` directories under `docs/workflow/`. Check `updated` field. Flag items older than 60 days as deletion candidates. Archives exist for visibility — not permanent storage.
 
 5. **`.lore/memory.local.md` hygiene**: Flag if >50 lines.
 
 ### Tier 2: Deep Content Analysis
 
-6. **Work item semantic overlap**: Read full content of all active roadmaps and plans. Flag near-identical scope (HIGH), shared concerns (MEDIUM), or regrouping opportunities.
+6. **Work item semantic overlap**: Read full content of all active initiatives, epics, and items. Flag near-identical scope (HIGH), shared concerns (MEDIUM), or regrouping opportunities.
 
 7. **Brainstorm lifecycle**: Cross-reference active brainstorms against completed work. Flag as archive candidate, promote candidate, or stale.
 
@@ -53,18 +53,18 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 ### Tier 1: Structural
 
 #### Stale Work Items (N found)
-- [stale] roadmaps/foo — "Title" — active, last updated 23 days ago
+- [stale] initiatives/foo — "Title" — active, last updated 23 days ago
 
 #### Knowledge Doc Staleness (N found)
 - docs/knowledge/environment/inventory/services.md — last touched 45 days ago
 
 #### Archive Deletion Candidates (N found)
-- plans/archive/foo — "Title" — archived 75 days ago — suggest delete
+- epics/archive/foo — "Title" — archived 75 days ago — suggest delete
 
 ### Tier 2: Deep Analysis
 
 #### Work Item Overlap (N found)
-- HIGH: plans/foo ↔ plans/bar — overlapping deliverables
+- HIGH: epics/foo ↔ epics/bar — overlapping deliverables
 
 (Categories with 0 findings omitted)
 ```
@@ -75,7 +75,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 2. Execute approved changes: archive stale items, merge overlapping docs, route `.lore/memory.local.md` content
 3. Run `bash .lore/scripts/validate-consistency.sh`
 
-## Gotchas
+## Snags
 
 - Read-only during scan phase — never modify files until operator approves
 - Exclude `archive/` from staleness scans (items 1-3) — archived items have their own cleanup threshold (item 4)

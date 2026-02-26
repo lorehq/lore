@@ -31,7 +31,7 @@ Edit `docs/context/agent-rules.md`.
 Minimum fields:
 - Deployment assignment: instance name, operator, org
 - Scope: what domains this instance covers
-- Behavioral rules specific to this deployment (default accounts, constraints, known gotchas)
+- Behavioral rules specific to this deployment (default accounts, constraints, known snags)
 
 This file is injected as PROJECT context every session.
 
@@ -106,7 +106,7 @@ Authenticate in this sequence:
 For each tool, document in `docs/knowledge/environment/`:
 - Auth method and verification command
 - Keystore item name (if applicable)
-- Session management gotchas (token expiry, multi-account switching)
+- Session management snags (token expiry, multi-account switching)
 
 !!! note
     VCS CLI auth and cloud provider CLI auth are separate. Authenticating one does not grant access to the other — they require independent setup.
@@ -159,9 +159,9 @@ gh repo list <org> --limit 200 --json name,description,updatedAt
 ### Active Work Context
 
 - Ask about current initiatives, goals, and roadmaps
-- If the org uses a goal-tracking system (Workday, Lattice, Notion OKRs, Linear cycles, etc.), export current goals and pass them to the agent as input — goals map to roadmaps, milestones map to plans
-- Create `docs/work/roadmaps/` for strategic initiatives (weeks to months)
-- Create `docs/work/plans/` for tactical work in flight
+- If the org uses a goal-tracking system (Workday, Lattice, Notion OKRs, Linear cycles, etc.), export current goals and pass them to the agent as input — goals map to initiatives, milestones map to epics
+- Create `docs/workflow/in-flight/initiatives/` for strategic goals (months)
+- Create `docs/workflow/in-flight/epics/` for tactical work in flight
 
 ---
 
@@ -217,11 +217,11 @@ See `docs/knowledge/runbooks/system/knowledge-defrag.md`.
 - [ ] Cloud CLI authenticated (if applicable)
 - [ ] All active services documented in `docs/knowledge/environment/`
 - [ ] Semantic search returning results
-- [ ] Active roadmaps and plans created for current initiatives
+- [ ] Active initiatives and epics created for current goals
 
 ---
 
-## Gotchas
+## Snags
 
 - **Keystore before credentials** — configure Phase 3 before authenticating CLIs. Credentials ingested first have nowhere secure to go.
 - **Worker tier routing** — Claude Code silently ignores full model IDs in agent frontmatter. Use short aliases and run `generate-agents.js` after any alias change.

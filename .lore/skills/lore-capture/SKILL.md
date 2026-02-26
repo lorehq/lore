@@ -19,7 +19,7 @@ The operator types `/lore-capture` after sustained work, or as a session wrap-up
 Walk through every item. Report findings to the operator before making changes.
 
 1. **Review session work** for uncaptured knowledge
-2. **Gotchas?** → create fieldnote (mandatory — every gotcha becomes a fieldnote via `/lore-create-fieldnote`)
+2. **Snags (gotchas, quirks)?** → create fieldnote (mandatory — every snag becomes a fieldnote via `/lore-create-fieldnote`)
 3. **New environment knowledge?** (URLs, repos, services, relationships) → `docs/knowledge/environment/`
 4. **Sync platform copies**: `bash .lore/scripts/sync-platform-skills.sh`
 5. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
@@ -34,8 +34,8 @@ Walk through every item. Report findings to the operator before making changes.
 4. Execute approved changes
 5. Run validation
 
-## Gotchas
+## Snags
 
 - Report first, act second — never auto-fix without operator approval
-- Archiving: move folder with `git mv` to parent's `archive/` dir (e.g., `docs/work/plans/archive/<slug>/`)
+- Archiving: move folder with `git mv` to parent's `archive/` dir (e.g., `docs/workflow/in-flight/epics/archive/<slug>/`)
 - When updating work item status, also update the `updated` date field

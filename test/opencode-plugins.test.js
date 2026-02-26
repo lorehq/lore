@@ -35,8 +35,8 @@ function setup(opts = {}) {
   }
 
   // Minimal project structure
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.git'));
 
@@ -105,19 +105,19 @@ test('session-init: system.transform includes agent names', async (t) => {
   assert.ok(output.system[0].includes('doc-agent'));
 });
 
-test('session-init: system.transform includes active roadmaps', async (t) => {
+test('session-init: system.transform includes active initiatives', async (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const rmDir = path.join(dir, 'docs', 'work', 'roadmaps', 'test-rm');
+  const rmDir = path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives', 'test-initiative');
   fs.mkdirSync(rmDir, { recursive: true });
-  fs.writeFileSync(path.join(rmDir, 'index.md'), '---\ntitle: Test RM\nstatus: active\nsummary: Phase 1\n---\n');
+  fs.writeFileSync(path.join(rmDir, 'index.md'), '---\ntitle: Test Initiative\nstatus: active\nsummary: Phase 1\n---\n');
   const client = mockClient();
   const { SessionInit } = await import(pluginUrl(dir, 'session-init.js'));
   const hooks = await SessionInit({ directory: dir, client });
   const output = { system: [] };
   await hooks['experimental.chat.system.transform']({}, output);
-  assert.ok(output.system[0].includes('ACTIVE ROADMAPS:'));
-  assert.ok(output.system[0].includes('Test RM (Phase 1)'));
+  assert.ok(output.system[0].includes('ACTIVE INITIATIVES:'));
+  assert.ok(output.system[0].includes('Test Initiative (Phase 1)'));
 });
 
 test('session-init: system.transform includes project context', async (t) => {

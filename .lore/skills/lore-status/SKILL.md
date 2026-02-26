@@ -60,7 +60,7 @@ Run these checks and present a formatted summary to the operator:
 
 4. **Linked repos** — use Glob to check whether `.lore/links` exists before reading it (it is optional and gitignored — never use Read on it without confirming it exists first). If present, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale. If absent, report "none".
 
-5. **Active work** — scan `docs/work/roadmaps/` and `docs/work/plans/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
+5. **Active work** — scan `docs/workflow/in-flight/initiatives/`, `docs/workflow/in-flight/epics/`, and `docs/workflow/in-flight/items/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
 
 5. **Format** — present as a clean block the operator can read at a glance:
    ```
@@ -76,6 +76,7 @@ Run these checks and present a formatted summary to the operator:
 
    Linked repos: 2 (1 stale)
 
-   Active roadmaps: V1 Go-Live
-   Active plans: (none)
+   Active initiatives: V1 Go-Live
+   Active epics: (none)
+   Active items: (none)
    ```

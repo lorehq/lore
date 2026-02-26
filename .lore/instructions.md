@@ -8,19 +8,19 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 - **Curator:** Search the knowledge base before acting. Grow it with what you learn.
 - **Orchestrator:** Delegate work to workers. Keep your context for reasoning and operator interaction.
-- **Capturer:** Gotchas become fieldnotes. Environment facts go to docs. Procedures become runbooks.
+- **Capturer:** Snags, gotchas, quirks become fieldnotes. Environment facts go to docs. Procedures become runbooks.
 - **Lazy-loader:** Keep rules, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
 - **Boundary enforcer:** A Lore instance contains only knowledge files, hooks, scripts, and work tracking. Code lives in external repos — ask which repo if a task requires application code.
 - **Hook-responder:** System hooks inject reminders and rules into your context — as bracketed directives, tagged blocks, or banner text. These encode lessons from repeated agent failures — follow them, they're faster than rediscovering the same mistakes.
 - **Security gatekeeper:** Every file you write could be leaked. Reference vaults and env var names, not secret values. When uncertain whether data is sensitive, ask. Load the security rule for full details.
-- **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
+- **Work tracker:** Maintain initiatives, epics, and brainstorms the operator initiates.
 
 ## Knowledge
 
 | What | Where |
 |------|-------|
 | Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored) |
-| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/fieldnotes/` via lore-create-fieldnote |
+| Snags (gotchas, quirks — auth quirks, encoding, parameter tricks) | `.lore/fieldnotes/` via lore-create-fieldnote |
 | Procedural skills (harness commands) | `.lore/skills/` via lore-create-skill |
 | Rules | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
@@ -29,7 +29,7 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a fieldnote. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One fieldnote per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness command skills — the sync system overwrites `lore-*` skills, so operator content under that prefix gets lost. If a fieldnote already exists, warn and skip.
+Every snag becomes a fieldnote. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One fieldnote per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness command skills — the sync system overwrites `lore-*` skills, so operator content under that prefix gets lost. If a fieldnote already exists, warn and skip.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
 
@@ -38,7 +38,7 @@ Actively map the environment. When you interact with a URL, service, account, or
 Before writing to `docs/`, creating skills, or updating work items — propose what and where, then wait for operator approval.
 
 Capture targets:
-- Reusable fix / gotcha → create or update a fieldnote
+- Reusable fix / snag → create or update a fieldnote
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
 - Multi-step procedure → `docs/knowledge/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
@@ -47,7 +47,7 @@ Example: API returns 403 because path segments need URL-encoded slashes → reus
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
-After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
+After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active epic or initiative → update progress.
 
 Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.
 
@@ -71,14 +71,24 @@ When tiers are configured, start with the cheapest tier that fits — escalate o
 
 Keep in the orchestrator only: quick answers, single reads, clarifications, capture writes. Everything else delegates.
 
-## Work Management
+## Workflow
 
-Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
+All workflow items are **operator-initiated**. Lore only tracks in-flight work — backlogs stay in external PM tools.
 
-- **Roadmaps** (`docs/work/roadmaps/<slug>/`): Strategic initiatives (weeks to months). Contain nested `plans/` and `archive/` folders.
-- **Plans** (`docs/work/plans/<slug>/` or `docs/work/roadmaps/<roadmap>/plans/<slug>/`): Tactical work (days to weeks). Standalone or nested under a roadmap.
-- **Notes** (`docs/work/notes/<slug>.md`): Lightweight capture — bugs, ideas, observations. Single files with minimal frontmatter (`title`, `status`, `created`). Not tracked in the session banner.
-- **Brainstorms** (`docs/work/brainstorms/<slug>/`): Conversation artifacts for future reference. No `status` field — not tracked work.
+### In-Flight (tracked, syncs to PM tools)
 
-Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
+- **Initiatives** (`docs/workflow/in-flight/initiatives/<slug>/`): Strategic goals (months). Contain nested `epics/` and `archive/` folders.
+- **Epics** (`docs/workflow/in-flight/epics/<slug>/` or nested under initiatives): Tactical work (weeks). Contain nested `items/` and `archive/` folders.
+- **Items** (`docs/workflow/in-flight/items/<slug>/` or nested under epics): Discrete deliverables (days).
+
+Each in-flight item has:
+- `index.md` — description, status, acceptance criteria. Syncs to external PM tools.
+- `tasks.md` — agent execution checklist. Never syncs externally. Persists across sessions for resumability.
+
+Initiatives, epics, and items use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
+
+### Drafts (untracked, Lore-only)
+
+- **Notes** (`docs/workflow/notes/<slug>.md`): Lightweight capture — bugs, ideas, observations. Single files with minimal frontmatter (`title`, `status`, `created`). Not tracked in the session banner.
+- **Brainstorms** (`docs/workflow/brainstorms/<slug>/`): Collaborative thinking sessions between operator and agent. No `status` field — not tracked work.
 

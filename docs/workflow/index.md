@@ -1,4 +1,4 @@
-# Work
+# Workflow
 
 Quick capture:
 
@@ -7,5 +7,4 @@ Quick capture:
 
 Active work (tracked in the session banner):
 
-- **Plans** — tactical work (days to weeks), standalone or nested under a roadmap
-- **Roadmaps** — strategic initiatives (weeks to months)
+- **In-Flight** — initiatives, epics, and items in progress

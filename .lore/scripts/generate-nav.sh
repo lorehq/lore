@@ -132,26 +132,39 @@ fi
 # Only sections listed here appear in nav. Each is included only when
 # its folder exists AND contains at least one .md file (not just .gitkeep).
 # To add a new top-level section, append its docs/ subfolder name here.
-# NOTE: "work" is handled separately below with hardcoded subsection order.
+# NOTE: "workflow" is handled separately below with hardcoded subsection order.
 NAV_SECTIONS=("knowledge" "context" "guides")
 
-# Emit work subsections (roadmaps, plans, brainstorms) under Work.
-# Work structure is harness-controlled — operators create items via
-# /lore-create-roadmap, /lore-create-plan, /lore-create-brainstorm but don't modify
+# Emit workflow subsections (in-flight, notes, brainstorms) under Workflow.
+# Workflow structure is harness-controlled — operators create items via
+# /lore-create-initiative, /lore-create-epic, /lore-create-item but don't modify
 # the folder structure itself.
 emit_work_subsections() {
   local indent="$1"
-  local work="$DOCS/work"
-  [[ -d "$work" ]] || return 0
+  local workflow="$DOCS/workflow"
+  [[ -d "$workflow" ]] || return 0
 
   local title
-  # Always show all four — structure is harness-controlled, never skipped
-  for subsection in roadmaps plans notes brainstorms; do
-    [[ -d "$work/$subsection" ]] || continue
+  # In-flight section (initiatives, epics, items)
+  if [[ -d "$workflow/in-flight" ]]; then
+    echo "${indent}- In Flight:"
+    [[ -f "$workflow/in-flight/index.md" ]] && echo "${indent}    - workflow/in-flight/index.md"
+    for subsection in initiatives epics items; do
+      [[ -d "$workflow/in-flight/$subsection" ]] || continue
+      title=$(to_title "$subsection")
+      echo "${indent}    - ${title}:"
+      [[ -f "$workflow/in-flight/$subsection/index.md" ]] && echo "${indent}        - workflow/in-flight/$subsection/index.md"
+      scan_dir "$workflow/in-flight/$subsection" "${indent}        "
+    done
+  fi
+
+  # Notes and brainstorms
+  for subsection in notes brainstorms; do
+    [[ -d "$workflow/$subsection" ]] || continue
     title=$(to_title "$subsection")
     echo "${indent}- ${title}:"
-    [[ -f "$work/$subsection/index.md" ]] && echo "${indent}    - work/$subsection/index.md"
-    scan_dir "$work/$subsection" "${indent}    "
+    [[ -f "$workflow/$subsection/index.md" ]] && echo "${indent}    - workflow/$subsection/index.md"
+    scan_dir "$workflow/$subsection" "${indent}    "
   done
 }
 
@@ -223,7 +236,7 @@ emit_skills_section() {
 {
   echo "$HEADER"
   echo "nav:"
-  echo "  - Work:"
+  echo "  - Workflow:"
   echo "      - index.md"
   emit_work_subsections "      "
 
