@@ -141,13 +141,13 @@ try {
   }
 } catch (_) {}
 
-// Conventions: prefer directory of .md files (index.md first), fall back to single file.
-// Merges operator conventions + system/ conventions (operator files take precedence).
+// Rules: prefer directory of .md files (index.md first), fall back to single file.
+// Merges operator rules + system/ rules (operator files take precedence).
 // Mirrors the same logic in lib/banner.js buildBanner().
-const convDir = path.join(SOURCE, 'docs', 'context', 'conventions');
-let conventions = '';
+const _rulesDir = path.join(SOURCE, 'docs', 'context', 'rules');
+let rules = '';
 try {
-  const operatorFiles = fs.readdirSync(convDir)
+  const operatorFiles = fs.readdirSync(_rulesDir)
     .filter(f => f.endsWith('.md'))
     .sort((a, b) => {
       if (a === 'index.md') return -1;
@@ -156,10 +156,10 @@ try {
     });
   const operatorSet = new Set(operatorFiles);
   const parts = operatorFiles
-    .map(f => stripFrontmatter(readOr(path.join(convDir, f))))
+    .map(f => stripFrontmatter(readOr(path.join(_rulesDir, f))))
     .filter(Boolean);
-  // Add system/ conventions not overridden by operator files
-  const systemDir = path.join(convDir, 'system');
+  // Add system/ rules not overridden by operator files
+  const systemDir = path.join(_rulesDir, 'system');
   try {
     const systemFiles = fs.readdirSync(systemDir)
       .filter(f => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f))
@@ -169,20 +169,20 @@ try {
       if (content) parts.push(content);
     }
   } catch (_) {}
-  conventions = parts.join('\n\n');
+  rules = parts.join('\n\n');
 } catch (_) {
-  // Older layout: single conventions.md file
-  conventions = stripFrontmatter(
-    readOr(path.join(SOURCE, 'docs', 'context', 'conventions.md'))
+  // Older layout: single rules.md file
+  rules = stripFrontmatter(
+    readOr(path.join(SOURCE, 'docs', 'context', 'rules.md'))
   );
 }
 
 // Docs-specific formatting rules (standalone for the docs-formatting .mdc)
 // Check operator documentation.md first, then system/ fallback
 const docsFormatting = stripFrontmatter(
-  readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'documentation.md'))
+  readOr(path.join(SOURCE, 'docs', 'context', 'rules', 'documentation.md'))
 ) || stripFrontmatter(
-  readOr(path.join(SOURCE, 'docs', 'context', 'conventions', 'system', 'documentation.md'))
+  readOr(path.join(SOURCE, 'docs', 'context', 'rules', 'system', 'documentation.md'))
 );
 
 // ── Tree building (reuses harness lib) ───────────────────────────────────────
@@ -196,6 +196,7 @@ function buildKnowledgeMap() {
   const trees = [];
   const pairs = [
     ['docs', path.join(SOURCE, 'docs')],
+    ['.lore/fieldnotes', path.join(SOURCE, '.lore', 'fieldnotes')],
     ['.lore/skills', path.join(SOURCE, '.lore', 'skills')],
     ['.lore/agents', path.join(SOURCE, '.lore', 'agents')],
   ];
@@ -215,7 +216,7 @@ function buildKnowledgeMap() {
 //    baked in here so they don't need to be injected via the sessionStart hook.
 //    MCP section is appended because it's Cursor-specific.
 const { getConfig: getCfg, getProfile: getProf } = require(path.join(SOURCE, '.lore', 'lib', 'config'));
-const { getAgentEntries: getAgents, getOperatorSkills: getOpSkills, getBannerLoadedSkills: getBLSkills } = require(path.join(SOURCE, '.lore', 'lib', 'banner'));
+const { getAgentEntries: getAgents, getFieldnotes: getFieldnotesFn, getBannerLoadedSkills: getBLSkills } = require(path.join(SOURCE, '.lore', 'lib', 'banner'));
 
 const coreCfg = getCfg(SOURCE);
 const coreVersion = coreCfg.version ? ` v${coreCfg.version}` : '';
@@ -227,8 +228,8 @@ const coreSearchUrl = coreDocker.search && coreDocker.search.address
   : '';
 const coreAgents = getAgents(SOURCE);
 const coreWorkerList = coreAgents.length > 0 ? coreAgents.map(a => a.name).join(', ') : '(none yet)';
-const coreOpSkills = getOpSkills(SOURCE);
-const coreSkillLine = coreOpSkills.length > 0 ? coreOpSkills.map(s => s.name).join(', ') : '';
+const coreFieldnotes = getFieldnotesFn(SOURCE);
+const coreFieldnoteLine = coreFieldnotes.length > 0 ? coreFieldnotes.map(s => s.name).join(', ') : '';
 const coreBLSkills = getBLSkills(SOURCE);
 
 let staticBannerBlock = `=== LORE${coreVersion}${coreProfileTag} ===\n\nWORKERS: ${coreWorkerList}`;
@@ -238,7 +239,7 @@ if (coreProfile === 'minimal') {
 } else if (coreProfile === 'discovery') {
   staticBannerBlock += '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
 }
-if (coreSkillLine) staticBannerBlock += `\n\nSKILLS: ${coreSkillLine}`;
+if (coreFieldnoteLine) staticBannerBlock += `\n\nFIELDNOTES: ${coreFieldnoteLine}`;
 if (coreBLSkills.length > 0) staticBannerBlock += '\n\n' + coreBLSkills.map(s => s.body).join('\n\n');
 
 const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.';
@@ -247,13 +248,13 @@ writeMdc('lore-core.mdc',
   instructions + '\n\n' + staticBannerBlock + mcpSection
 );
 
-// 2. lore-project — project identity + conventions snapshot
+// 2. lore-project — project identity + rules snapshot
 let projectBody = '';
 if (agentRules) projectBody += agentRules;
-if (conventions) projectBody += (projectBody ? '\n\n' : '') + conventions;
+if (rules) projectBody += (projectBody ? '\n\n' : '') + rules;
 writeMdc('lore-project.mdc',
-  'description: Project identity, agent behavior rules, and coding/docs conventions\nalwaysApply: true',
-  projectBody || '# Project\n\nNo project rules or conventions configured yet.'
+  'description: Project identity, agent behavior rules, and coding/docs rules\nalwaysApply: true',
+  projectBody || '# Project\n\nNo project rules configured yet.'
 );
 
 // -- Tier 2: Glob-based (loaded when matching files are touched) --------------
@@ -285,14 +286,14 @@ writeMdc('lore-knowledge-routing.mdc',
 
 // 5. lore-skill-creation — skill naming, size limits, worker agent model
 writeMdc('lore-skill-creation.mdc',
-  'description: Rules for creating skills and agents — naming, size limits, model preferences\nglobs: .lore/skills/**',
+  'description: Rules for creating skills, fieldnotes, and agents — naming, size limits, model preferences\nglobs: .lore/skills/**, .lore/fieldnotes/**',
   extractSections(instructions, ['Knowledge', 'Agent Creation'])
 );
 
 // 6. lore-docs-formatting — docs formatting standards
 writeMdc('lore-docs-formatting.mdc',
   'description: Formatting standards for documentation files — checkboxes, strikethrough, no emoji\nglobs: docs/**/*.md, *.md',
-  docsFormatting || '# Docs Formatting\n\nNo formatting conventions configured yet.'
+  docsFormatting || '# Docs Formatting\n\nNo formatting rules configured yet.'
 );
 
 // -- Tier 3: Agent-requested (agent decides based on description) -------------

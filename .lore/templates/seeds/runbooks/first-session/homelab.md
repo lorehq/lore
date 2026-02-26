@@ -187,7 +187,7 @@ Arr stack, Jellyfin/Plex, Immich, Home Assistant — document each service's rol
 
 Write service docs to `docs/knowledge/environment/` — one per logical group (containers, dns, backups, media) or one per host, based on operator preference. Propose the structure and wait for approval before writing.
 
-**Gotchas become skills.** During service mapping, quirks will surface — a container needing a specific network mode, a backup that fails silently, a DNS rebinding issue. Each is a skill candidate. Propose; create after operator approval.
+**Gotchas become fieldnotes.** During service mapping, quirks will surface — a container needing a specific network mode, a backup that fails silently, a DNS rebinding issue. Each is a fieldnote candidate. Propose; create after operator approval.
 
 ---
 

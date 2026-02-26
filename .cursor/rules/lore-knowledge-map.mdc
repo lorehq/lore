@@ -7,7 +7,7 @@ alwaysApply: false
 
 docs/
 ├── context/
-│   └── conventions/
+│   └── rules/
 │       └── system/
 ├── guides/
 ├── javascripts/
@@ -26,11 +26,17 @@ docs/
     ├── notes/
     ├── plans/
     └── roadmaps/
+.lore/fieldnotes/
+├── mcp-stdio-content-length-framing/
+├── node-macos-stdin-fd/
+├── platform-command-collisions/
+└── pymdownx-extension-order/
 .lore/skills/
 ├── lore-capture/
 ├── lore-consolidate/
 ├── lore-create-agent/
 ├── lore-create-brainstorm/
+├── lore-create-fieldnote/
 ├── lore-create-note/
 ├── lore-create-plan/
 ├── lore-create-roadmap/
@@ -43,8 +49,4 @@ docs/
 ├── lore-link/
 ├── lore-semantic-search/
 ├── lore-status/
-├── lore-update/
-├── mcp-stdio-content-length-framing/
-├── node-macos-stdin-fd/
-├── platform-command-collisions/
-└── pymdownx-extension-order/
+└── lore-update/

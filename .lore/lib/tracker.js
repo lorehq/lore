@@ -5,7 +5,7 @@ const path = require('path');
 
 function isKnowledgePath(filePath, rootDir) {
   const resolved = path.resolve(filePath);
-  const prefixes = ['docs', '.lore/skills', '.claude/skills'].map(
+  const prefixes = ['docs', '.lore/skills', '.lore/fieldnotes', '.claude/skills', '.claude/fieldnotes'].map(
     (p) => path.resolve(rootDir || process.cwd(), ...p.split('/')) + path.sep,
   );
   return prefixes.some((pre) => resolved.startsWith(pre));
@@ -49,7 +49,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   const decision =
     'If this is Execution phase: REQUIRED before finish choose one - (A) skill captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
   const failureReview =
-    'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a skill before completion.';
+    'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a fieldnote before completion.';
 
   if (isReadOnly(tool)) {
     return { silent: true, bashCount: 0 };
@@ -70,7 +70,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // Memory scratch warning always emits
   if (isWriteTool(tool) && filePath && filePath.replace(/\\/g, '/').includes('.lore/memory.local.md')) {
     return {
-      message: '>>> Gotcha buried in scratch notes? Move to /lore-create-skill <<<',
+      message: '>>> Gotcha buried in scratch notes? Move to /lore-create-fieldnote <<<',
       level: 'info',
       bashCount: newCount,
       silent: false,
@@ -103,7 +103,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // First bash in a sequence — capture reminder; subsequent silent until thresholds
   if (newCount === 1) {
     return {
-      message: 'Capturer: gotcha \u2192 skill | new fact \u2192 docs/knowledge/',
+      message: 'Capturer: gotcha \u2192 fieldnote | new fact \u2192 docs/knowledge/',
       level: 'info',
       bashCount: newCount,
       silent: false,

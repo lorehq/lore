@@ -84,11 +84,11 @@ writeState(state);
 
 let msg;
 const baseline =
-  'Use Exploration -> Execution. Capture reusable Execution fixes -> skills. Capture new environment facts -> docs/knowledge/environment/.';
+  'Use Exploration -> Execution. Capture reusable Execution fixes -> fieldnotes. Capture new environment facts -> docs/knowledge/environment/.';
 const decision =
-  'If this is Execution phase: REQUIRED before finish choose one - (A) skill captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
+  'If this is Execution phase: REQUIRED before finish choose one - (A) fieldnote captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
 const failureReview =
-  'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a skill before completion.';
+  'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a fieldnote before completion.';
 
 if (compacted) {
   // Post-compaction re-orientation — highest priority, delivers key context

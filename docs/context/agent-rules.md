@@ -2,7 +2,7 @@
 
 <!-- Injected into every agent session as PROJECT context. -->
 <!-- Customize with your project identity and behavior rules. -->
-<!-- Coding conventions belong in docs/context/conventions.md — also injected. -->
+<!-- Coding rules belong in docs/context/rules/ — also injected. -->
 
 ## About
 

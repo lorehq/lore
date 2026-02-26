@@ -6,8 +6,9 @@
 #
 # Harness-owned (synced):
 #   .lore/hooks/, .lore/lib/, .lore/mcp/, .lore/scripts/, .lore/templates/,
-#   .opencode/, .cursor/, opencode.json, .mcp.json, .claude/settings.json,
-#   .lore/skills/lore-*/, .lore/agents/lore-*, .lore/instructions.md, .gitignore
+#   .lore/fieldnotes/, .opencode/, .cursor/, opencode.json, .mcp.json,
+#   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
+#   .lore/instructions.md, .gitignore
 #
 # Operator-owned (never touched):
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
@@ -84,6 +85,17 @@ if [ -d "$SOURCE/.lore/skills" ]; then
   done
 fi
 
+# Harness fieldnotes — overwrite existing, skip operator fieldnotes
+if [ -d "$SOURCE/.lore/fieldnotes" ]; then
+  mkdir -p "$TARGET/.lore/fieldnotes"
+  for note_dir in "$SOURCE/.lore/fieldnotes"/*/; do
+    [ -d "$note_dir" ] || continue
+    note_name="$(basename "$note_dir")"
+    mkdir -p "$TARGET/.lore/fieldnotes/$note_name"
+    cp -Rf "$note_dir"* "$TARGET/.lore/fieldnotes/$note_name/"
+  done
+fi
+
 # Harness agent templates — lore-worker.md lives in templates/, tiers generated at session start
 if [ -d "$SOURCE/.lore/templates" ]; then
   mkdir -p "$TARGET/.lore/templates"
@@ -100,10 +112,10 @@ if [ -d "$SOURCE/.lore/agents" ]; then
   done
 fi
 
-# Harness-owned system conventions — always overwrite
-if [ -d "$SOURCE/docs/context/conventions/system" ]; then
-  mkdir -p "$TARGET/docs/context/conventions/system"
-  cp -Rf "$SOURCE/docs/context/conventions/system/." "$TARGET/docs/context/conventions/system/"
+# Harness-owned system rules — always overwrite
+if [ -d "$SOURCE/docs/context/rules/system" ]; then
+  mkdir -p "$TARGET/docs/context/rules/system"
+  cp -Rf "$SOURCE/docs/context/rules/system/." "$TARGET/docs/context/rules/system/"
 fi
 
 # Harness-owned system runbooks — always overwrite

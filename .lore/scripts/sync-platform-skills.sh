@@ -34,6 +34,27 @@ if [ -d "$REPO_ROOT/.lore/skills" ]; then
   " "$REPO_ROOT"
 fi
 
+# -- Claude Code fieldnotes --
+# Copy ALL lore fieldnotes to .claude/fieldnotes/ so Claude can discover and use them.
+if [ -d "$REPO_ROOT/.lore/fieldnotes" ]; then
+  mkdir -p "$REPO_ROOT/.claude/fieldnotes"
+  node -e "
+    const fs = require('fs');
+    const path = require('path');
+    const root = process.argv[1];
+    const srcDir = path.join(root, '.lore', 'fieldnotes');
+    const outDir = path.join(root, '.claude', 'fieldnotes');
+
+    for (const d of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const skillFile = path.join(srcDir, d.name, 'SKILL.md');
+      if (!fs.existsSync(skillFile)) continue;
+      const outNoteDir = path.join(outDir, d.name);
+      fs.cpSync(path.join(srcDir, d.name), outNoteDir, { recursive: true, force: true });
+    }
+  " "$REPO_ROOT"
+fi
+
 # All agents — workers from template, non-workers from .lore/agents/ with tier → model stamping
 node -e "require('./.lore/lib/generate-agents').generate(process.argv[1])" "$REPO_ROOT"
 

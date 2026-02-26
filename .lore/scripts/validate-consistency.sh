@@ -10,7 +10,7 @@
 #   5. CLAUDE.md and lore-core.mdc body match .lore/instructions.md
 #   6. Cursor hooks configuration references existing scripts
 #   7. Linked repos (.lore/links) still exist on disk
-#   8. Required conventions (e.g. security.md) exist on disk
+#   8. Required rules (e.g. security.md) exist on disk
 #
 # Exit code: 0 = all passed, 1 = inconsistencies found
 
@@ -37,6 +37,18 @@ for dir in "$REPO_ROOT"/.lore/skills/*/; do
   for field in name description user-invocable; do
     val=$(extract_field "$field" "$sf")
     [[ -z "$val" ]] && fail "Skill '$name' missing '$field'"
+  done
+done
+
+# -- 1b. Fieldnote frontmatter: required fields --
+echo "--- Fieldnote Frontmatter ---"
+for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
+  sf="$dir/SKILL.md"
+  [[ -f "$sf" ]] || continue
+  name=$(basename "$dir")
+  for field in name description user-invocable; do
+    val=$(extract_field "$field" "$sf")
+    [[ -z "$val" ]] && fail "Fieldnote '$name' missing '$field'"
   done
 done
 
@@ -67,8 +79,8 @@ for f in "$REPO_ROOT"/.lore/agents/*.md; do
       # Parse "  - skill-name" entries
       if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+(.*) ]]; then
         ref=$(echo "${BASH_REMATCH[1]}" | xargs)
-        [[ -d "$REPO_ROOT/.lore/skills/$ref" ]] \
-          || fail "Agent '$agent' references missing skill '$ref'"
+        [[ -d "$REPO_ROOT/.lore/skills/$ref" || -d "$REPO_ROOT/.lore/fieldnotes/$ref" ]] \
+          || fail "Agent '$agent' references missing skill/fieldnote '$ref'"
       else
         in_skills=false # Non-list line = end of skills block
       fi
@@ -97,6 +109,32 @@ if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
     $sync_ok || fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/scripts/sync-platform-skills.sh"
   else
     fail ".claude/skills/ missing — run: bash .lore/scripts/sync-platform-skills.sh"
+  fi
+fi
+# Fieldnotes platform sync
+if [[ -d "$REPO_ROOT/.lore/fieldnotes" ]]; then
+  if [[ -d "$REPO_ROOT/.claude/fieldnotes" ]]; then
+    sync_ok=true
+    for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
+      name=$(basename "$dir")
+      sf="$dir/SKILL.md"
+      [[ -f "$sf" ]] || continue
+      if [[ ! -d "$REPO_ROOT/.claude/fieldnotes/$name" ]]; then
+        sync_ok=false; break
+      fi
+      diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/fieldnotes/$name" 2>&1) || true
+      if [[ -n "$diff_out" ]]; then
+        sync_ok=false; break
+      fi
+    done
+    $sync_ok || fail ".claude/fieldnotes/ out of sync with .lore/fieldnotes/ — run: bash .lore/scripts/sync-platform-skills.sh"
+  else
+    # Only fail if there are actual fieldnotes to sync
+    has_fieldnotes=false
+    for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
+      [[ -f "$dir/SKILL.md" ]] && { has_fieldnotes=true; break; }
+    done
+    $has_fieldnotes && fail ".claude/fieldnotes/ missing — run: bash .lore/scripts/sync-platform-skills.sh"
   fi
 fi
 # Agent platform copies are transformed (model cascade), so check existence not content
@@ -162,11 +200,11 @@ if [[ -f "$REPO_ROOT/.cursor/hooks.json" ]]; then
   done < <(sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO_ROOT/.cursor/hooks.json" 2>/dev/null || true)
 fi
 
-# -- 8. Required conventions exist --
-echo "--- Required Conventions ---"
+# -- 8. Required rules exist --
+echo "--- Required Rules ---"
 seed="security.md"
-target="$REPO_ROOT/docs/context/conventions/$seed"
-[[ -f "$target" ]] || fail "Required convention missing: $seed — will regenerate on next session"
+target="$REPO_ROOT/docs/context/rules/$seed"
+[[ -f "$target" ]] || fail "Required rule missing: $seed — will regenerate on next session"
 
 # -- 7. Linked repos --
 echo "--- Linked Repos ---"

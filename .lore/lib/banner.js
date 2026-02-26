@@ -43,22 +43,22 @@ function getAgentEntries(directory) {
   }
 }
 
-// Returns operator skills (non-lore-* prefix) with descriptions from .lore/skills/*/SKILL.md.
-function getOperatorSkills(directory) {
+// Returns fieldnotes (gotcha collections) with descriptions from .lore/fieldnotes/*/SKILL.md.
+function getFieldnotes(directory) {
   try {
-    const skillsDir = path.join(directory, '.lore', 'skills');
-    const skills = [];
-    for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-      if (!d.isDirectory() || d.name.startsWith('lore-')) continue;
-      const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
+    const fieldnotesDir = path.join(directory, '.lore', 'fieldnotes');
+    const notes = [];
+    for (const d of fs.readdirSync(fieldnotesDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const skillFile = path.join(fieldnotesDir, d.name, 'SKILL.md');
       if (!fs.existsSync(skillFile)) continue;
       const content = fs.readFileSync(skillFile, 'utf8');
       const { attrs } = parseFrontmatter(content);
-      if (attrs.name) skills.push({ name: attrs.name, description: attrs.description || '' });
+      if (attrs.name) notes.push({ name: attrs.name, description: attrs.description || '' });
     }
-    return skills;
+    return notes;
   } catch (e) {
-    debug('getOperatorSkills: %s', e.message);
+    debug('getFieldnotes: %s', e.message);
     return [];
   }
 }
@@ -90,32 +90,37 @@ function scanWork(dir) {
 }
 
 // Returns skills with banner-loaded: true — content inlined into session banner.
+// Scans both .lore/skills/ and .lore/fieldnotes/.
 function getBannerLoadedSkills(directory) {
-  try {
-    const skillsDir = path.join(directory, '.lore', 'skills');
-    const loaded = [];
-    for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-      if (!d.isDirectory()) continue;
-      const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
-      if (!fs.existsSync(skillFile)) continue;
-      const content = fs.readFileSync(skillFile, 'utf8');
-      const { attrs } = parseFrontmatter(content);
-      if (attrs['banner-loaded'] === 'true') {
-        loaded.push({ name: attrs.name || d.name, body: stripFrontmatter(content).trim() });
+  const loaded = [];
+  const dirs = [
+    path.join(directory, '.lore', 'skills'),
+    path.join(directory, '.lore', 'fieldnotes'),
+  ];
+  for (const skillsDir of dirs) {
+    try {
+      for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+        if (!d.isDirectory()) continue;
+        const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
+        if (!fs.existsSync(skillFile)) continue;
+        const content = fs.readFileSync(skillFile, 'utf8');
+        const { attrs } = parseFrontmatter(content);
+        if (attrs['banner-loaded'] === 'true') {
+          loaded.push({ name: attrs.name || d.name, body: stripFrontmatter(content).trim() });
+        }
       }
+    } catch (e) {
+      debug('getBannerLoadedSkills: %s: %s', skillsDir, e.message);
     }
-    return loaded;
-  } catch (e) {
-    debug('getBannerLoadedSkills: %s', e.message);
-    return [];
   }
+  return loaded;
 }
 
 // Static banner: file-driven content that only changes when source files change.
 // Suitable for baking into CLAUDE.md and .mdc files at generation time.
 function buildStaticBanner(directory) {
   const agentEntries = getAgentEntries(directory);
-  const operatorSkills = getOperatorSkills(directory);
+  const fieldnotes = getFieldnotes(directory);
 
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
@@ -132,7 +137,7 @@ function buildStaticBanner(directory) {
 
   // Notes (docs/work/notes/) intentionally excluded from scanning — lightweight capture, no banner inclusion
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
-  const skillLine = operatorSkills.length > 0 ? operatorSkills.map((s) => s.name).join(', ') : '';
+  const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
 
   let output = `=== LORE${version}${profileTag} ===
 
@@ -149,7 +154,7 @@ WORKERS: ${workerList}`;
       '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
   }
 
-  if (skillLine) output += `\n\nSKILLS: ${skillLine}`;
+  if (fieldnoteLine) output += `\n\nFIELDNOTES: ${fieldnoteLine}`;
 
   const bannerSkills = getBannerLoadedSkills(directory);
   if (bannerSkills.length > 0) {
@@ -168,16 +173,16 @@ WORKERS: ${workerList}`;
   }
 
   try {
-    const convDir = path.join(directory, 'docs', 'context', 'conventions');
-    const convFile = path.join(directory, 'docs', 'context', 'conventions.md');
+    const rulesDir = path.join(directory, 'docs', 'context', 'rules');
+    const rulesFile = path.join(directory, 'docs', 'context', 'rules.md');
     if (semanticSearchUrl) {
-      // Semantic search available — list all convention names, agent finds content on demand
-      // Merge operator conventions + system/ conventions (operator names take precedence)
-      if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
-        const operatorNames = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && f !== 'index.md');
+      // Semantic search available — list all rule names, agent finds content on demand
+      // Merge operator rules + system/ rules (operator names take precedence)
+      if (fs.existsSync(rulesDir) && fs.statSync(rulesDir).isDirectory()) {
+        const operatorNames = fs.readdirSync(rulesDir).filter((f) => f.endsWith('.md') && f !== 'index.md');
         const operatorSet = new Set(operatorNames);
         let systemNames = [];
-        const systemDir = path.join(convDir, 'system');
+        const systemDir = path.join(rulesDir, 'system');
         try {
           systemNames = fs
             .readdirSync(systemDir)
@@ -185,16 +190,16 @@ WORKERS: ${workerList}`;
         } catch (_) {}
         const allNames = [...operatorNames, ...systemNames].map((f) => f.replace(/\.md$/, '')).sort();
         if (allNames.length > 0) {
-          output += '\n\nAVAILABLE CONVENTIONS (load when relevant): ' + allNames.join(', ');
+          output += '\n\nAVAILABLE RULES (load when relevant): ' + allNames.join(', ');
         }
       }
     } else {
-      // No semantic search — inject all conventions in full
-      // Merge operator conventions + system/ conventions (operator files take precedence)
+      // No semantic search — inject all rules in full
+      // Merge operator rules + system/ rules (operator files take precedence)
       const requiredParts = [];
-      if (fs.existsSync(convDir) && fs.statSync(convDir).isDirectory()) {
+      if (fs.existsSync(rulesDir) && fs.statSync(rulesDir).isDirectory()) {
         const operatorFiles = fs
-          .readdirSync(convDir)
+          .readdirSync(rulesDir)
           .filter((f) => f.endsWith('.md'))
           .sort((a, b) => {
             if (a === 'index.md') return -1;
@@ -203,12 +208,12 @@ WORKERS: ${workerList}`;
           });
         const operatorSet = new Set(operatorFiles);
         for (const file of operatorFiles) {
-          const raw = fs.readFileSync(path.join(convDir, file), 'utf8');
+          const raw = fs.readFileSync(path.join(rulesDir, file), 'utf8');
           const stripped = stripFrontmatter(raw).trim();
           if (stripped) requiredParts.push(stripped);
         }
-        // Add system/ conventions not overridden by operator files
-        const systemDir = path.join(convDir, 'system');
+        // Add system/ rules not overridden by operator files
+        const systemDir = path.join(rulesDir, 'system');
         try {
           const systemFiles = fs
             .readdirSync(systemDir)
@@ -220,21 +225,23 @@ WORKERS: ${workerList}`;
             if (stripped) requiredParts.push(stripped);
           }
         } catch (_) {}
-      } else if (fs.existsSync(convFile)) {
-        const raw = fs.readFileSync(convFile, 'utf8');
+      } else if (fs.existsSync(rulesFile)) {
+        const raw = fs.readFileSync(rulesFile, 'utf8');
         const stripped = stripFrontmatter(raw).trim();
         if (stripped) requiredParts.push(stripped);
       }
-      if (requiredParts.length > 0) output += '\n\nCONVENTIONS:\n' + requiredParts.join('\n\n');
+      if (requiredParts.length > 0) output += '\n\nRULES:\n' + requiredParts.join('\n\n');
     }
   } catch (e) {
-    debug('conventions: %s', e.message);
+    debug('rules: %s', e.message);
   }
 
   if (!semanticSearchUrl) {
     const trees = [];
     const docsTree = buildTree(path.join(directory, 'docs'), '', { maxDepth: treeDepth });
     if (docsTree.length > 0) trees.push('docs/\n' + docsTree.join('\n'));
+    const fieldnotesTree = buildTree(path.join(directory, '.lore', 'fieldnotes'), '', { maxDepth: treeDepth });
+    if (fieldnotesTree.length > 0) trees.push('.lore/fieldnotes/\n' + fieldnotesTree.join('\n'));
     const skillsTree = buildTree(path.join(directory, '.lore', 'skills'), '', { maxDepth: treeDepth });
     if (skillsTree.length > 0) trees.push('.lore/skills/\n' + skillsTree.join('\n'));
     const agentsTree = buildTree(path.join(directory, '.lore', 'agents'), '', { maxDepth: treeDepth });
@@ -343,7 +350,7 @@ module.exports = {
   getConfig,
   getProfile,
   getBannerLoadedSkills,
-  getOperatorSkills,
+  getFieldnotes,
   parseFrontmatter,
   scanWork,
   stripFrontmatter,

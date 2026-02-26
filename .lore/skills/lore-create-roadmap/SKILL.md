@@ -12,7 +12,7 @@ Roadmaps are **operator-initiated**. Never create one unprompted.
 
 ## Process
 
-1. **Read conventions**: Check `docs/context/conventions.md` or `docs/context/conventions/index.md` for docs formatting rules. Apply these when writing content.
+1. **Read rules**: Check `docs/context/rules.md` or `docs/context/rules/index.md` for docs formatting rules. Apply these when writing content.
 
 2. **Create folder**: `docs/work/roadmaps/<slug>/`
 

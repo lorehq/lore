@@ -1,6 +1,6 @@
 ---
-description: Rules for creating skills and agents — naming, size limits, model preferences
-globs: .lore/skills/**
+description: Rules for creating skills, fieldnotes, and agents — naming, size limits, model preferences
+globs: .lore/skills/**, .lore/fieldnotes/**
 ---
 
 ## Knowledge
@@ -8,14 +8,15 @@ globs: .lore/skills/**
 | What | Where |
 |------|-------|
 | Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored) |
-| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
-| Rules, conventions | `docs/context/` |
+| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/fieldnotes/` via lore-create-fieldnote |
+| Procedural skills (harness commands) | `.lore/skills/` via lore-create-skill |
+| Rules | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
 | Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
 | Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness commands — the sync system overwrites `lore-*` skills, so operator skills under that prefix get lost. If a skill already exists, warn and skip.
+Every gotcha becomes a fieldnote. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One fieldnote per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness command skills — the sync system overwrites `lore-*` skills, so operator content under that prefix gets lost. If a fieldnote already exists, warn and skip.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.

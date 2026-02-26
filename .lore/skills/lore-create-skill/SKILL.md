@@ -8,13 +8,15 @@ allowed-tools: Write, Edit, Read, Glob
 
 # Create Skill
 
-**Every gotcha becomes a skill. No exceptions.**
+Skills are **procedural capabilities** — reusable command procedures, multi-step workflows, harness operations. They live in `.lore/skills/` with the `lore-` prefix.
+
+**Gotchas go in fieldnotes, not skills.** Auth quirks, encoding issues, parameter tricks, platform incompatibilities → use `/lore-create-fieldnote` instead.
 
 ## When to Create
 
-**Mandatory**: Auth quirks, encoding issues, parameter tricks, anything that surprised you.
+**Mandatory**: Multi-step harness commands, reusable procedural workflows.
 
-**Not skills**: Simple tool wrappers, commands with good `--help`, one-off operations without gotchas.
+**Not skills**: Environmental gotchas (use fieldnotes), simple tool wrappers, commands with good `--help`, one-off operations.
 
 ## Process
 

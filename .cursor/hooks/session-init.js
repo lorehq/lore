@@ -1,6 +1,6 @@
 // Hook: sessionStart
 // Fires once per Cursor session on startup.
-// Emits full banner (delegation, conventions, knowledge map, active work, local memory)
+// Emits full banner (delegation, rules, knowledge map, active work, local memory)
 // via additional_context. Static .cursor/rules/lore-*.mdc files serve as first-session
 // fallback only — when this hook fires, it provides the complete, dynamic view.
 

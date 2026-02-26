@@ -54,7 +54,7 @@ export const ContextPathGuide = async ({ directory, client }) => {
       msg += `${treeLabel}\n${structure || '(empty)\n'}`;
       msg += isKnowledge
         ? 'Organize under environment/ subdirs (inventory/, decisions/, reference/, diagrams/)'
-        : 'Context holds rules and conventions — environment data goes in docs/knowledge/';
+        : 'Context holds rules — environment data goes in docs/knowledge/';
 
       await client.app.log({
         body: { service: 'context-path-guide', level: 'info', message: msg },

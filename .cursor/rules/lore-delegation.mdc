@@ -5,9 +5,9 @@ alwaysApply: true
 
 ## Delegation
 
-The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, conventions, and scope. The orchestrator's context is too valuable for execution details.
+The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, rules, and scope. The orchestrator's context is too valuable for execution details.
 
-**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
+**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name rules and skills for workers in the prompt — they read the files.
 
 **Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
 

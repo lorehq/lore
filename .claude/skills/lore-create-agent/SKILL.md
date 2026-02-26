@@ -13,7 +13,7 @@ Operator agents are optional static delegation patterns. The harness provides `l
 ## When to Create
 
 - You have a recurring delegation pattern that benefits from pre-packaged context
-- The same set of skills, conventions, and scope boundaries apply every time
+- The same set of skills, rules, and scope boundaries apply every time
 - A static agent definition is more efficient than the orchestrator assembling context each time
 
 ## Process
@@ -40,12 +40,12 @@ Handles <purpose> operations.
 
 ## Subagent Operating Rules
 - You are a delegated subagent, not the orchestrator. Stay within delegated scope and return concise results.
-- Before implementation, always load project guidance from `docs/context/agent-rules.md` and relevant files under `docs/context/conventions/`.
+- Before implementation, always load project guidance from `docs/context/agent-rules.md` and relevant files under `docs/context/rules/`.
 - Follow repo boundaries from agent rules (Lore hub for knowledge; application code in external repos).
 - If scope has independent branches, run them in parallel subagents; keep dependency-gated steps sequential.
 
 ## Self-Learning
-- Non-obvious gotcha during execution -> create or update an operator skill under `.lore/skills/`.
+- Non-obvious gotcha during execution -> create or update a fieldnote under `.lore/fieldnotes/`.
 - New environment facts -> update `docs/knowledge/environment/`.
 - Multi-step procedures discovered -> add/update `docs/knowledge/runbooks/`.
 

@@ -316,7 +316,7 @@ test('protect-memory: write error shows routing table', async (t) => {
   const hooks = await ProtectMemory({ directory: dir });
   await assert.rejects(
     () => hooks['tool.execute.before']({ tool: 'Edit' }, { args: { file_path: path.join(dir, 'MEMORY.md') } }),
-    { message: /create-skill/ },
+    { message: /create-fieldnote/ },
   );
 });
 

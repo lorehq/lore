@@ -155,6 +155,38 @@ emit_work_subsections() {
   done
 }
 
+# Copy fieldnotes into docs/ so mkdocs can serve them, then emit flat nav entries.
+# docs/fieldnotes/ is gitignored — this is a build artifact, not tracked source.
+emit_fieldnotes_section() {
+  local fieldnotes_src="$REPO_ROOT/.lore/fieldnotes"
+  local fieldnotes_dst="$DOCS/fieldnotes"
+  [[ -d "$fieldnotes_src" ]] || return 0
+
+  # Sync: clear and re-copy fieldnote dirs that contain SKILL.md
+  rm -rf "$fieldnotes_dst"
+  local found=0
+  local name title
+  for note_dir in "$fieldnotes_src"/*/; do
+    [[ -d "$note_dir" ]] || continue
+    [[ -f "${note_dir}SKILL.md" ]] || continue
+    name=$(basename "$note_dir")
+    mkdir -p "$fieldnotes_dst/$name"
+    cp -r "$note_dir"* "$fieldnotes_dst/$name/"
+    found=1
+  done
+
+  [[ "$found" -eq 1 ]] || return 0
+
+  echo "  - Fieldnotes:"
+  for note_dir in "$fieldnotes_dst"/*/; do
+    [[ -d "$note_dir" ]] || continue
+    [[ -f "${note_dir}SKILL.md" ]] || continue
+    name=$(basename "$note_dir")
+    title=$(to_title "$name")
+    echo "      - ${title}: fieldnotes/${name}/SKILL.md"
+  done
+}
+
 # Copy skills into docs/ so mkdocs can serve them, then emit flat nav entries.
 # docs/skills/ is gitignored — this is a build artifact, not tracked source.
 emit_skills_section() {
@@ -209,6 +241,7 @@ emit_skills_section() {
     fi
   done
 
+  emit_fieldnotes_section
   emit_skills_section
 
   echo "  - Docs: https://lorehq.github.io/lore-docs/"

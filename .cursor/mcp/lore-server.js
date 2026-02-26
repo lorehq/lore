@@ -5,7 +5,7 @@
 // Exposes three tools:
 //   lore_check_in   — capture nudges, failure notes, compaction re-orientation
 //   lore_context    — knowledge map + active work (navigation/post-compaction)
-//   lore_write_guard — convention reminders based on target file path
+//   lore_write_guard — rule reminders based on target file path
 //
 // Reads state files written by Cursor hooks (capture-nudge, failure-tracker,
 // compaction-flag, knowledge-tracker). Read-only for state — hooks own the lifecycle.
@@ -69,17 +69,17 @@ function loreCheckIn() {
     // Normal operation — escalating nudge based on consecutive bash count
     const { nudge, warn } = getThresholds(hubDir);
     if (state.bash >= warn) {
-      msg = `>>> ${state.bash} consecutive commands \u2014 capture what you learned \u2192 lore-create-skill <<<`;
+      msg = `>>> ${state.bash} consecutive commands \u2014 capture what you learned \u2192 lore-create-fieldnote <<<`;
     } else if (state.bash >= nudge) {
-      msg = `>>> ${state.bash} commands in a row \u2014 gotcha worth a skill? <<<`;
+      msg = `>>> ${state.bash} commands in a row \u2014 gotcha worth a fieldnote? <<<`;
     } else {
-      msg = 'Gotcha? \u2192 skill | New context? \u2192 docs/knowledge/';
+      msg = 'Gotcha? \u2192 fieldnote | New context? \u2192 docs/knowledge/';
     }
   }
 
   // Prepend failure note if a tool failed since last shell command
   if (state.lastFailure) {
-    msg = `Error pattern worth a skill? | ${msg}`;
+    msg = `Error pattern worth a fieldnote? | ${msg}`;
   }
 
   return msg;
@@ -103,6 +103,7 @@ function loreContext() {
   const trees = [];
   const pairs = [
     ['docs', path.join(hubDir, 'docs')],
+    ['.lore/fieldnotes', path.join(hubDir, '.lore', 'fieldnotes')],
     ['.lore/skills', path.join(hubDir, '.lore', 'skills')],
     ['.lore/agents', path.join(hubDir, '.lore', 'agents')],
   ];
@@ -129,13 +130,13 @@ function loreContext() {
   return parts.join('\n');
 }
 
-// Convention guard — returns relevant convention principles for a file path.
-// Reads the actual convention files and extracts bold principle lines so
+// Rule guard — returns relevant rule principles for a file path.
+// Reads the actual rule files and extracts bold principle lines so
 // reminders stay in sync with the source of truth (no duplication).
 function extractPrinciples(filename) {
-  const convPath = path.join(hubDir, 'docs', 'context', 'conventions', filename);
+  const rulePath = path.join(hubDir, 'docs', 'context', 'rules', filename);
   try {
-    const content = fs.readFileSync(convPath, 'utf8');
+    const content = fs.readFileSync(rulePath, 'utf8');
     const principles = [];
     for (const line of content.split('\n')) {
       const match = line.match(/^\*\*(.+?)\*\*$/);
@@ -155,17 +156,17 @@ function loreWriteGuard(filePath) {
   if (!resolved.startsWith(repoPrefix)) return 'File is outside this repo.';
 
   const relative = resolved.slice(repoPrefix.length);
-  const conventions = [];
+  const rules = [];
 
   // Security: always
   const security = extractPrinciples('security.md');
-  if (security.length > 0) conventions.push('Security: ' + security.join(' | '));
+  if (security.length > 0) rules.push('Security: ' + security.join(' | '));
 
-  // Docs convention for all docs/ paths
+  // Docs rule for all docs/ paths
   const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
   if (isDocs) {
     const docs = extractPrinciples('docs.md');
-    if (docs.length > 0) conventions.push('Docs: ' + docs.join(' | '));
+    if (docs.length > 0) rules.push('Docs: ' + docs.join(' | '));
   }
 
   // Domain-specific
@@ -173,30 +174,30 @@ function loreWriteGuard(filePath) {
   const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
   if (isWork) {
     const workItems = extractPrinciples('work-items.md');
-    if (workItems.length > 0) conventions.push('Work items: ' + workItems.join(' | '));
+    if (workItems.length > 0) rules.push('Work items: ' + workItems.join(' | '));
   } else if (isKnowledge) {
     const knowledge = extractPrinciples('knowledge-capture.md');
-    if (knowledge.length > 0) conventions.push('Knowledge: ' + knowledge.join(' | '));
+    if (knowledge.length > 0) rules.push('Knowledge: ' + knowledge.join(' | '));
   }
 
-  // Menu of conventions not already injected
+  // Menu of rules not already injected
   const injected = new Set(['index.md', 'security.md']);
   if (isDocs) injected.add('docs.md');
   if (isWork) injected.add('work-items.md');
   if (isKnowledge) injected.add('knowledge-capture.md');
 
-  const convDir = path.join(hubDir, 'docs', 'context', 'conventions');
+  const _rulesDir = path.join(hubDir, 'docs', 'context', 'rules');
   try {
-    const files = fs.readdirSync(convDir).filter((f) => f.endsWith('.md') && !injected.has(f));
+    const files = fs.readdirSync(_rulesDir).filter((f) => f.endsWith('.md') && !injected.has(f));
     if (files.length > 0) {
       const names = files.map((f) => f.replace(/\.md$/, ''));
-      conventions.push(
-        'Other conventions: ' + names.join(', ') + ' — read docs/context/conventions/<name>.md if relevant',
+      rules.push(
+        'Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant',
       );
     }
   } catch {}
 
-  return conventions.length > 0 ? conventions.join('\n') : 'No conventions apply.';
+  return rules.length > 0 ? rules.join('\n') : 'No rules apply.';
 }
 
 // ── MCP protocol ────────────────────────────────────────────────────────────
@@ -223,7 +224,7 @@ const ALL_TOOLS = [
   {
     name: 'lore_write_guard',
     description:
-      'Get convention reminders before writing a file. MUST be called before every file write or edit. Returns security, docs, knowledge, or work-item conventions based on the target path.',
+      'Get rule reminders before writing a file. MUST be called before every file write or edit. Returns security, docs, knowledge, or work-item rules based on the target path.',
     inputSchema: {
       type: 'object',
       properties: {

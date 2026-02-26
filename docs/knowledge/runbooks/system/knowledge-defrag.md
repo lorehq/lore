@@ -2,13 +2,13 @@
 
 **WARNING: This runbook restructures `docs/knowledge/` freely. It will move, rename, merge, and reorganize files. Run on a clean git state with a dedicated branch. Review the proposed structure before approving execution.**
 
-Reorganizes `docs/knowledge/` based on actual file content rather than the original folder structure. Applies the knowledge base structure convention (`docs/context/conventions/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
+Reorganizes `docs/knowledge/` based on actual file content rather than the original folder structure. Applies the knowledge base structure rule (`docs/context/rules/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
 
 ## Prerequisites
 
 - Clean git state (`git status` must show no uncommitted changes)
 - Create a branch before starting: `git checkout -b knowledge-defrag-$(date +%Y%m%d)`
-- Knowledge convention loaded: `docs/context/conventions/knowledge-base-structure.md`
+- Knowledge rule loaded: `docs/context/rules/knowledge-base-structure.md`
 
 ## Protected Paths
 
@@ -22,7 +22,7 @@ These paths are never moved or renamed. Workers must exclude them from all propo
 
 Split `docs/knowledge/` files into ~3 groups by directory. Each worker loads:
 
-- `docs/context/conventions/knowledge-base-structure.md` **only**
+- `docs/context/rules/knowledge-base-structure.md` **only**
 
 For each file, extract:
 
@@ -38,7 +38,7 @@ Worker return format: structured inventory list per file.
 
 Orchestrator passes the full inventory to one sonnet worker. Worker loads:
 
-- `docs/context/conventions/knowledge-base-structure.md` **only**
+- `docs/context/rules/knowledge-base-structure.md` **only**
 
 Worker proposes a new directory structure and full move map:
 
@@ -111,8 +111,8 @@ git commit -m "knowledge-defrag: reorganize docs/knowledge/ by content"
 
 ## Model Allocation
 
-| Phase | Model | Workers | Convention | Rationale |
-|-------|-------|---------|------------|-----------|
+| Phase | Model | Workers | Rule | Rationale |
+|-------|-------|---------|------|-----------|
 | Phase 1 Inventory | Haiku | 3 | knowledge.md | Structured extraction; fast and cheap |
 | Phase 2 Proposal | Sonnet | 1 | knowledge.md | Structural judgment requires reasoning |
 | Phase 4 Execute | Orchestrator | 1 | — | Sequential; link repair requires full move map |

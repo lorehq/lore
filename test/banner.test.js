@@ -7,7 +7,7 @@ const os = require('os');
 const {
   getAgentNames,
   getAgentEntries,
-  getOperatorSkills,
+  getFieldnotes,
   scanWork,
   buildBanner,
   buildCursorBanner,
@@ -25,6 +25,7 @@ function setup(opts = {}) {
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'roadmaps'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'work', 'plans'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'fieldnotes'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
 
   if (opts.config) {
@@ -42,19 +43,26 @@ function setup(opts = {}) {
       fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
     }
   }
+  if (opts.fieldnotes) {
+    for (const [name, content] of Object.entries(opts.fieldnotes)) {
+      const noteDir = path.join(dir, '.lore', 'fieldnotes', name);
+      fs.mkdirSync(noteDir, { recursive: true });
+      fs.writeFileSync(path.join(noteDir, 'SKILL.md'), content);
+    }
+  }
   if (opts.agentRules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), opts.agentRules);
   }
-  if (opts.conventions) {
+  if (opts.rules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-    fs.writeFileSync(path.join(dir, 'docs', 'context', 'conventions.md'), opts.conventions);
+    fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules.md'), opts.rules);
   }
-  if (opts.conventionsDir) {
-    const convDir = path.join(dir, 'docs', 'context', 'conventions');
-    fs.mkdirSync(convDir, { recursive: true });
-    for (const [name, content] of Object.entries(opts.conventionsDir)) {
-      fs.writeFileSync(path.join(convDir, name), content);
+  if (opts.rulesDir) {
+    const _rulesDir = path.join(dir, 'docs', 'context', 'rules');
+    fs.mkdirSync(_rulesDir, { recursive: true });
+    for (const [name, content] of Object.entries(opts.rulesDir)) {
+      fs.writeFileSync(path.join(_rulesDir, name), content);
     }
   }
   if (opts.memory) {
@@ -116,43 +124,30 @@ test('getAgentEntries: returns empty array when no agents exist', (t) => {
 });
 
 // ---------------------------------------------------------------------------
-// getOperatorSkills
+// getFieldnotes
 // ---------------------------------------------------------------------------
 
-test('getOperatorSkills: reads name and description from SKILL.md frontmatter', (t) => {
+test('getFieldnotes: reads name and description from SKILL.md frontmatter', (t) => {
   const dir = setup({
-    skills: {
+    fieldnotes: {
       'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
       'docker-build-image': '---\nname: docker-build-image\ndescription: Build Docker images\n---\n',
-      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
     },
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const skills = getOperatorSkills(dir);
-  assert.equal(skills.length, 2);
-  const names = skills.map((s) => s.name).sort();
+  const notes = getFieldnotes(dir);
+  assert.equal(notes.length, 2);
+  const names = notes.map((s) => s.name).sort();
   assert.deepEqual(names, ['bash-macos-compat', 'docker-build-image']);
-  const bmc = skills.find((s) => s.name === 'bash-macos-compat');
+  const bmc = notes.find((s) => s.name === 'bash-macos-compat');
   assert.equal(bmc.description, 'macOS Bash compat');
 });
 
-test('getOperatorSkills: filters out lore-* prefixed skills', (t) => {
-  const dir = setup({
-    skills: {
-      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
-      'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
-    },
-  });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const skills = getOperatorSkills(dir);
-  assert.ok(!skills.some((s) => s.name.startsWith('lore-')), 'should exclude lore-* skills');
-});
-
-test('getOperatorSkills: returns empty array when no skills exist', (t) => {
+test('getFieldnotes: returns empty array when no fieldnotes exist', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const skills = getOperatorSkills(dir);
-  assert.deepEqual(skills, []);
+  const notes = getFieldnotes(dir);
+  assert.deepEqual(notes, []);
 });
 
 // ---------------------------------------------------------------------------
@@ -267,23 +262,20 @@ test('buildBanner: shows agent names when agents exist', (t) => {
   assert.ok(!out.includes('(none yet)'));
 });
 
-test('buildBanner: includes SKILLS section when operator skills exist', (t) => {
+test('buildBanner: includes FIELDNOTES section when fieldnotes exist', (t) => {
   const dir = setup({
-    skills: {
+    fieldnotes: {
       'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',
       'docker-build-image': '---\nname: docker-build-image\ndescription: Build Docker images\n---\n',
-      'lore-capture': '---\nname: lore-capture\ndescription: Session capture\n---\n',
     },
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
-  assert.ok(out.includes('SKILLS'));
+  assert.ok(out.includes('FIELDNOTES'));
   assert.ok(out.includes('bash-macos-compat'));
   assert.ok(out.includes('docker-build-image'));
-  // Check the SKILLS line specifically (not the whole output which includes the knowledge map tree)
-  const skillsLine = out.split('\n').find((l) => l.startsWith('SKILLS'));
-  assert.ok(skillsLine, 'SKILLS line should exist');
-  assert.ok(!skillsLine.includes('lore-capture'), 'SKILLS line should not include lore-* skills');
+  const fieldnotesLine = out.split('\n').find((l) => l.startsWith('FIELDNOTES'));
+  assert.ok(fieldnotesLine, 'FIELDNOTES line should exist');
 });
 
 test('buildBanner: includes ACTIVE ROADMAPS when active roadmaps exist', (t) => {
@@ -338,23 +330,23 @@ test('buildBanner: skips default operator profile template', (t) => {
   assert.ok(!out.includes('OPERATOR PROFILE:'), 'default template should not be injected');
 });
 
-test('buildBanner: includes CONVENTIONS from conventions directory', (t) => {
+test('buildBanner: includes RULES from rules directory', (t) => {
   const dir = setup({
-    conventionsDir: {
-      'index.md': '# Conventions\n\nOverview here.',
+    rulesDir: {
+      'index.md': '# Rules\n\nOverview here.',
       'coding.md': '# Coding\n\nSimplicity first.',
     },
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
-  assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('RULES:'));
   assert.ok(out.includes('Overview here.'));
   assert.ok(out.includes('Simplicity first.'));
 });
 
-test('buildBanner: index.md appears before other files in conventions dir', (t) => {
+test('buildBanner: index.md appears before other files in rules dir', (t) => {
   const dir = setup({
-    conventionsDir: {
+    rulesDir: {
       'zzz-last.md': '# ZZZ\n\nLast alphabetically.',
       'index.md': '# Index\n\nFirst always.',
     },
@@ -366,11 +358,11 @@ test('buildBanner: index.md appears before other files in conventions dir', (t) 
   assert.ok(indexPos < lastPos, 'index.md content should appear before zzz-last.md');
 });
 
-test('buildBanner: includes CONVENTIONS from flat conventions.md fallback', (t) => {
-  const dir = setup({ conventions: '# Conventions\n\nFlat file rules.' });
+test('buildBanner: includes RULES from flat rules.md fallback', (t) => {
+  const dir = setup({ rules: '# Rules\n\nFlat file rules.' });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildBanner(dir);
-  assert.ok(out.includes('CONVENTIONS:'));
+  assert.ok(out.includes('RULES:'));
   assert.ok(out.includes('Flat file rules.'));
 });
 
@@ -522,11 +514,11 @@ test('buildCursorBanner: does not include PROJECT section', (t) => {
   assert.ok(!out.includes('PROJECT:'));
 });
 
-test('buildCursorBanner: does not include CONVENTIONS section', (t) => {
-  const dir = setup({ conventions: '# Conventions\n\nStatic .mdc rules handle this.' });
+test('buildCursorBanner: does not include RULES section', (t) => {
+  const dir = setup({ rules: '# Rules\n\nStatic .mdc rules handle this.' });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildCursorBanner(dir);
-  assert.ok(!out.includes('CONVENTIONS:'));
+  assert.ok(!out.includes('RULES:'));
 });
 
 test('buildCursorBanner: does not include DELEGATION section', (t) => {

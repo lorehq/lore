@@ -22,7 +22,7 @@ function setup(opts = {}) {
     'knowledge-tracker.js',
     'protect-memory.js',
     'harness-guard.js',
-    'convention-guard.js',
+    'rule-guard.js',
     'context-path-guide.js',
   ];
   for (const hook of hooks) {

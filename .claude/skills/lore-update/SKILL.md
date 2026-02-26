@@ -31,7 +31,7 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
    ```
    **Direction: cwd = target instance, argument = source harness repo.** Getting this backwards overwrites the harness repo with stale instance files.
 6. Update the `version` field in `.lore/config.json` to match the source
-7. **Seed review** — compare `.lore/templates/seeds/conventions/` to operator convention files in `docs/context/conventions/`. For each seed template where the operator file exists and differs:
+7. **Seed review** — compare `.lore/templates/seeds/rules/` to operator rule files in `docs/context/rules/`. For each seed template where the operator file exists and differs:
    - Show the diff (seed template vs operator file)
    - Ask the operator whether to adopt the updated seed or keep their version
    - Only overwrite operator files the operator explicitly approves
@@ -45,11 +45,11 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 - `.lore/hooks/`, `.lore/lib/`, `.lore/scripts/`, `.opencode/`
 - `.claude/settings.json`, `.lore/skills/<built-in>/`
 - `.lore/instructions.md`, `.gitignore`, `opencode.json`
-- `docs/context/conventions/system/`, `docs/knowledge/runbooks/system/`
+- `docs/context/rules/system/`, `docs/knowledge/runbooks/system/`
 - Generated copies (`CLAUDE.md`, `.cursor/rules/lore-*.mdc`) are also regenerated via `sync-platform-skills.sh`
 
 **Seed files (opt-in update):**
-- `.lore/templates/seeds/conventions/` — default convention content. Created on first install if missing. On update, diffs shown for operator review.
+- `.lore/templates/seeds/rules/` — default rule content. Created on first install if missing. On update, diffs shown for operator review.
 
 **Never touched (operator-owned):**
 - `docs/` (except `system/` subdirs), `.lore/agents/`, `mkdocs.yml`

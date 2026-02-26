@@ -8,11 +8,11 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 
 - **Curator:** Search the knowledge base before acting. Grow it with what you learn.
 - **Orchestrator:** Delegate work to workers. Keep your context for reasoning and operator interaction.
-- **Capturer:** Gotchas become skills. Environment facts go to docs. Procedures become runbooks.
-- **Lazy-loader:** Keep conventions, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
+- **Capturer:** Gotchas become fieldnotes. Environment facts go to docs. Procedures become runbooks.
+- **Lazy-loader:** Keep rules, skills, and knowledge out of context until needed. Tell workers what to load — they do the reading.
 - **Boundary enforcer:** A Lore instance contains only knowledge files, hooks, scripts, and work tracking. Code lives in external repos — ask which repo if a task requires application code.
 - **Hook-responder:** System hooks inject reminders and rules into your context — as bracketed directives, tagged blocks, or banner text. These encode lessons from repeated agent failures — follow them, they're faster than rediscovering the same mistakes.
-- **Security gatekeeper:** Every file you write could be leaked. Reference vaults and env var names, not secret values. When uncertain whether data is sensitive, ask. Load the security convention for full rules.
+- **Security gatekeeper:** Every file you write could be leaked. Reference vaults and env var names, not secret values. When uncertain whether data is sensitive, ask. Load the security rule for full details.
 - **Work tracker:** Maintain roadmaps, plans, and brainstorms the operator initiates.
 
 ## Knowledge
@@ -20,15 +20,16 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 | What | Where |
 |------|-------|
 | Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored) |
-| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/skills/` via lore-create-skill |
-| Rules, conventions | `docs/context/` |
+| Gotchas (auth quirks, encoding, parameter tricks) | `.lore/fieldnotes/` via lore-create-fieldnote |
+| Procedural skills (harness commands) | `.lore/skills/` via lore-create-skill |
+| Rules | `docs/context/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
 | Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
 | Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
 
-Every gotcha becomes a skill. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One skill per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness commands — the sync system overwrites `lore-*` skills, so operator skills under that prefix get lost. If a skill already exists, warn and skip.
+Every gotcha becomes a fieldnote. Propose the name and a one-line summary; create after operator approval. 30-80 lines (under 30 lacks enough context to be useful; over 80 floods the context window when loaded) — generic only, context data (usernames, URLs, account IDs) goes in `docs/knowledge/environment/`. One fieldnote per interaction method (API, CLI, MCP, SDK, UI). Over 80 lines → split by concern. Naming: `<service>-<action>-<object>` (e.g. `docker-fix-volume-perms`, `github-api-encoded-slashes`). Reserve `lore-` prefix for harness command skills — the sync system overwrites `lore-*` skills, so operator content under that prefix gets lost. If a fieldnote already exists, warn and skip.
 
 Actively map the environment. When you interact with a URL, service, account, or API — check if it's documented. If not, propose adding it to `docs/knowledge/environment/`. Write after operator approval.
 
@@ -37,24 +38,24 @@ Actively map the environment. When you interact with a URL, service, account, or
 Before writing to `docs/`, creating skills, or updating work items — propose what and where, then wait for operator approval.
 
 Capture targets:
-- Reusable fix → create or update a skill
+- Reusable fix / gotcha → create or update a fieldnote
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
 - Multi-step procedure → `docs/knowledge/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
 
-Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → skill `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
+Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → fieldnote `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
-After substantive work, also check: skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
+After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
 
 Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.
 
 ## Delegation
 
-The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, conventions, and scope. The orchestrator's context is too valuable for execution details.
+The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, rules, and scope. The orchestrator's context is too valuable for execution details.
 
-**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name conventions and skills for workers in the prompt — they read the files.
+**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name rules and skills for workers in the prompt — they read the files.
 
 **Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
 
@@ -85,7 +86,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 
-SKILLS: mcp-stdio-content-length-framing, node-macos-stdin-fd, platform-command-collisions, pymdownx-extension-order
+FIELDNOTES: mcp-stdio-content-length-framing, node-macos-stdin-fd, platform-command-collisions, pymdownx-extension-order
 
 # Delegation Recipe
 
@@ -101,7 +102,7 @@ Include in every worker prompt:
    - Good: "find files over 10MB" → worker executes a clear threshold
    - Bad: "get recent orders" → worker interprets "recent"
    - Good: "get orders with status pending" → worker filters on a concrete field
-4. **Conventions to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
+4. **Rules to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
 5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
 6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
 7. **Return contract** — "End with a Captures section: (A) Gotchas, (B) Environment facts, (C) Procedures — or 'none' for each."
@@ -144,7 +145,7 @@ Only serialize when one worker's output is another's input. When in doubt, paral
 
 ## After Worker Returns
 
-1. Gotchas reported? → create skill
+1. Gotchas reported? → create fieldnote
 2. Environment facts? → write to `docs/knowledge/environment/`
 3. Procedures? → write to `docs/knowledge/runbooks/`
 4. Nothing? → move on
@@ -190,8 +191,8 @@ If output is `unavailable`, skip to Grep/Glob fallback immediately.
 - **WebFetch fails on localhost** — always use Bash (Node fetch or curl) for lore-docker endpoints.
 - Always include the `q` query parameter. Prefer short, concrete queries first, then broaden if needed.
 
-CONVENTIONS:
-# Conventions
+RULES:
+# Rules
 
 Operational rules and standards for this environment. Each page covers a specific domain.
 
@@ -326,7 +327,7 @@ Identify which repo owns the broken code:
 
 | Repo | Path | Scope |
 |------|------|-------|
-| lore | `~/Github/lore` | Hooks, lib, scripts, skills, conventions, templates |
+| lore | `~/Github/lore` | Hooks, lib, scripts, skills, rules, templates |
 | create-lore | `~/Github/create-lore` | Installer, npx entry point |
 | lore-docker | `~/Github/lore-docker` | Docker image, semantic search, docs UI |
 | lore-docs | `~/Github/lore-docs` | Public documentation site |
@@ -362,7 +363,7 @@ Paths are defaults — check `docs/knowledge/environment/repo-relationships.md` 
 
 **Turn the fix into knowledge.**
 
-- Gotcha → create a skill (mandatory for non-obvious failures).
+- Gotcha → create a fieldnote (mandatory for non-obvious failures).
 - Environment fact → `docs/knowledge/environment/`.
 - Affected procedure → update the relevant runbook.
 - If none apply, state "No capture needed" with a one-line reason.
@@ -604,7 +605,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Don't capture session-specific context (current task state, in-progress decisions).
 - Don't write knowledge that restates what code or config files already make obvious.
 - Don't create entries for hypothetical problems you haven't hit.
-- Don't capture what's already in instructions or conventions. Link instead.
+- Don't capture what's already in instructions or rules. Link instead.
 
 # Work Items
 
@@ -618,7 +619,7 @@ How knowledge entries should be written and organized. For routing rules (what g
 KNOWLEDGE MAP:
 docs/
 ├── context/
-│   └── conventions/
+│   └── rules/
 │       └── system/
 ├── guides/
 ├── javascripts/
@@ -637,11 +638,17 @@ docs/
     ├── notes/
     ├── plans/
     └── roadmaps/
+.lore/fieldnotes/
+├── mcp-stdio-content-length-framing/
+├── node-macos-stdin-fd/
+├── platform-command-collisions/
+└── pymdownx-extension-order/
 .lore/skills/
 ├── lore-capture/
 ├── lore-consolidate/
 ├── lore-create-agent/
 ├── lore-create-brainstorm/
+├── lore-create-fieldnote/
 ├── lore-create-note/
 ├── lore-create-plan/
 ├── lore-create-roadmap/
@@ -654,8 +661,4 @@ docs/
 ├── lore-link/
 ├── lore-semantic-search/
 ├── lore-status/
-├── lore-update/
-├── mcp-stdio-content-length-framing/
-├── node-macos-stdin-fd/
-├── platform-command-collisions/
-└── pymdownx-extension-order/
+└── lore-update/

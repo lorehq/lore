@@ -8,15 +8,15 @@ globs: docs/knowledge/**, docs/context/**
 Before writing to `docs/`, creating skills, or updating work items — propose what and where, then wait for operator approval.
 
 Capture targets:
-- Reusable fix → create or update a skill
+- Reusable fix / gotcha → create or update a fieldnote
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
 - Multi-step procedure → `docs/knowledge/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
 
-Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → skill `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
+Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → fieldnote `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
-After substantive work, also check: skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
+After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active plan or roadmap → update progress.
 
 Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.

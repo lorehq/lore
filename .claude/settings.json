@@ -24,8 +24,8 @@
       },
       {
         "matcher": "Write|Edit",
-        "hooks": [{ "type": "command", "command": "node .lore/hooks/convention-guard.js" }],
-        "description": "Reinforce conventions based on target file path"
+        "hooks": [{ "type": "command", "command": "node .lore/hooks/rule-guard.js" }],
+        "description": "Reinforce rules based on target file path"
       },
       {
         "matcher": "Write|Edit",

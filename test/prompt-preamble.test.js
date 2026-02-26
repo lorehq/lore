@@ -101,16 +101,16 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
   }
 });
 
-test('prompt-preamble: with conventions — still includes role directives', () => {
+test('prompt-preamble: with rules — still includes role directives', () => {
   const dir = setup();
-  const convDir = path.join(dir, 'docs', 'context', 'conventions');
-  fs.mkdirSync(convDir, { recursive: true });
-  fs.writeFileSync(path.join(convDir, 'coding.md'), '# Coding\n');
-  fs.writeFileSync(path.join(convDir, 'security.md'), '# Security\n');
-  fs.writeFileSync(path.join(convDir, 'index.md'), '# Overview\n');
+  const rulesDir = path.join(dir, 'docs', 'context', 'rules');
+  fs.mkdirSync(rulesDir, { recursive: true });
+  fs.writeFileSync(path.join(rulesDir, 'coding.md'), '# Coding\n');
+  fs.writeFileSync(path.join(rulesDir, 'security.md'), '# Security\n');
+  fs.writeFileSync(path.join(rulesDir, 'index.md'), '# Overview\n');
   try {
     const out = run(dir);
-    // Preamble no longer lists convention names (they're in the static banner)
+    // Preamble no longer lists rule names (they're in the static banner)
     assert.ok(out.includes('Curator'), 'should include Curator role');
     assert.ok(out.includes('Capturer'), 'should include Capturer role');
   } finally {

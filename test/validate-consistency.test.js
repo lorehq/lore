@@ -33,9 +33,9 @@ function setup() {
     path.join(dir, '.cursor', 'rules', 'lore-core.mdc'),
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
-  // Required conventions
-  fs.mkdirSync(path.join(dir, 'docs', 'context', 'conventions'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'docs', 'context', 'conventions', 'security.md'), '# Security\n');
+  // Required rules
+  fs.mkdirSync(path.join(dir, 'docs', 'context', 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules', 'security.md'), '# Security\n');
   return dir;
 }
 
@@ -80,7 +80,7 @@ test('fails: agent references non-existent skill', (t) => {
   );
   const { code, stdout } = runScript(dir);
   assert.equal(code, 1);
-  assert.ok(stdout.includes("references missing skill 'nonexistent-skill'"));
+  assert.ok(stdout.includes("references missing skill/fieldnote 'nonexistent-skill'"));
 });
 
 test('passes: fully consistent setup', (t) => {

@@ -3,7 +3,7 @@ example: true
 highlights:
   - Parallel vs sequential worker phases with explicit gates
   - Worker tier selection (haiku for extraction, sonnet for judgment)
-  - Convention isolation — workers get one convention, never multiple
+  - Rule isolation — workers get one rule, never multiple
   - Dedicated semantic search containers per data source
   - Commit-scoped scanning to limit blast radius
   - Protected pages that skip certain phases
@@ -12,22 +12,22 @@ highlights:
 # Docs-Code Alignment Sweep
 
 !!! example "Seed example"
-    This runbook ships with new Lore instances as an example of advanced runbook patterns — parallel delegation, worker tiers, phased gates, and convention isolation. Customize or delete it.
+    This runbook ships with new Lore instances as an example of advanced runbook patterns — parallel delegation, worker tiers, phased gates, and rule isolation. Customize or delete it.
 
-Bidirectional accuracy sweep — reduce doc volume, verify doc claims against source, discover undocumented functionality, then polish for convention compliance. Produces two outputs: doc fixes and a code violations report for follow-up. Uses parallel workers with dedicated semantic search containers.
+Bidirectional accuracy sweep — reduce doc volume, verify doc claims against source, discover undocumented functionality, then polish for rule compliance. Produces two outputs: doc fixes and a code violations report for follow-up. Uses parallel workers with dedicated semantic search containers.
 
 ## Prerequisites
 
 - Docs directory checked out locally
 - Source repos checked out locally
-- Docs convention loaded: `docs/context/conventions/documentation.md`
+- Docs rule loaded: `docs/context/rules/documentation.md`
 - Docker available for search containers
 
 ## Protected Pages
 
 Some doc pages contain empirical research data (test results, cost analysis, performance measurements). These are primary sources of truth — not derived from code and not candidates for reduction or fact-checking against source.
 
-**Rule:** Workers in Phase 1 and Phase 2 must skip protected pages entirely. Do not reduce, extract claims from, or verify these pages against source code. They are only subject to Phase 4 polish (formatting, convention compliance).
+**Rule:** Workers in Phase 1 and Phase 2 must skip protected pages entirely. Do not reduce, extract claims from, or verify these pages against source code. They are only subject to Phase 4 polish (formatting, rule compliance).
 
 Protected page criteria:
 
@@ -69,7 +69,7 @@ Cut doc volume before bidirectional passes so both phases work on canonical cont
 
 Launch 2-3 sonnet workers. Each worker loads:
 
-- `docs/context/conventions/documentation.md` **only**
+- `docs/context/rules/documentation.md` **only**
 
 Workers query **docs search (port 9190)** to find topically overlapping pages, then read actual files to decide cuts.
 
@@ -105,7 +105,7 @@ Read doc claims, verify against source, fix or remove what is false or stale.
 
 Split doc pages into ~4 groups by topic. **Skip protected pages.** Each worker loads:
 
-- `docs/context/conventions/documentation.md` **only**
+- `docs/context/rules/documentation.md` **only**
 
 Each haiku worker extracts every verifiable claim from its group:
 
@@ -122,7 +122,7 @@ Worker return format: structured claims list with `file:line` source for each cl
 
 Each worker receives a claims batch from Stage A. Workers load:
 
-- **No convention** — source reading requires no doc rules
+- **No rule** — source reading requires no doc rules
 
 For each claim: query **source search (port 9191)** then read returned files, then classify:
 
@@ -161,14 +161,14 @@ Workers receive the changed-file lists and commit summaries as input.
 
 Each worker loads:
 
-- `docs/context/conventions/coding.md` **only**
+- `docs/context/rules/coding.md` **only**
 - Changed-file list and commit log for its assigned repo
 
 For each changed module, config key, hook, or script entry point:
 
 - Is this user-facing? (affects behavior, config, or output the operator sees)
 - Is it a non-obvious behavior worth documenting?
-- Does it violate any coding convention? (flag with file:line, convention, severity)
+- Does it violate any coding rule? (flag with file:line, rule, severity)
 
 Worker return format — two sections:
 
@@ -177,14 +177,14 @@ Coverage items:
 { repo, file, functionality, user-facing: yes/no, reason, commit }
 
 Violations:
-| Repo | File | Line | Convention | Severity | Description |
+| Repo | File | Line | Rule | Severity | Description |
 ```
 
 ### Stage B — Doc Coverage Check (sonnet x3, parallel)
 
 Each worker receives a user-facing item batch from Stage A. Workers load:
 
-- `docs/context/conventions/documentation.md` **only**
+- `docs/context/rules/documentation.md` **only**
 
 For each item: query **docs search (port 9190)**, check returned pages, classify:
 
@@ -212,9 +212,9 @@ Do not apply judgment calls without operator decision.
 
 ## Phase 4: Polish (parallel — sonnet workers)
 
-Convention compliance sweep on the updated corpus. Launch 2-3 sonnet workers. Each worker loads:
+Rule compliance sweep on the updated corpus. Launch 2-3 sonnet workers. Each worker loads:
 
-- `docs/context/conventions/documentation.md` **only**
+- `docs/context/rules/documentation.md` **only**
 
 Each worker scans its assigned pages for:
 
@@ -238,8 +238,8 @@ docker rm sweep-docs sweep-source
 
 ## Model Allocation
 
-| Phase | Model | Workers | Convention | Rationale |
-|-------|-------|---------|-----------|-----------|
+| Phase | Model | Workers | Rule | Rationale |
+|-------|-------|---------|------|-----------|
 | Phase 1 Reduce | Sonnet | 2-3 | documentation | Judgment on what is duplicate or verbose |
 | Phase 2a Extract | Haiku | 4 | documentation | Structured extraction; fast and cheap |
 | Phase 2b Verify | Sonnet | 4 | none | Code comprehension; no doc rules needed |
@@ -248,7 +248,7 @@ docker rm sweep-docs sweep-source
 | Fix Sequence | Orchestrator | 1 | — | Human-in-the-loop triage |
 | Phase 4 Polish | Sonnet | 2-3 | documentation | Convention judgment; Haiku misses nuance |
 
-Convention isolation rule: workers get `documentation`, `coding`, or nothing — never both.
+Rule isolation: workers get `documentation`, `coding`, or nothing — never both.
 
 ## Parallelization Diagram
 

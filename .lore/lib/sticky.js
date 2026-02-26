@@ -20,9 +20,9 @@ function readSeed(directory, seedPath) {
   }
 }
 
-// Seed convention files: template name → target filename.
+// Seed rule files: template name → target filename.
 // Template 'docs.md' creates 'documentation.md' (renamed from legacy 'docs.md').
-const SEED_CONVENTIONS = [
+const SEED_RULES = [
   { seed: 'coding.md', target: 'coding.md' },
   { seed: 'docs.md', target: 'documentation.md' },
   { seed: 'prompt-engineering.md', target: 'prompt-engineering.md' },
@@ -61,7 +61,7 @@ function ensureStickyFiles(directory) {
 
 <!-- Injected into every agent session as PROJECT context. -->
 <!-- Once setup is complete, replace this file with your deployment details. -->
-<!-- Coding conventions belong in docs/context/conventions/ \u2014 also injected. -->
+<!-- Coding rules belong in docs/context/rules/ \u2014 also injected. -->
 
 ## Deployment State
 
@@ -84,26 +84,26 @@ Rules for how the agent should operate in this instance.
       );
     }
 
-    // Conventions directory — scaffold index + seed files individually
-    const convFile = path.join(directory, 'docs', 'context', 'conventions.md');
-    const convDir = path.join(directory, 'docs', 'context', 'conventions');
-    if (!fs.existsSync(convFile) && !fs.existsSync(convDir)) {
+    // Rules directory — scaffold index + seed files individually
+    const rulesFile = path.join(directory, 'docs', 'context', 'rules.md');
+    const rulesDir = path.join(directory, 'docs', 'context', 'rules');
+    if (!fs.existsSync(rulesFile) && !fs.existsSync(rulesDir)) {
       // First time: create directory with index
-      fs.mkdirSync(convDir, { recursive: true });
+      fs.mkdirSync(rulesDir, { recursive: true });
       fs.writeFileSync(
-        path.join(convDir, 'index.md'),
-        `# Conventions
+        path.join(rulesDir, 'index.md'),
+        `# Rules
 
 Operational rules and standards for this environment. Each page covers a specific domain.
 `,
       );
     }
-    // Create individual seed convention files if missing (even if dir already exists)
-    if (fs.existsSync(convDir)) {
-      for (const { seed, target } of SEED_CONVENTIONS) {
-        const targetPath = path.join(convDir, target);
+    // Create individual seed rule files if missing (even if dir already exists)
+    if (fs.existsSync(rulesDir)) {
+      for (const { seed, target } of SEED_RULES) {
+        const targetPath = path.join(rulesDir, target);
         if (!fs.existsSync(targetPath)) {
-          const content = readSeed(directory, path.join('conventions', seed));
+          const content = readSeed(directory, path.join('rules', seed));
           if (content) {
             fs.writeFileSync(targetPath, content);
           }

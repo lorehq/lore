@@ -48,9 +48,9 @@ bash scripts/analyze-hook-logs.sh /path/to/other-repo/.git/lore-hook-events.json
 
 | Platform | Hooks |
 |----------|-----------------|
-| Claude Code (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, context-path-guide, convention-guard |
+| Claude Code (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, context-path-guide, rule-guard |
 | Cursor (6) | session-init, capture-nudge, knowledge-tracker, protect-memory, failure-tracker, compaction-flag |
-| OpenCode (5) | session-init, knowledge-tracker, protect-memory, context-path-guide, convention-guard |
+| OpenCode (5) | session-init, knowledge-tracker, protect-memory, context-path-guide, rule-guard |
 
 ## Reset
 

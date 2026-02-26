@@ -45,4 +45,4 @@ How knowledge entries should be written and organized. For routing rules (what g
 - Don't capture session-specific context (current task state, in-progress decisions).
 - Don't write knowledge that restates what code or config files already make obvious.
 - Don't create entries for hypothetical problems you haven't hit.
-- Don't capture what's already in instructions or conventions. Link instead.
+- Don't capture what's already in instructions or rules. Link instead.

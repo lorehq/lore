@@ -27,7 +27,7 @@ Identify which repo owns the broken code:
 
 | Repo | Path | Scope |
 |------|------|-------|
-| lore | `~/Github/lore` | Hooks, lib, scripts, skills, conventions, templates |
+| lore | `~/Github/lore` | Hooks, lib, scripts, skills, rules, templates |
 | create-lore | `~/Github/create-lore` | Installer, npx entry point |
 | lore-docker | `~/Github/lore-docker` | Docker image, semantic search, docs UI |
 | lore-docs | `~/Github/lore-docs` | Public documentation site |
@@ -63,7 +63,7 @@ Paths are defaults — check `docs/knowledge/environment/repo-relationships.md` 
 
 **Turn the fix into knowledge.**
 
-- Gotcha → create a skill (mandatory for non-obvious failures).
+- Gotcha → create a fieldnote (mandatory for non-obvious failures).
 - Environment fact → `docs/knowledge/environment/`.
 - Affected procedure → update the relevant runbook.
 - If none apply, state "No capture needed" with a one-line reason.

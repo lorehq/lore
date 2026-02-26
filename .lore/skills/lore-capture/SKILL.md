@@ -19,7 +19,7 @@ The operator types `/lore-capture` after sustained work, or as a session wrap-up
 Walk through every item. Report findings to the operator before making changes.
 
 1. **Review session work** for uncaptured knowledge
-2. **Gotchas?** → create skill (mandatory — every gotcha becomes a skill)
+2. **Gotchas?** → create fieldnote (mandatory — every gotcha becomes a fieldnote via `/lore-create-fieldnote`)
 3. **New environment knowledge?** (URLs, repos, services, relationships) → `docs/knowledge/environment/`
 4. **Sync platform copies**: `bash .lore/scripts/sync-platform-skills.sh`
 5. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder

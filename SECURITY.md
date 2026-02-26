@@ -12,7 +12,7 @@ We will acknowledge receipt within 48 hours and provide a timeline for a fix.
 
 ## Scope
 
-Lore is a convention-based harness with no runtime server or network services. Security concerns are primarily:
+Lore is a rule-based harness with no runtime server or network services. Security concerns are primarily:
 
 - Hook scripts that execute on every tool use (potential for injection if hooks are modified)
 - Shell scripts that parse file content (potential for command injection via crafted filenames or content)
