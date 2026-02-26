@@ -246,7 +246,7 @@ docker rm sweep-docs sweep-source
 | Phase 3a Source Scan | Sonnet | 1/repo | coding | Commit-scoped; flags violations too |
 | Phase 3b Doc Coverage | Sonnet | 3 | documentation | Understands what a good doc entry covers |
 | Fix Sequence | Orchestrator | 1 | — | Human-in-the-loop triage |
-| Phase 4 Polish | Sonnet | 2-3 | documentation | Convention judgment; Haiku misses nuance |
+| Phase 4 Polish | Sonnet | 2-3 | documentation | Rule judgment; Haiku misses nuance |
 
 Rule isolation: workers get `documentation`, `coding`, or nothing — never both.
 

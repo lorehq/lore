@@ -293,7 +293,7 @@ function buildBanner(directory) {
 
 // Cursor-specific banner: dynamic-only content that can't live in static .mdc rules.
 // Complements the tiered .cursor/rules/lore-*.mdc files which handle project identity,
-// conventions, knowledge map, delegation, and other static context.
+// rules, knowledge map, delegation, and other static context.
 // This banner provides only what changes between sessions:
 //   - Version header
 //   - Active roadmaps/plans (scanned from docs/work/ frontmatter)
