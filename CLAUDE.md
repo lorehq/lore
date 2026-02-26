@@ -81,7 +81,7 @@ Roadmaps, plans, notes, and brainstorms — all **operator-initiated**.
 
 Roadmaps and plans use YAML frontmatter (`status: active`) and active items appear in the session banner. Completed items move to `archive/` subfolders.
 
-=== LORE v0.14.4 ===
+=== LORE v0.14.6 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 

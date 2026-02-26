@@ -88,7 +88,7 @@ Roadmaps and plans use YAML frontmatter (`status: active`) and active items appe
 
 
 
-=== LORE v0.14.4 ===
+=== LORE v0.14.6 ===
 
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 

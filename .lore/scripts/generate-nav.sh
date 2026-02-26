@@ -155,6 +155,38 @@ emit_work_subsections() {
   done
 }
 
+# Copy skills into docs/ so mkdocs can serve them, then emit flat nav entries.
+# docs/skills/ is gitignored — this is a build artifact, not tracked source.
+emit_skills_section() {
+  local skills_src="$REPO_ROOT/.lore/skills"
+  local skills_dst="$DOCS/skills"
+  [[ -d "$skills_src" ]] || return 0
+
+  # Sync: clear and re-copy skill dirs that contain SKILL.md
+  rm -rf "$skills_dst"
+  local found=0
+  local name title
+  for skill_dir in "$skills_src"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    [[ -f "${skill_dir}SKILL.md" ]] || continue
+    name=$(basename "$skill_dir")
+    mkdir -p "$skills_dst/$name"
+    cp -r "$skill_dir"* "$skills_dst/$name/"
+    found=1
+  done
+
+  [[ "$found" -eq 1 ]] || return 0
+
+  echo "  - Skills:"
+  for skill_dir in "$skills_dst"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    [[ -f "${skill_dir}SKILL.md" ]] || continue
+    name=$(basename "$skill_dir")
+    title=$(to_title "$name")
+    echo "      - ${title}: skills/${name}/SKILL.md"
+  done
+}
+
 # Write preserved header + fresh nav
 {
   echo "$HEADER"
@@ -176,6 +208,8 @@ emit_work_subsections() {
       scan_dir "$DOCS/$section" "      "
     fi
   done
+
+  emit_skills_section
 
   echo "  - Docs: https://lorehq.github.io/lore-docs/"
 } > "$OUTPUT"
