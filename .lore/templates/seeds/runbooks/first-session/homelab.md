@@ -6,6 +6,9 @@ Grounds the agent in operator identity, network topology, infrastructure, and se
 
 **How to invoke:** Ask the agent: *"Walk me through first-session setup."*
 
+!!! tip "Recommended: start the docs sidecar first"
+    Run `/lore-docker` before Phase 1. The Docker sidecar provides semantic search and a live docs UI — every skill, environment doc, and runbook created in later phases becomes instantly searchable. Skip if Docker isn't available; everything works without it.
+
 ---
 
 ## Phase 1: Identity
