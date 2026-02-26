@@ -148,7 +148,7 @@ WORKERS: ${workerList}`;
     output += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
   } else if (profile === 'discovery') {
     output +=
-      '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
+      '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.';
   }
 
   if (fieldnoteLine) output += `\n\nFIELDNOTES: ${fieldnoteLine}`;

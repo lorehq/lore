@@ -37,7 +37,7 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Rules are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
 
-**One knowledge base, every platform, every repo.** Capture a skill in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
+**One knowledge base, every platform, every repo.** Capture a fieldnote in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
 
 **Complex work delegates to focused workers.** The harness orchestrates delegation: when work benefits from a fresh context window, it spawns workers loaded with curated skills and rules. Compound tasks split across parallel workers for maximum throughput.
 
@@ -45,14 +45,15 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Without a harness** — Every session starts cold. You re-explain your project, the agent re-discovers API quirks, makes the same mistakes, and yesterday's debugging session is gone.
 
-**With Lore** — The agent knows your project. Skills from last week load automatically. Rules are enforced at write-time. Active roadmaps surface at startup. Complex work delegates to focused workers.
+**With Lore** — The agent knows your project. Fieldnotes from last week load automatically. Rules are enforced at write-time. Active roadmaps surface at startup. Complex work delegates to focused workers.
 
 ## How It Works
 
 Lore is a harness built from markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
-- **Skills** (`.lore/skills/`) — Gotchas and patterns captured from real work. Available on-demand in every session.
-- **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills per-task.
+- **Fieldnotes** (`.lore/fieldnotes/`) — Gotchas and patterns captured from real work. Available on-demand in every session.
+- **Skills** (`.lore/skills/`) — Procedural capabilities and reusable commands.
+- **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills and fieldnotes per-task.
 - **Docs** (`docs/`) — Project context, rules, environment knowledge, runbooks, and work tracking.
 - **Hooks** (`.lore/hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce rules before writes, nudge knowledge capture during work.
 - **Scripts** (`.lore/scripts/`) — Platform sync, validation, nav building.
@@ -67,7 +68,7 @@ Tell your agent to link work repos to the hub — it generates configs so hooks 
 
 | Command | What it does |
 |---------|-------------|
-| `/lore-capture` | Review session work, capture skills, update registries, validate consistency |
+| `/lore-capture` | Review session work, capture fieldnotes, update registries, validate consistency |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-link <path>` | Link a work repo to this hub |
 | `/lore-docker` | Start/stop the local Docker sidecar — semantic search + live MkDocs UI |
@@ -81,7 +82,7 @@ Tell your agent to link work repos to the hub — it generates configs so hooks 
 | **Cursor** | Hooks + MCP server + `.mdc` rules | Experimental |
 | **OpenCode** | ESM plugins + `opencode.json` | Experimental |
 
-All platforms share the same knowledge base. Skills, agents, and rules written once sync to platform-specific formats automatically.
+All platforms share the same knowledge base. Skills, fieldnotes, agents, and rules written once sync to platform-specific formats automatically.
 
 ## Documentation
 

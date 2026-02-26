@@ -15,7 +15,7 @@ function rewriteForLinkedRepo(content, hubPath) {
   const boundaryRe = /(## Repo Boundary\n)[\s\S]*?(?=\n## )/;
   const linkedBoundary = `## Repo Boundary
 
-**This is a work repo linked to a Lore hub at \`${hubPath}\`.** Application code belongs here. All knowledge, skills, agents, work tracking, and docs live in the hub — use absolute hub paths below. Do not create \`docs/\`, \`.lore/\`, or knowledge directories in this repo.
+**This is a work repo linked to a Lore hub at \`${hubPath}\`.** Application code belongs here. All knowledge, skills, fieldnotes, agents, work tracking, and docs live in the hub — use absolute hub paths below. Do not create \`docs/\`, \`.lore/\`, or knowledge directories in this repo.
 
 `;
   content = content.replace(boundaryRe, linkedBoundary);

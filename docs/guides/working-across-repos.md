@@ -32,7 +32,7 @@ flowchart TD
 
 | Artifact | Example |
 |----------|---------|
-| **Skills** | "This API requires case-sensitive org names" |
+| **Fieldnotes** | "This API requires case-sensitive org names" |
 | **Context docs** | Repo inventory, service endpoints, relationships |
 | **Runbooks** | "How to deploy app-api to staging" |
 | **Work items** | Roadmaps and plans that span multiple repos |

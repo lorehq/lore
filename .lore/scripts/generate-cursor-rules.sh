@@ -237,7 +237,7 @@ if (coreSearchUrl) staticBannerBlock += `\nSEMANTIC SEARCH: ${coreSearchUrl}`;
 if (coreProfile === 'minimal') {
   staticBannerBlock += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
 } else if (coreProfile === 'discovery') {
-  staticBannerBlock += '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create skills for every non-obvious fix. Run /lore-capture at natural breakpoints.';
+  staticBannerBlock += '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.';
 }
 if (coreFieldnoteLine) staticBannerBlock += `\n\nFIELDNOTES: ${coreFieldnoteLine}`;
 if (coreBLSkills.length > 0) staticBannerBlock += '\n\n' + coreBLSkills.map(s => s.body).join('\n\n');

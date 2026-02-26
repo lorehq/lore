@@ -6,7 +6,7 @@ Commands are things you say to your agent — shortcuts for common operations.
 
 | Command | What it does |
 |---------|-------------|
-| `/lore-capture` | Review session work, capture skills, update registries |
+| `/lore-capture` | Review session work, capture fieldnotes, update registries |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
 | `/lore-status` | Instance health — version, hooks, skills, agents |
 | `/lore-update` | Pull latest harness files |

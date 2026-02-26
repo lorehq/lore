@@ -1,6 +1,6 @@
 ---
 name: lore-status
-description: Show Lore instance health — version, hooks, skills, agents, active work
+description: Show Lore instance health — version, hooks, skills, fieldnotes, agents, active work
 type: command
 user-invocable: true
 allowed-tools: Bash, Read, Glob
@@ -53,6 +53,7 @@ Run these checks and present a formatted summary to the operator:
 
 3. **Counts** — count and report:
    - Skills: number of directories in `.lore/skills/`
+   - Fieldnotes: number of directories in `.lore/fieldnotes/`
    - Agents: number of `.md` files in `.lore/agents/` (0 if dir missing)
    - Knowledge docs: number of `.md` files under `docs/knowledge/`
    - Runbooks: number of `.md` files under `docs/knowledge/runbooks/`
@@ -71,7 +72,7 @@ Run these checks and present a formatted summary to the operator:
      Cursor MCP    OK
      OpenCode      OK
 
-   Skills: 12 | Agents: 2 | Knowledge docs: 5 | Runbooks: 1
+   Skills: 12 | Fieldnotes: 19 | Agents: 2 | Knowledge docs: 5 | Runbooks: 1
 
    Linked repos: 2 (1 stale)
 

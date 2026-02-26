@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # -- Claude Code skills --
 # Copy ALL lore skills to .claude/skills/ so Claude can discover and use them.
 # The user-invocable frontmatter field in each SKILL.md controls whether they
-# appear as /commands — non-command skills (gotchas, recipes) are still visible
+# appear as /commands — non-command fieldnotes (gotchas, recipes) are still visible
 # to the agent for reference without being exposed to the user.
 if [ -d "$REPO_ROOT/.lore/skills" ]; then
   mkdir -p "$REPO_ROOT/.claude/skills"

@@ -30,5 +30,5 @@ The capture task is always last. No intermediate checkpoints.
 ```
 activeForm: "Performing capture"
 
-Follow the capture checklist — review session, create skills, update registries, validate consistency.
+Follow the capture checklist — review session, create fieldnotes, update registries, validate consistency.
 ```

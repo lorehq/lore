@@ -210,7 +210,7 @@ const TOOLS = [
   {
     name: 'lore_search',
     description:
-      'Semantic search across the Lore knowledge base (docs, skills, runbooks, work items). ' +
+      'Semantic search across the Lore knowledge base (docs, skills, fieldnotes, runbooks, work items). ' +
       'Returns snippets and file paths. Use lore_read to get complete file contents.',
     inputSchema: { type: 'object', properties: SEARCH_PARAMS, required: ['query'] },
   },

@@ -47,7 +47,7 @@ function getThresholds(directory) {
 // with escalation at nudge/warn thresholds. Failures always emit.
 function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, rootDir }) {
   const decision =
-    'If this is Execution phase: REQUIRED before finish choose one - (A) skill captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
+    'If this is Execution phase: REQUIRED before finish choose one - (A) fieldnote captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
   const failureReview =
     'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a fieldnote before completion.';
 
