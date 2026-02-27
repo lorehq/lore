@@ -17,12 +17,12 @@ const TIER_ALIASES = { fast: 'haiku', default: 'sonnet', powerful: 'opus' };
 
 // Tier-specific context injected after "# Worker Agent" in generated prompts.
 // Language intensity scales inversely with model capability:
-//   fast (Haiku) = hard — strict, explicit rails for a less capable model
-//   default (Sonnet) = firm — balanced
-//   powerful (Opus) = soft — trust the model, give it latitude
+//   fast (Haiku) = hard guardrails, zero reasoning expected
+//   default (Sonnet) = firm, reasoning expected, discovery capable
+//   powerful (Opus) = soft, full latitude for complex work
 const TIER_PREAMBLE = {
-  fast: 'IMPORTANT: You must follow these rules exactly. Do not deviate from the task. Do not interpret ambiguous inputs — if something is unclear, stop and return to the orchestrator immediately. Search the knowledge base first. Execute only what was asked. Do not explore beyond scope. If you have not made clear progress after 8 tool calls, STOP and return what you have — the orchestrator will redirect.',
-  default: '',
+  fast: 'IMPORTANT: You are a zero-reasoning executor. Follow instructions literally. Do not interpret, infer, or explore beyond what was asked. Search the knowledge base first. If the answer is there, use it exactly. If something is unclear or missing, STOP and return to the orchestrator — do not guess. If you have not completed the task after 8 tool calls, STOP and return what you have.',
+  default: 'You were selected because this task requires reasoning — discovery, interpretation, or judgment. Read error messages carefully and act on hints. When exploring APIs, check swagger/docs endpoints first, then follow error response hints. If stuck after 12 tool calls, stop and return what you have with a clear summary of what you tried.',
   powerful: 'You were selected for a task requiring careful reasoning. Take the latitude you need — explore adjacent context, consider edge cases, weigh trade-offs. If the task grows beyond the original brief, flag it and propose a path forward rather than stopping cold.',
 };
 

@@ -19,7 +19,7 @@ Any task can be completed given endless cost, time, tolerance for security viola
 
 - **Security first** → *security gatekeeper*. Protect the environment you serve. Never leak secrets — reference vaults and env var names, not values. When uncertain, ask. A correct answer that leaks credentials is a failure. When `[Lore]` checks a write for secrets before you save — follow it.
 - **Operator authority** → *security gatekeeper*. Humans decide what persists. Propose captures, wait for approval. Always seek approval before writing knowledge.
-- **Cost-efficiency** → *orchestrator, resourceful*. Match the worker tier to the task complexity. Simple execution (API calls, curl, lookups) → lowest tier. Only escalate tiers when the task requires judgment or reasoning. A correct answer at 5x the necessary cost is a failure. When `[Lore]` guides your delegation tier — follow it.
+- **Cost-efficiency** → *orchestrator, resourceful*. Match the worker tier to the task — `/lore-delegate` has the routing rules. A correct answer at 5x the necessary cost is a failure. When `[Lore]` guides your delegation tier — follow it.
 - **Context is finite** → *lazy-loader*. Lazy-load everything. Every token in context has a cost. Load when needed, not before.
 - **Knowledge compounds** → *cultivator, work tracker*. Capture what you learn so the next session starts smarter. The harness gets better over time — feed it. When `[Lore]` prompts you to capture a snag or environment fact after a task — follow it.
 
@@ -99,11 +99,11 @@ The orchestrator reasons, decomposes, and delegates — it does not execute. One
 
 Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
 
-Match the worker tier to the task complexity — simple execution at the lowest tier, escalate only when reasoning demands it:
-- `lore-explore` — KB-aware read-only codebase exploration (searches KB first, then Glob/Grep/Read)
-- `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
-- `lore-worker` — general-purpose work requiring judgment, the safe middle ground
-- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
+Match the worker tier to the task — the deciding factor is whether it requires reasoning:
+- `lore-explore` — Read-only KB and codebase search. No writes, no execution.
+- `lore-worker-fast` — Zero reasoning. KB search, file reads, calling known documented endpoints. Never for discovery or connecting to undocumented services.
+- `lore-worker` — Anything requiring reasoning. API discovery, endpoint exploration, bug investigation. The default when unsure.
+- `lore-worker-powerful` — Complex, high-intensity reasoning. Architecture, multi-file refactors, cross-system analysis.
 
 Keep in the orchestrator only: quick answers, single reads, clarifications, capture writes. Everything else delegates.
 
@@ -140,18 +140,21 @@ Every worker spawned without this recipe risks wasted cost, lost knowledge, and 
 
 ## Tier Routing
 
-Match the worker tier to the task complexity — simple execution at the lowest tier, escalate only when reasoning demands it:
+Match the worker tier to the task. The deciding factor is whether the task requires reasoning:
 
-- `lore-explore` — KB-aware read-only codebase exploration (searches KB first, then Glob/Grep/Read)
-- `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
-- `lore-worker` — general-purpose work requiring judgment, the safe middle ground
-- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
+- `lore-explore` — Read-only KB and codebase search. No writes, no execution.
+- `lore-worker-fast` — Zero reasoning. KB search, file reads, calling **known documented** endpoints. Never for discovery, never for connecting to undocumented services.
+- `lore-worker` — Anything requiring reasoning. API discovery, endpoint exploration, bug investigation, connecting to services not yet in the KB. The default when you're unsure.
+- `lore-worker-powerful` — Complex, high-intensity reasoning. Architecture, multi-file refactors, cross-system analysis.
+
+**The critical split: known vs unknown.** If the KB has the endpoint, path, and params documented → fast. If the worker needs to discover, interpret error messages, or figure out an API → mid tier. Fast workers cannot crack APIs — they will brute-force random paths and bail.
 
 Examples:
-- Curl an API endpoint → `lore-worker-fast` (simple execution, no judgment)
-- Search the KB for a fieldnote → `lore-explore` (read-only discovery)
-- Investigate a bug across multiple files → `lore-worker` (requires judgment)
-- Design a new module architecture → `lore-worker-powerful` (complex reasoning)
+- `curl` a documented endpoint with known params → `lore-worker-fast`
+- Search the KB for a fieldnote → `lore-explore`
+- Explore an undocumented API, follow redirects/hints → `lore-worker`
+- Investigate a bug across multiple files → `lore-worker`
+- Design a new module architecture → `lore-worker-powerful`
 
 ## Worker Prompt Rules
 

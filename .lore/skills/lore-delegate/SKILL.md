@@ -10,18 +10,21 @@ Every worker spawned without this recipe risks wasted cost, lost knowledge, and 
 
 ## Tier Routing
 
-Match the worker tier to the task complexity — simple execution at the lowest tier, escalate only when reasoning demands it:
+Match the worker tier to the task. The deciding factor is whether the task requires reasoning:
 
-- `lore-explore` — KB-aware read-only codebase exploration (searches KB first, then Glob/Grep/Read)
-- `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
-- `lore-worker` — general-purpose work requiring judgment, the safe middle ground
-- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
+- `lore-explore` — Read-only KB and codebase search. No writes, no execution.
+- `lore-worker-fast` — Zero reasoning. KB search, file reads, calling **known documented** endpoints. Never for discovery, never for connecting to undocumented services.
+- `lore-worker` — Anything requiring reasoning. API discovery, endpoint exploration, bug investigation, connecting to services not yet in the KB. The default when you're unsure.
+- `lore-worker-powerful` — Complex, high-intensity reasoning. Architecture, multi-file refactors, cross-system analysis.
+
+**The critical split: known vs unknown.** If the KB has the endpoint, path, and params documented → fast. If the worker needs to discover, interpret error messages, or figure out an API → mid tier. Fast workers cannot crack APIs — they will brute-force random paths and bail.
 
 Examples:
-- Curl an API endpoint → `lore-worker-fast` (simple execution, no judgment)
-- Search the KB for a fieldnote → `lore-explore` (read-only discovery)
-- Investigate a bug across multiple files → `lore-worker` (requires judgment)
-- Design a new module architecture → `lore-worker-powerful` (complex reasoning)
+- `curl` a documented endpoint with known params → `lore-worker-fast`
+- Search the KB for a fieldnote → `lore-explore`
+- Explore an undocumented API, follow redirects/hints → `lore-worker`
+- Investigate a bug across multiple files → `lore-worker`
+- Design a new module architecture → `lore-worker-powerful`
 
 ## Worker Prompt Rules
 
