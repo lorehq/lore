@@ -2,4 +2,4 @@
 
 Harness-owned runbooks — overwritten on every `/lore-update` sync.
 
-Operator runbooks live in the parent directory (`docs/knowledge/runbooks/`).
+Operator runbooks live in the parent directory (`.lore/runbooks/`).

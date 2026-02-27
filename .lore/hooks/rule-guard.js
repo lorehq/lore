@@ -48,7 +48,7 @@ debug('rule-guard: file=%s relative=%s', filePath, relative);
 // Extract bold principle lines from a rule file: **Bold text.**
 // Checks parent dir first (operator override), then system/ fallback.
 function extractPrinciples(filename) {
-  const rulesDir = path.join(hubDir, 'docs', 'context', 'rules');
+  const rulesDir = path.join(hubDir, '.lore', 'rules');
   const candidates = [path.join(rulesDir, filename), path.join(rulesDir, 'system', filename)];
   for (const rulePath of candidates) {
     try {
@@ -74,7 +74,7 @@ const rules = [];
 // Security: always — self-heal from seed if deleted
 let security = extractPrinciples('security.md');
 if (security.length === 0) {
-  const secTarget = path.join(hubDir, 'docs', 'context', 'rules', 'security.md');
+  const secTarget = path.join(hubDir, '.lore', 'rules', 'security.md');
   const seedPath = path.join(hubDir, '.lore', 'templates', 'seeds', 'rules', 'security.md');
   try {
     if (!fs.existsSync(secTarget) && fs.existsSync(seedPath)) {
@@ -125,13 +125,13 @@ if (isDocs) injected.add('documentation.md');
 if (isWork) injected.add('work-items.md');
 if (isKnowledge) injected.add('knowledge-capture.md');
 
-const rulesDir = path.join(hubDir, 'docs', 'context', 'rules');
+const rulesDir2 = path.join(hubDir, '.lore', 'rules');
 try {
   // Merge operator rules + system/ rules, operator takes precedence
-  const operatorFiles = fs.readdirSync(rulesDir).filter((f) => f.endsWith('.md') && !injected.has(f));
+  const operatorFiles = fs.readdirSync(rulesDir2).filter((f) => f.endsWith('.md') && !injected.has(f));
   const operatorNames = new Set(operatorFiles);
   let systemFiles = [];
-  const systemDir = path.join(rulesDir, 'system');
+  const systemDir = path.join(rulesDir2, 'system');
   try {
     systemFiles = fs
       .readdirSync(systemDir)
@@ -140,7 +140,7 @@ try {
   const allFiles = [...operatorFiles, ...systemFiles];
   if (allFiles.length > 0) {
     const names = allFiles.map((f) => f.replace(/\.md$/, ''));
-    rules.push('Other rules: ' + names.join(', ') + ' — read docs/context/rules/<name>.md if relevant');
+    rules.push('Other rules: ' + names.join(', ') + ' — read .lore/rules/<name>.md if relevant');
   }
 } catch (e) {
   debug('rule-guard: could not list rules: %s', e.message);

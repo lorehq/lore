@@ -10,7 +10,7 @@ Before writing to `docs/`, creating skills, or updating work items — propose w
 Capture targets:
 - Reusable fix / snag → create or update a fieldnote
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
-- Multi-step procedure → `docs/knowledge/runbooks/`
+- Multi-step procedure → `.lore/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
 
 Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → fieldnote `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.

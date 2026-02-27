@@ -204,7 +204,7 @@ git checkout -b knowledge-defrag-$(date +%Y%m%d)
 # Then: "Run the knowledge defrag runbook"
 ```
 
-See `docs/knowledge/runbooks/system/knowledge-defrag.md`.
+See `.lore/runbooks/system/knowledge-defrag.md`.
 
 ---
 

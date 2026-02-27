@@ -16,7 +16,7 @@ The operator types `/lore-field-repair` when a hook, script, skill, or rule is b
 
 ## Process
 
-1. Load the field-repair rule: `docs/context/rules/field-repair.md`
+1. Load the field-repair rule: `.lore/rules/field-repair.md`
 2. Ask the operator:
    - **What's broken?** (hook error, skill failure, script crash, bad behavior)
    - **How to reproduce?** (exact trigger — slash command, tool call, event)

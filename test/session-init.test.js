@@ -51,11 +51,11 @@ function setup(opts = {}) {
     fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), opts.agentRules);
   }
   if (opts.rules) {
-    fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-    fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules.md'), opts.rules);
+    fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+    fs.writeFileSync(path.join(dir, '.lore', 'rules.md'), opts.rules);
   }
   if (opts.rulesDir) {
-    const rulesDir = path.join(dir, 'docs', 'context', 'rules');
+    const rulesDir = path.join(dir, '.lore', 'rules');
     fs.mkdirSync(rulesDir, { recursive: true });
     for (const [name, content] of Object.entries(opts.rulesDir)) {
       fs.writeFileSync(path.join(rulesDir, name), content);
@@ -214,13 +214,13 @@ test('scaffolds rules even though hook output is dynamic-only', (t) => {
   const out = runHook(dir);
   // Rules are static content — not in hook output but scaffolding still runs
   assert.ok(!out.includes('RULES:'), 'rules belong in CLAUDE.md, not hook output');
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'index.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'index.md')));
 });
 
 test('creates sticky rules directory scaffold when neither path exists', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const rulesDir = path.join(dir, 'docs', 'context', 'rules');
+  const rulesDir = path.join(dir, '.lore', 'rules');
   assert.ok(!fs.existsSync(rulesDir), 'should not exist before hook runs');
   runHook(dir);
   assert.ok(fs.existsSync(path.join(rulesDir, 'index.md')), 'index.md should be created');
@@ -237,10 +237,10 @@ test('does not overwrite existing rules.md with scaffold', (t) => {
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir);
-  const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'rules.md'), 'utf8');
+  const content = fs.readFileSync(path.join(dir, '.lore', 'rules.md'), 'utf8');
   assert.ok(content.includes('My Custom Rules'), 'should preserve operator content');
   assert.ok(
-    !fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'index.md')),
+    !fs.existsSync(path.join(dir, '.lore', 'rules', 'index.md')),
     'should not create scaffold when flat file exists',
   );
 });
@@ -251,10 +251,10 @@ test('does not overwrite existing rules directory with scaffold', (t) => {
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir);
-  const content = fs.readFileSync(path.join(dir, 'docs', 'context', 'rules', 'index.md'), 'utf8');
+  const content = fs.readFileSync(path.join(dir, '.lore', 'rules', 'index.md'), 'utf8');
   assert.ok(content.includes('My Rules'), 'should preserve operator content');
   // Seed files are created individually even when dir exists
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'coding.md')), 'should create seed rule files');
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'coding.md')), 'should create seed rule files');
 });
 
 test('hook output excludes static knowledge map regardless of treeDepth', (t) => {

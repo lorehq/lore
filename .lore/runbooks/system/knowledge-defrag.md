@@ -2,13 +2,13 @@
 
 **WARNING: This runbook restructures `docs/knowledge/` freely. It will move, rename, merge, and reorganize files. Run on a clean git state with a dedicated branch. Review the proposed structure before approving execution.**
 
-Reorganizes `docs/knowledge/` based on actual file content rather than the original folder structure. Applies the knowledge base structure rule (`docs/context/rules/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
+Reorganizes `docs/knowledge/` based on actual file content rather than the original folder structure. Applies the knowledge base structure rule (`.lore/rules/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
 
 ## Prerequisites
 
 - Clean git state (`git status` must show no uncommitted changes)
 - Create a branch before starting: `git checkout -b knowledge-defrag-$(date +%Y%m%d)`
-- Knowledge rule loaded: `docs/context/rules/knowledge-base-structure.md`
+- Knowledge rule loaded: `.lore/rules/knowledge-base-structure.md`
 
 ## Protected Paths
 
@@ -16,13 +16,13 @@ These paths are never moved or renamed. Workers must exclude them from all propo
 
 - `docs/knowledge/local/` — gitignored operator identity files
 - `docs/knowledge/environment/` — environment facts; harness hooks reference this path
-- `docs/knowledge/runbooks/` — this runbook's own directory; external references depend on the name
+- `.lore/runbooks/` — this runbook's own directory; external references depend on the name
 
 ## Phase 1: Inventory (parallel — haiku x3)
 
 Split `docs/knowledge/` files into ~3 groups by directory. Each worker loads:
 
-- `docs/context/rules/knowledge-base-structure.md` **only**
+- `.lore/rules/knowledge-base-structure.md` **only**
 
 For each file, extract:
 
@@ -38,7 +38,7 @@ Worker return format: structured inventory list per file.
 
 Orchestrator passes the full inventory to one sonnet worker. Worker loads:
 
-- `docs/context/rules/knowledge-base-structure.md` **only**
+- `.lore/rules/knowledge-base-structure.md` **only**
 
 Worker proposes a new directory structure and full move map:
 

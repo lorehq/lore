@@ -17,8 +17,8 @@ const HARNESS_PREFIXES = [
   '.opencode/',
   '.cursor/hooks/',
   '.cursor/mcp/',
-  'docs/context/rules/system/',
-  'docs/knowledge/runbooks/system/',
+  '.lore/rules/system/',
+  '.lore/runbooks/system/',
 ];
 
 const HARNESS_PATTERNS = [

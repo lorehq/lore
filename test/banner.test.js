@@ -47,7 +47,7 @@ function setup(opts = {}) {
     for (const [name, content] of Object.entries(opts.fieldnotes)) {
       const noteDir = path.join(dir, '.lore', 'fieldnotes', name);
       fs.mkdirSync(noteDir, { recursive: true });
-      fs.writeFileSync(path.join(noteDir, 'SKILL.md'), content);
+      fs.writeFileSync(path.join(noteDir, 'FIELDNOTE.md'), content);
     }
   }
   if (opts.agentRules) {
@@ -56,10 +56,10 @@ function setup(opts = {}) {
   }
   if (opts.rules) {
     fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-    fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules.md'), opts.rules);
+    fs.writeFileSync(path.join(dir, '.lore', 'rules.md'), opts.rules);
   }
   if (opts.rulesDir) {
-    const _rulesDir = path.join(dir, 'docs', 'context', 'rules');
+    const _rulesDir = path.join(dir, '.lore', 'rules');
     fs.mkdirSync(_rulesDir, { recursive: true });
     for (const [name, content] of Object.entries(opts.rulesDir)) {
       fs.writeFileSync(path.join(_rulesDir, name), content);
@@ -127,7 +127,7 @@ test('getAgentEntries: returns empty array when no agents exist', (t) => {
 // getFieldnotes
 // ---------------------------------------------------------------------------
 
-test('getFieldnotes: reads name and description from SKILL.md frontmatter', (t) => {
+test('getFieldnotes: reads name and description from FIELDNOTE.md frontmatter', (t) => {
   const dir = setup({
     fieldnotes: {
       'bash-macos-compat': '---\nname: bash-macos-compat\ndescription: macOS Bash compat\n---\n',

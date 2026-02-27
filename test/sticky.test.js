@@ -20,11 +20,11 @@ test('ensureStickyFiles: creates all sticky files from scratch', (t) => {
   ensureStickyFiles(dir);
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'index.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'documentation.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'coding.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'rules', 'security.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'work', 'notes', 'index.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'index.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'documentation.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'coding.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'security.md')));
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'workflow', 'notes', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
@@ -36,7 +36,7 @@ test('ensureStickyFiles: idempotent — does not overwrite existing files', (t) 
   const rulesPath = path.join(dir, 'docs', 'context', 'agent-rules.md');
   fs.writeFileSync(rulesPath, '# Custom Rules');
   // Write custom coding rule
-  const codingPath = path.join(dir, 'docs', 'context', 'rules', 'coding.md');
+  const codingPath = path.join(dir, '.lore', 'rules', 'coding.md');
   fs.writeFileSync(codingPath, '# My Coding Rules');
   // Run again
   ensureStickyFiles(dir);
@@ -49,19 +49,19 @@ test('ensureStickyFiles: skips rules dir when rules.md flat file exists', (t) =>
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Create flat rules.md before sticky runs
   fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules.md'), '# My Rules');
+  fs.writeFileSync(path.join(dir, '.lore', 'rules.md'), '# My Rules');
   ensureStickyFiles(dir);
   // Should not create rules/ dir
-  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'context', 'rules')));
+  assert.ok(!fs.existsSync(path.join(dir, '.lore', 'rules')));
   // Flat file should be untouched
-  assert.equal(fs.readFileSync(path.join(dir, 'docs', 'context', 'rules.md'), 'utf8'), '# My Rules');
+  assert.equal(fs.readFileSync(path.join(dir, '.lore', 'rules.md'), 'utf8'), '# My Rules');
 });
 
 test('ensureStickyFiles: creates seed files in existing rules dir', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Create rules dir with custom content but no seed files
-  const convDir = path.join(dir, 'docs', 'context', 'rules');
+  const convDir = path.join(dir, '.lore', 'rules');
   fs.mkdirSync(convDir, { recursive: true });
   fs.writeFileSync(path.join(convDir, 'custom.md'), '# Custom');
   ensureStickyFiles(dir);

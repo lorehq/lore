@@ -7,8 +7,6 @@ alwaysApply: false
 
 docs/
 ├── context/
-│   └── rules/
-│       └── system/
 ├── guides/
 ├── javascripts/
 ├── knowledge/
@@ -17,10 +15,7 @@ docs/
 │   │   ├── diagrams/
 │   │   ├── inventory/
 │   │   └── reference/
-│   ├── local/
-│   └── runbooks/
-│       ├── first-session/
-│       └── system/
+│   └── local/
 └── workflow/
     ├── brainstorms/
     ├── in-flight/

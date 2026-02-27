@@ -43,7 +43,7 @@ done
 # -- 1b. Fieldnote frontmatter: required fields --
 echo "--- Fieldnote Frontmatter ---"
 for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
-  sf="$dir/SKILL.md"
+  sf="$dir/FIELDNOTE.md"
   [[ -f "$sf" ]] || continue
   name=$(basename "$dir")
   for field in name description user-invocable; do
@@ -116,13 +116,13 @@ if [[ -d "$REPO_ROOT/.lore/fieldnotes" ]]; then
   sync_ok=true
   for dir in "$REPO_ROOT"/.lore/fieldnotes/*/; do
     name=$(basename "$dir")
-    sf="$dir/SKILL.md"
+    sf="$dir/FIELDNOTE.md"
     [[ -f "$sf" ]] || continue
     if [[ ! -d "$REPO_ROOT/.claude/skills/fn-$name" ]]; then
       sync_ok=false; break
     fi
-    diff_out=$(diff -rq "$dir" "$REPO_ROOT/.claude/skills/fn-$name" 2>&1) || true
-    if [[ -n "$diff_out" ]]; then
+    # Canonical has FIELDNOTE.md, projection has SKILL.md — compare content, not filename
+    if ! diff -q "$sf" "$REPO_ROOT/.claude/skills/fn-$name/SKILL.md" >/dev/null 2>&1; then
       sync_ok=false; break
     fi
   done
@@ -196,7 +196,7 @@ fi
 # -- 8. Required rules exist --
 echo "--- Required Rules ---"
 seed="security.md"
-target="$REPO_ROOT/docs/context/rules/$seed"
+target="$REPO_ROOT/.lore/rules/$seed"
 [[ -f "$target" ]] || fail "Required rule missing: $seed — will regenerate on next session"
 
 # -- 7. Linked repos --

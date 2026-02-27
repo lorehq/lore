@@ -30,7 +30,7 @@ echo "--- Sticky files ---"
 node -e "require('./.lore/lib/banner').ensureStickyFiles('.')"
 [[ -f docs/knowledge/local/index.md ]] || { echo "FAIL: docs/knowledge/local/index.md not created"; exit 1; }
 [[ -f docs/context/agent-rules.md ]] || { echo "FAIL: docs/context/agent-rules.md not created"; exit 1; }
-[[ -d docs/context/rules ]] || { echo "FAIL: docs/context/rules/ not created"; exit 1; }
+[[ -d .lore/rules ]] || { echo "FAIL: .lore/rules/ not created"; exit 1; }
 [[ -f .lore/memory.local.md ]] || { echo "FAIL: .lore/memory.local.md not created"; exit 1; }
 echo "OK"
 

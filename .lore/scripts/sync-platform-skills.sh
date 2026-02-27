@@ -48,10 +48,14 @@ if [ -d "$REPO_ROOT/.lore/fieldnotes" ]; then
 
     for (const d of fs.readdirSync(srcDir, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
-      const skillFile = path.join(srcDir, d.name, 'SKILL.md');
-      if (!fs.existsSync(skillFile)) continue;
+      const fieldnoteFile = path.join(srcDir, d.name, 'FIELDNOTE.md');
+      if (!fs.existsSync(fieldnoteFile)) continue;
       const outNoteDir = path.join(outDir, 'fn-' + d.name);
       fs.cpSync(path.join(srcDir, d.name), outNoteDir, { recursive: true, force: true });
+      // Claude Code requires SKILL.md — rename the projection copy
+      const projectedFieldnote = path.join(outNoteDir, 'FIELDNOTE.md');
+      const projectedSkill = path.join(outNoteDir, 'SKILL.md');
+      if (fs.existsSync(projectedFieldnote)) fs.renameSync(projectedFieldnote, projectedSkill);
     }
   " "$REPO_ROOT"
   # Cleanup legacy .claude/fieldnotes/ if present

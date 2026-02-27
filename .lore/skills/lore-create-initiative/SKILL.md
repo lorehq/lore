@@ -12,7 +12,7 @@ Initiatives are **operator-initiated**. Never create one unprompted.
 
 ## Process
 
-1. **Read rules**: Check `docs/context/rules.md` or `docs/context/rules/index.md` for docs formatting rules. Apply these when writing content.
+1. **Read rules**: Check `.lore/rules.md` or `.lore/rules/index.md` for docs formatting rules. Apply these when writing content.
 
 2. **Create folder**: `docs/workflow/in-flight/initiatives/<slug>/`
 

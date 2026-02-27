@@ -103,7 +103,7 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
 
 test('prompt-preamble: with rules — still includes role directives', () => {
   const dir = setup();
-  const rulesDir = path.join(dir, 'docs', 'context', 'rules');
+  const rulesDir = path.join(dir, '.lore', 'rules');
   fs.mkdirSync(rulesDir, { recursive: true });
   fs.writeFileSync(path.join(rulesDir, 'coding.md'), '# Coding\n');
   fs.writeFileSync(path.join(rulesDir, 'security.md'), '# Security\n');

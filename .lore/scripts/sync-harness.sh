@@ -113,15 +113,15 @@ if [ -d "$SOURCE/.lore/agents" ]; then
 fi
 
 # Harness-owned system rules — always overwrite
-if [ -d "$SOURCE/docs/context/rules/system" ]; then
-  mkdir -p "$TARGET/docs/context/rules/system"
-  cp -Rf "$SOURCE/docs/context/rules/system/." "$TARGET/docs/context/rules/system/"
+if [ -d "$SOURCE/.lore/rules/system" ]; then
+  mkdir -p "$TARGET/.lore/rules/system"
+  cp -Rf "$SOURCE/.lore/rules/system/." "$TARGET/.lore/rules/system/"
 fi
 
 # Harness-owned system runbooks — always overwrite
-if [ -d "$SOURCE/docs/knowledge/runbooks/system" ]; then
-  mkdir -p "$TARGET/docs/knowledge/runbooks/system"
-  cp -Rf "$SOURCE/docs/knowledge/runbooks/system/." "$TARGET/docs/knowledge/runbooks/system/"
+if [ -d "$SOURCE/.lore/runbooks/system" ]; then
+  mkdir -p "$TARGET/.lore/runbooks/system"
+  cp -Rf "$SOURCE/.lore/runbooks/system/." "$TARGET/.lore/runbooks/system/"
 fi
 
 # Single files

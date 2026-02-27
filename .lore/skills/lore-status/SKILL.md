@@ -56,7 +56,7 @@ Run these checks and present a formatted summary to the operator:
    - Fieldnotes: number of directories in `.lore/fieldnotes/`
    - Agents: number of `.md` files in `.lore/agents/` (0 if dir missing)
    - Knowledge docs: number of `.md` files under `docs/knowledge/`
-   - Runbooks: number of `.md` files under `docs/knowledge/runbooks/`
+   - Runbooks: number of `.md` files under `.lore/runbooks/`
 
 4. **Linked repos** — use Glob to check whether `.lore/links` exists before reading it (it is optional and gitignored — never use Read on it without confirming it exists first). If present, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale. If absent, report "none".
 

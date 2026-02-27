@@ -63,5 +63,5 @@ Only serialize when one worker's output is another's input. When in doubt, paral
 
 1. Snags reported? → create fieldnote
 2. Environment facts? → write to `docs/knowledge/environment/`
-3. Procedures? → write to `docs/knowledge/runbooks/`
+3. Procedures? → write to `.lore/runbooks/`
 4. Nothing? → move on

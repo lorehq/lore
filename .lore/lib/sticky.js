@@ -29,7 +29,7 @@ const SEED_RULES = [
   { seed: 'security.md', target: 'security.md' },
 ];
 
-// Seed runbook files: scaffolded into docs/knowledge/runbooks/ (not system/).
+// Seed runbook files: scaffolded into .lore/runbooks/ (not system/).
 // Supports subdirectories — use forward slashes in seed/target paths.
 const SEED_RUNBOOKS = [
   { seed: 'docs-code-alignment-sweep.md', target: 'docs-code-alignment-sweep.md' },
@@ -61,13 +61,13 @@ function ensureStickyFiles(directory) {
 
 <!-- Injected into every agent session as PROJECT context. -->
 <!-- Once setup is complete, replace this file with your deployment details. -->
-<!-- Coding rules belong in docs/context/rules/ \u2014 also injected. -->
+<!-- Coding rules belong in .lore/rules/ \u2014 also injected. -->
 
 ## Deployment State
 
 This instance has just been deployed and has not yet been set up. The operator profile is blank, the environment is undocumented, and worker tier routing has not been verified.
 
-When the operator starts a session, guide them to complete first-session setup before taking on other work. The runbooks are at docs/knowledge/runbooks/first-session/ \u2014 ask which profile fits (knowledge-worker, homelab, or personal) and follow it phase by phase.
+When the operator starts a session, guide them to complete first-session setup before taking on other work. The runbooks are at .lore/runbooks/first-session/ \u2014 ask which profile fits (knowledge-worker, homelab, or personal) and follow it phase by phase.
 
 Delete this section and fill in the fields below once setup is complete.
 
@@ -85,8 +85,8 @@ Rules for how the agent should operate in this instance.
     }
 
     // Rules directory — scaffold index + seed files individually
-    const rulesFile = path.join(directory, 'docs', 'context', 'rules.md');
-    const rulesDir = path.join(directory, 'docs', 'context', 'rules');
+    const rulesFile = path.join(directory, '.lore', 'rules.md');
+    const rulesDir = path.join(directory, '.lore', 'rules');
     if (!fs.existsSync(rulesFile) && !fs.existsSync(rulesDir)) {
       // First time: create directory with index
       fs.mkdirSync(rulesDir, { recursive: true });
@@ -112,7 +112,7 @@ Operational rules and standards for this environment. Each page covers a specifi
     }
 
     // Runbooks directory — scaffold seed runbooks individually
-    const runbooksDir = path.join(directory, 'docs', 'knowledge', 'runbooks');
+    const runbooksDir = path.join(directory, '.lore', 'runbooks');
     if (fs.existsSync(runbooksDir)) {
       for (const { seed, target } of SEED_RUNBOOKS) {
         const targetPath = path.join(runbooksDir, target);
@@ -127,9 +127,9 @@ Operational rules and standards for this environment. Each page covers a specifi
     }
 
     // Notes directory — scaffold index
-    const notesIndex = path.join(directory, 'docs', 'work', 'notes', 'index.md');
+    const notesIndex = path.join(directory, 'docs', 'workflow', 'notes', 'index.md');
     if (!fs.existsSync(notesIndex)) {
-      fs.mkdirSync(path.join(directory, 'docs', 'work', 'notes'), { recursive: true });
+      fs.mkdirSync(path.join(directory, 'docs', 'workflow', 'notes'), { recursive: true });
       fs.writeFileSync(notesIndex, readTemplate(directory, 'notes-index.md'));
     }
 

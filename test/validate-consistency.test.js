@@ -34,8 +34,8 @@ function setup() {
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
   // Required rules
-  fs.mkdirSync(path.join(dir, 'docs', 'context', 'rules'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'docs', 'context', 'rules', 'security.md'), '# Security\n');
+  fs.mkdirSync(path.join(dir, '.lore', 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'rules', 'security.md'), '# Security\n');
   return dir;
 }
 

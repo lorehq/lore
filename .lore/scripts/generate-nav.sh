@@ -175,13 +175,13 @@ emit_fieldnotes_section() {
   local fieldnotes_dst="$DOCS/fieldnotes"
   [[ -d "$fieldnotes_src" ]] || return 0
 
-  # Sync: clear and re-copy fieldnote dirs that contain SKILL.md
+  # Sync: clear and re-copy fieldnote dirs that contain FIELDNOTE.md
   rm -rf "$fieldnotes_dst"
   local found=0
   local name title
   for note_dir in "$fieldnotes_src"/*/; do
     [[ -d "$note_dir" ]] || continue
-    [[ -f "${note_dir}SKILL.md" ]] || continue
+    [[ -f "${note_dir}FIELDNOTE.md" ]] || continue
     name=$(basename "$note_dir")
     mkdir -p "$fieldnotes_dst/$name"
     cp -r "$note_dir"* "$fieldnotes_dst/$name/"
@@ -193,10 +193,10 @@ emit_fieldnotes_section() {
   echo "  - Fieldnotes:"
   for note_dir in "$fieldnotes_dst"/*/; do
     [[ -d "$note_dir" ]] || continue
-    [[ -f "${note_dir}SKILL.md" ]] || continue
+    [[ -f "${note_dir}FIELDNOTE.md" ]] || continue
     name=$(basename "$note_dir")
     title=$(to_title "$name")
-    echo "      - ${title}: fieldnotes/${name}/SKILL.md"
+    echo "      - ${title}: fieldnotes/${name}/FIELDNOTE.md"
   done
 }
 

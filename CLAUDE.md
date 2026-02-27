@@ -22,9 +22,9 @@ A Lore instance is a knowledge base — not an application repo. Your responsibi
 | Operator identity, preferences | `docs/knowledge/local/operator-profile.md` (gitignored) |
 | Snags (gotchas, quirks — auth quirks, encoding, parameter tricks) | `.lore/fieldnotes/` via lore-create-fieldnote |
 | Procedural skills (harness commands) | `.lore/skills/` via lore-create-skill |
-| Rules | `docs/context/` |
+| Rules | `.lore/rules/` |
 | Environment (URLs, repos, services, relationships) | `docs/knowledge/environment/` |
-| Procedures (multi-step operations) | `docs/knowledge/runbooks/` |
+| Procedures (multi-step operations) | `.lore/runbooks/` |
 | Scratch notes (temporary) | `.lore/memory.local.md` (gitignored) |
 
 `MEMORY.md` is intercepted by hooks and blocked — use the routes above.
@@ -40,7 +40,7 @@ Before writing to `docs/`, creating skills, or updating work items — propose w
 Capture targets:
 - Reusable fix / snag → create or update a fieldnote
 - Environment fact (URL, endpoint, service, auth, redirect) → `docs/knowledge/environment/`
-- Multi-step procedure → `docs/knowledge/runbooks/`
+- Multi-step procedure → `.lore/runbooks/`
 - Neither → state "No capture needed" with a one-line reason
 
 Example: API returns 403 because path segments need URL-encoded slashes → reusable fix → fieldnote `github-api-encoded-slashes`. A one-off typo in a config file → no capture needed, not reusable.
@@ -157,7 +157,7 @@ Only serialize when one worker's output is another's input. When in doubt, paral
 
 1. Snags reported? → create fieldnote
 2. Environment facts? → write to `docs/knowledge/environment/`
-3. Procedures? → write to `docs/knowledge/runbooks/`
+3. Procedures? → write to `.lore/runbooks/`
 4. Nothing? → move on
 
 # Semantic Search Query (Local)
@@ -565,7 +565,7 @@ Bad:
 
 - `docs/knowledge/local/` — gitignored operator profile.
 - `docs/knowledge/environment/` — environment facts; harness references this path.
-- `docs/knowledge/runbooks/` — runbooks; external references depend on this name.
+- `.lore/runbooks/` — runbooks; external references depend on this name.
 - The knowledge-defrag runbook reads this list before proposing any moves.
 
 # Knowledge Capture
@@ -629,8 +629,6 @@ How knowledge entries should be written and organized. For routing rules (what g
 KNOWLEDGE MAP:
 docs/
 ├── context/
-│   └── rules/
-│       └── system/
 ├── guides/
 ├── javascripts/
 ├── knowledge/
@@ -639,10 +637,7 @@ docs/
 │   │   ├── diagrams/
 │   │   ├── inventory/
 │   │   └── reference/
-│   ├── local/
-│   └── runbooks/
-│       ├── first-session/
-│       └── system/
+│   └── local/
 └── workflow/
     ├── brainstorms/
     ├── in-flight/

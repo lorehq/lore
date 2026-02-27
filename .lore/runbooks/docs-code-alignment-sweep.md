@@ -20,7 +20,7 @@ Bidirectional accuracy sweep — reduce doc volume, verify doc claims against so
 
 - Docs directory checked out locally
 - Source repos checked out locally
-- Docs rule loaded: `docs/context/rules/documentation.md`
+- Docs rule loaded: `.lore/rules/documentation.md`
 - Docker available for search containers
 
 ## Protected Pages
@@ -69,7 +69,7 @@ Cut doc volume before bidirectional passes so both phases work on canonical cont
 
 Launch 2-3 sonnet workers. Each worker loads:
 
-- `docs/context/rules/documentation.md` **only**
+- `.lore/rules/documentation.md` **only**
 
 Workers query **docs search (port 9190)** to find topically overlapping pages, then read actual files to decide cuts.
 
@@ -105,7 +105,7 @@ Read doc claims, verify against source, fix or remove what is false or stale.
 
 Split doc pages into ~4 groups by topic. **Skip protected pages.** Each worker loads:
 
-- `docs/context/rules/documentation.md` **only**
+- `.lore/rules/documentation.md` **only**
 
 Each haiku worker extracts every verifiable claim from its group:
 
@@ -161,7 +161,7 @@ Workers receive the changed-file lists and commit summaries as input.
 
 Each worker loads:
 
-- `docs/context/rules/coding.md` **only**
+- `.lore/rules/coding.md` **only**
 - Changed-file list and commit log for its assigned repo
 
 For each changed module, config key, hook, or script entry point:
@@ -184,7 +184,7 @@ Violations:
 
 Each worker receives a user-facing item batch from Stage A. Workers load:
 
-- `docs/context/rules/documentation.md` **only**
+- `.lore/rules/documentation.md` **only**
 
 For each item: query **docs search (port 9190)**, check returned pages, classify:
 
@@ -214,7 +214,7 @@ Do not apply judgment calls without operator decision.
 
 Rule compliance sweep on the updated corpus. Launch 2-3 sonnet workers. Each worker loads:
 
-- `docs/context/rules/documentation.md` **only**
+- `.lore/rules/documentation.md` **only**
 
 Each worker scans its assigned pages for:
 

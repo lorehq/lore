@@ -43,16 +43,16 @@ function getAgentEntries(directory) {
   }
 }
 
-// Returns fieldnotes (snag collections) with descriptions from .lore/fieldnotes/*/SKILL.md.
+// Returns fieldnotes (snag collections) with descriptions from .lore/fieldnotes/*/FIELDNOTE.md.
 function getFieldnotes(directory) {
   try {
     const fieldnotesDir = path.join(directory, '.lore', 'fieldnotes');
     const notes = [];
     for (const d of fs.readdirSync(fieldnotesDir, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
-      const skillFile = path.join(fieldnotesDir, d.name, 'SKILL.md');
-      if (!fs.existsSync(skillFile)) continue;
-      const content = fs.readFileSync(skillFile, 'utf8');
+      const fieldnoteFile = path.join(fieldnotesDir, d.name, 'FIELDNOTE.md');
+      if (!fs.existsSync(fieldnoteFile)) continue;
+      const content = fs.readFileSync(fieldnoteFile, 'utf8');
       const { attrs } = parseFrontmatter(content);
       if (attrs.name) notes.push({ name: attrs.name, description: attrs.description || '' });
     }
@@ -98,9 +98,11 @@ function getBannerLoadedSkills(directory) {
     try {
       for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
         if (!d.isDirectory()) continue;
-        const skillFile = path.join(skillsDir, d.name, 'SKILL.md');
-        if (!fs.existsSync(skillFile)) continue;
-        const content = fs.readFileSync(skillFile, 'utf8');
+        const manifest = skillsDir.includes('fieldnotes')
+          ? path.join(skillsDir, d.name, 'FIELDNOTE.md')
+          : path.join(skillsDir, d.name, 'SKILL.md');
+        if (!fs.existsSync(manifest)) continue;
+        const content = fs.readFileSync(manifest, 'utf8');
         const { attrs } = parseFrontmatter(content);
         if (attrs['banner-loaded'] === 'true') {
           loaded.push({ name: attrs.name || d.name, body: stripFrontmatter(content).trim() });
@@ -172,8 +174,8 @@ WORKERS: ${workerList}`;
   }
 
   try {
-    const rulesDir = path.join(directory, 'docs', 'context', 'rules');
-    const rulesFile = path.join(directory, 'docs', 'context', 'rules.md');
+    const rulesDir = path.join(directory, '.lore', 'rules');
+    const rulesFile = path.join(directory, '.lore', 'rules.md');
     if (semanticSearchUrl) {
       // Semantic search available — list all rule names, agent finds content on demand
       // Merge operator rules + system/ rules (operator names take precedence)
