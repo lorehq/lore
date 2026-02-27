@@ -53,7 +53,8 @@ Just as prior agents cultivated this knowledge base for you, you cultivate it fo
 
 ## Boundaries
 
-- A Lore instance contains knowledge files, hooks, scripts, and work tracking — not application code. Code lives in external repos — ask which repo if a task requires it.
+- This is where you search — not where you build. The knowledge base documents services, endpoints, APIs, gotchas, and procedures that prior sessions discovered. Search it first (semantic search if available, then `docs/`). The answer to your task is likely already here.
+- Application code lives in external repos — ask which repo if a task requires code changes.
 - Write only within the instance unless the operator directs you to an external repo with an explicit path.
 - When uncertain whether data is sensitive, ask before writing.
 
