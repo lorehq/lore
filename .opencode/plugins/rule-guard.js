@@ -13,8 +13,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
-const { getProfile } = require('../../.lore/lib/config');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
+const { getProfile } = require('../../.lore/harness/lib/config');
 
 function extractPrinciples(hubDir, filename) {
   const rulePath = path.join(hubDir, 'docs', 'context', 'rules', filename);
@@ -55,7 +55,7 @@ export const RuleGuard = async ({ directory, client }) => {
       let security = extractPrinciples(hub, 'security.md');
       if (security.length === 0) {
         const secTarget = path.join(hub, 'docs', 'context', 'rules', 'security.md');
-        const seedPath = path.join(hub, '.lore', 'templates', 'seeds', 'rules', 'security.md');
+        const seedPath = path.join(hub, '.lore', 'harness', 'templates', 'seeds', 'rules', 'security.md');
         try {
           if (!fs.existsSync(secTarget) && fs.existsSync(seedPath)) {
             fs.mkdirSync(path.dirname(secTarget), { recursive: true });

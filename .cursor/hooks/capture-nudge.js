@@ -13,9 +13,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { getThresholds } = require('../../.lore/lib/tracker');
-const { getConfig, getProfile } = require('../../.lore/lib/config');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { getThresholds } = require('../../.lore/harness/lib/tracker');
+const { getConfig, getProfile } = require('../../.lore/harness/lib/config');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 const cwd = process.cwd();
 const hubDir = process.env.LORE_HUB || cwd;

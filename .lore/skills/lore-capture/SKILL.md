@@ -21,10 +21,10 @@ Walk through every item. Report findings to the operator before making changes.
 1. **Review session work** for uncaptured knowledge
 2. **Snags (gotchas, quirks)?** → create fieldnote (mandatory — every snag becomes a fieldnote via `/lore-create-fieldnote`)
 3. **New environment knowledge?** (URLs, repos, services, relationships) → `docs/knowledge/environment/`
-4. **Sync platform copies**: `bash .lore/scripts/sync-platform-skills.sh`
+4. **Sync platform copies**: `bash .lore/harness/scripts/sync-platform-skills.sh`
 5. **Check active work items** — completed? → update status to `completed`, move folder to `archive/` subfolder
-6. **Ensure structure**: `bash .lore/scripts/ensure-structure.sh`
-7. **Validate**: `bash .lore/scripts/validate-consistency.sh`
+6. **Ensure structure**: `bash .lore/harness/scripts/ensure-structure.sh`
+7. **Validate**: `bash .lore/harness/scripts/validate-consistency.sh`
 
 ## Process
 

@@ -34,7 +34,7 @@ curl -s "http://localhost:PORT/search?q=your+query&k=5&mode=full"
 ## Checking Availability
 
 ```bash
-node -e "const c=require('./.lore/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
+node -e "const c=require('./.lore/harness/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
 ```
 
 If output is `unavailable`, skip to Grep/Glob fallback immediately.

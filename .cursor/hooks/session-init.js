@@ -6,17 +6,17 @@
 
 const path = require('path');
 const { execSync } = require('child_process');
-const { buildCursorBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { buildCursorBanner, ensureStickyFiles } = require('../../.lore/harness/lib/banner');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
-const { generate: generateAgents } = require('../../.lore/lib/generate-agents');
+const { generate: generateAgents } = require('../../.lore/harness/lib/generate-agents');
 
 const hub = process.env.LORE_HUB || path.join(__dirname, '..', '..');
 
 generateAgents(hub);
 ensureStickyFiles(hub);
 try {
-  execSync(`bash "${path.join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, {
+  execSync(`bash "${path.join(hub, '.lore', 'harness', 'scripts', 'ensure-structure.sh')}"`, {
     stdio: 'pipe',
   });
 } catch {
@@ -25,7 +25,7 @@ try {
 
 // Regenerate .mdc files with latest static content
 try {
-  execSync(`bash "${path.join(hub, '.lore', 'scripts', 'generate-cursor-rules.sh')}"`, {
+  execSync(`bash "${path.join(hub, '.lore', 'harness', 'scripts', 'generate-cursor-rules.sh')}"`, {
     stdio: 'pipe',
   });
 } catch {

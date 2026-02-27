@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const hookPath = path.join(__dirname, '..', '.lore', 'hooks', 'knowledge-tracker.js');
+const hookPath = path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'knowledge-tracker.js');
 
 function setup() {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
@@ -49,7 +49,7 @@ test('first bash: emits capture reminder', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('Capturer'), 'first bash should emit capture reminder');
+  assert.ok(out.additionalContext.includes('Cultivator'), 'first bash should emit capture reminder');
 });
 
 test('3rd consecutive bash: nudge', (t) => {
@@ -60,9 +60,8 @@ test('3rd consecutive bash: nudge', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('Capture checkpoint (3 commands in a row)'));
-  assert.ok(out.additionalContext.includes('Confirm Exploration vs Execution'));
-  assert.ok(out.additionalContext.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(out.additionalContext.includes('[Lore] Capture checkpoint (3 commands)'));
+  assert.ok(out.additionalContext.includes('REQUIRED'));
 });
 
 test('5th consecutive bash: strong warning', (t) => {
@@ -74,8 +73,7 @@ test('5th consecutive bash: strong warning', (t) => {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('REQUIRED capture review (5 consecutive commands)'));
-  assert.ok(out.additionalContext.includes('Confirm Exploration vs Execution'));
+  assert.ok(out.additionalContext.includes('[Lore] REQUIRED capture review (5 commands)'));
 });
 
 test('bash failure: error pattern message', (t) => {
@@ -83,7 +81,7 @@ test('bash failure: error pattern message', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
   assert.ok(out.additionalContext.includes('Execution-phase failure is high-signal'));
-  assert.ok(out.additionalContext.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(out.additionalContext.includes('REQUIRED'));
 });
 
 test('knowledge capture resets counter', (t) => {

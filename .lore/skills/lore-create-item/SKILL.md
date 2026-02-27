@@ -46,7 +46,7 @@ summary: [one-liner]     # optional — shown in session banner
 6. **Validate**:
 
 ```bash
-bash .lore/scripts/ensure-structure.sh && bash .lore/scripts/validate-consistency.sh
+bash .lore/harness/scripts/ensure-structure.sh && bash .lore/harness/scripts/validate-consistency.sh
 ```
 
 ## Snags

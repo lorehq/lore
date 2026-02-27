@@ -6,8 +6,8 @@
 // Core logic lives in lib/memory-guard.js.
 
 const fs = require('fs');
-const { checkMemoryAccess } = require('../../.lore/lib/memory-guard');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { checkMemoryAccess } = require('../../.lore/harness/lib/memory-guard');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 let input = {};
 try {

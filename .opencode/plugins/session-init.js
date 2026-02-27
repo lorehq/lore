@@ -7,12 +7,12 @@ import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 const require = createRequire(import.meta.url);
-const { buildBanner, buildDynamicBanner, ensureStickyFiles } = require('../../.lore/lib/banner');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { buildBanner, buildDynamicBanner, ensureStickyFiles } = require('../../.lore/harness/lib/banner');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 function runEnsureStructure(hub) {
   try {
-    execSync(`bash "${join(hub, '.lore', 'scripts', 'ensure-structure.sh')}"`, { stdio: 'pipe' });
+    execSync(`bash "${join(hub, '.lore', 'harness', 'scripts', 'ensure-structure.sh')}"`, { stdio: 'pipe' });
   } catch {
     /* non-critical */
   }
@@ -20,7 +20,7 @@ function runEnsureStructure(hub) {
 
 function regenerateClaudeMd(hub) {
   try {
-    execSync(`node "${join(hub, '.lore', 'scripts', 'generate-claude-md.js')}" "${hub}"`, { stdio: 'pipe' });
+    execSync(`node "${join(hub, '.lore', 'harness', 'scripts', 'generate-claude-md.js')}" "${hub}"`, { stdio: 'pipe' });
   } catch {
     /* non-critical */
   }
@@ -29,7 +29,7 @@ function regenerateClaudeMd(hub) {
 export const SessionInit = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;
   // Generate worker agent tiers from template + config before banner reads .lore/agents/
-  const { generate: generateAgents } = require('../../.lore/lib/generate-agents');
+  const { generate: generateAgents } = require('../../.lore/harness/lib/generate-agents');
   generateAgents(hub);
   // Scaffold missing files before first banner build so PROJECT section
   // picks up the agent-rules.md template on first run.

@@ -52,7 +52,7 @@ Example: API returns 403 because path segments need URL-encoded slashes → reus
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
-After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active epic or initiative → update progress.
+After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/harness/scripts/validate-consistency.sh`. Active epic or initiative → update progress.
 
 Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.
 
@@ -195,7 +195,7 @@ curl -s "http://localhost:PORT/search?q=your+query&k=5&mode=full"
 ## Checking Availability
 
 ```bash
-node -e "const c=require('./.lore/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
+node -e "const c=require('./.lore/harness/lib/config').getConfig('.');console.log(c.docker?.search ? JSON.stringify(c.docker.search) : 'unavailable')"
 ```
 
 If output is `unavailable`, skip to Grep/Glob fallback immediately.

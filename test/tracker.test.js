@@ -10,7 +10,7 @@ const {
   isWriteTool,
   isBashTool,
   isReadOnly,
-} = require('../.lore/lib/tracker');
+} = require('../.lore/harness/lib/tracker');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-tracker-'));
@@ -166,7 +166,7 @@ test('processToolUse: bash increments counter', (t) => {
   });
   assert.equal(result.bashCount, 1);
   assert.ok(!result.silent); // first bash emits capture reminder
-  assert.ok(result.message.includes('Capturer'));
+  assert.ok(result.message.includes('Cultivator'));
 });
 
 test('processToolUse: nudge at threshold', (t) => {
@@ -181,9 +181,8 @@ test('processToolUse: nudge at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 3);
-  assert.ok(result.message.includes('Capture checkpoint'));
-  assert.ok(result.message.includes('Confirm Exploration vs Execution'));
-  assert.ok(result.message.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(result.message.includes('[Lore] Capture checkpoint'));
+  assert.ok(result.message.includes('REQUIRED'));
 });
 
 test('processToolUse: warn at threshold', (t) => {
@@ -198,8 +197,7 @@ test('processToolUse: warn at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 5);
-  assert.ok(result.message.includes('REQUIRED capture review (5 consecutive commands)'));
-  assert.ok(result.message.includes('Confirm Exploration vs Execution'));
+  assert.ok(result.message.includes('[Lore] REQUIRED capture review (5 commands)'));
   assert.equal(result.level, 'warn');
 });
 
@@ -215,7 +213,7 @@ test('processToolUse: failure on first bash shows required capture review', (t) 
     rootDir: dir,
   });
   assert.ok(result.message.includes('Execution-phase failure is high-signal'));
-  assert.ok(result.message.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(result.message.includes('REQUIRED'));
 });
 
 test('processToolUse: failure takes priority over threshold', (t) => {
@@ -230,7 +228,7 @@ test('processToolUse: failure takes priority over threshold', (t) => {
     rootDir: dir,
   });
   assert.ok(result.message.includes('Execution-phase failure is high-signal'));
-  assert.ok(result.message.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(result.message.includes('REQUIRED'));
 });
 
 test('processToolUse: non-bash write resets counter', (t) => {

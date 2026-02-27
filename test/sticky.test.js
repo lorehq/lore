@@ -3,12 +3,12 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { ensureStickyFiles } = require('../.lore/lib/sticky');
+const { ensureStickyFiles } = require('../.lore/harness/lib/sticky');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-sticky-'));
-  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
-  const tplDst = path.join(dir, '.lore', 'templates');
+  const tplSrc = path.join(__dirname, '..', '.lore', 'harness', 'templates');
+  const tplDst = path.join(dir, '.lore', 'harness', 'templates');
   // Recursively copy templates (includes seeds/ subdirectory)
   fs.cpSync(tplSrc, tplDst, { recursive: true });
   return dir;

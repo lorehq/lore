@@ -11,7 +11,7 @@ const {
   scanWork,
   buildBanner,
   buildCursorBanner,
-} = require('../.lore/lib/banner');
+} = require('../.lore/harness/lib/banner');
 
 // ---------------------------------------------------------------------------
 // Setup helper — creates a minimal temp directory for testing banner functions

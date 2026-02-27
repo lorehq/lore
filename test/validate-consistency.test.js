@@ -5,19 +5,19 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// validate-consistency.sh uses: REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-// So: tmp/.lore/scripts/validate-consistency.sh → REPO_ROOT=tmp/
+// validate-consistency.sh uses: REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+// So: tmp/.lore/harness/scripts/validate-consistency.sh → REPO_ROOT=tmp/
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-validate-'));
-  fs.mkdirSync(path.join(dir, '.lore', 'scripts', 'lib'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'harness', 'scripts', 'lib'), { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', '.lore', 'scripts', 'validate-consistency.sh'),
-    path.join(dir, '.lore', 'scripts', 'validate-consistency.sh'),
+    path.join(__dirname, '..', '.lore', 'harness', 'scripts', 'validate-consistency.sh'),
+    path.join(dir, '.lore', 'harness', 'scripts', 'validate-consistency.sh'),
   );
   fs.copyFileSync(
-    path.join(__dirname, '..', '.lore', 'scripts', 'lib', 'common.sh'),
-    path.join(dir, '.lore', 'scripts', 'lib', 'common.sh'),
+    path.join(__dirname, '..', '.lore', 'harness', 'scripts', 'lib', 'common.sh'),
+    path.join(dir, '.lore', 'harness', 'scripts', 'lib', 'common.sh'),
   );
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
@@ -41,7 +41,7 @@ function setup() {
 
 function runScript(dir) {
   try {
-    const out = execSync(`bash "${path.join(dir, '.lore', 'scripts', 'validate-consistency.sh')}"`, {
+    const out = execSync(`bash "${path.join(dir, '.lore', 'harness', 'scripts', 'validate-consistency.sh')}"`, {
       cwd: dir,
       encoding: 'utf8',
     });

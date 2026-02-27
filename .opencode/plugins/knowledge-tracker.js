@@ -8,9 +8,9 @@
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { processToolUse, getThresholds } = require('../../.lore/lib/tracker');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
-const { getProfile } = require('../../.lore/lib/config');
+const { processToolUse, getThresholds } = require('../../.lore/harness/lib/tracker');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
+const { getProfile } = require('../../.lore/harness/lib/config');
 
 export const KnowledgeTracker = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getConfig, getProfile } = require('../.lore/lib/config');
+const { getConfig, getProfile } = require('../.lore/harness/lib/config');
 
 function setup() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-config-'));

@@ -7,8 +7,8 @@
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { checkMemoryAccess } = require('../../.lore/lib/memory-guard');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { checkMemoryAccess } = require('../../.lore/harness/lib/memory-guard');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 export const ProtectMemory = async ({ directory }) => {
   const hub = process.env.LORE_HUB || directory;

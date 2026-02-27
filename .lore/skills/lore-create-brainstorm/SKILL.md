@@ -25,7 +25,7 @@ created: [today's date]
 ---
 ```
 
-4. **Validate**: `bash .lore/scripts/ensure-structure.sh && bash .lore/scripts/validate-consistency.sh`
+4. **Validate**: `bash .lore/harness/scripts/ensure-structure.sh && bash .lore/harness/scripts/validate-consistency.sh`
 
 ## Snags
 

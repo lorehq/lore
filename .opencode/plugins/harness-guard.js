@@ -9,14 +9,12 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 // --- Hub: harness-owned paths (synced by scripts/sync-harness.sh) ---
 
 const HARNESS_PREFIXES = [
-  '.lore/hooks/',
-  '.lore/lib/',
-  '.lore/scripts/',
+  '.lore/harness/',
   '.opencode/',
   '.cursor/hooks/',
   '.cursor/mcp/',

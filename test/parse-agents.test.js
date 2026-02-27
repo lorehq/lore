@@ -6,19 +6,19 @@ const os = require('os');
 
 // Set up temp structure so __dirname resolves correctly for parse-agents.js
 // parse-agents.js delegates to ../../lib/banner.js, which scans .lore/agents/
-// So: tmp/.lore/hooks/lib/parse-agents.js → tmp/.lore/lib/banner.js → tmp/.lore/agents/
+// So: tmp/.lore/harness/hooks/lib/parse-agents.js → tmp/.lore/harness/lib/banner.js → tmp/.lore/agents/
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-parse-agents-'));
-const libDir = path.join(tmpDir, '.lore', 'hooks', 'lib');
+const libDir = path.join(tmpDir, '.lore', 'harness', 'hooks', 'lib');
 fs.mkdirSync(libDir, { recursive: true });
 fs.copyFileSync(
-  path.join(__dirname, '..', '.lore', 'hooks', 'lib', 'parse-agents.js'),
+  path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'lib', 'parse-agents.js'),
   path.join(libDir, 'parse-agents.js'),
 );
 // Shared lib — parse-agents.js requires ../../lib/banner.js
-const sharedLib = path.join(tmpDir, '.lore', 'lib');
+const sharedLib = path.join(tmpDir, '.lore', 'harness', 'lib');
 fs.mkdirSync(sharedLib, { recursive: true });
-for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'lib'))) {
-  fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(sharedLib, f));
+for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'harness', 'lib'))) {
+  fs.copyFileSync(path.join(__dirname, '..', '.lore', 'harness', 'lib', f), path.join(sharedLib, f));
 }
 
 // Create .lore/agents/ directory

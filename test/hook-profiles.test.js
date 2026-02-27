@@ -13,7 +13,7 @@ function setup(opts = {}) {
   // realpathSync: macOS /var -> /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-profiles-')));
 
-  const hooksDir = path.join(dir, '.lore', 'hooks', 'lib');
+  const hooksDir = path.join(dir, '.lore', 'harness', 'hooks', 'lib');
   fs.mkdirSync(hooksDir, { recursive: true });
 
   // Copy all hooks used across these tests
@@ -26,19 +26,19 @@ function setup(opts = {}) {
     'context-path-guide.js',
   ];
   for (const hook of hooks) {
-    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'hooks', hook), path.join(dir, '.lore', 'hooks', hook));
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'harness', 'hooks', hook), path.join(dir, '.lore', 'harness', 'hooks', hook));
   }
 
   // Copy hooks/lib/
-  const srcHooksLib = path.join(__dirname, '..', '.lore', 'hooks', 'lib');
+  const srcHooksLib = path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'lib');
   for (const f of fs.readdirSync(srcHooksLib)) {
-    fs.copyFileSync(path.join(srcHooksLib, f), path.join(dir, '.lore', 'hooks', 'lib', f));
+    fs.copyFileSync(path.join(srcHooksLib, f), path.join(dir, '.lore', 'harness', 'hooks', 'lib', f));
   }
 
-  // Copy .lore/lib/
-  const libDir = path.join(dir, '.lore', 'lib');
+  // Copy .lore/harness/lib/
+  const libDir = path.join(dir, '.lore', 'harness', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  const srcLib = path.join(__dirname, '..', '.lore', 'lib');
+  const srcLib = path.join(__dirname, '..', '.lore', 'harness', 'lib');
   for (const f of fs.readdirSync(srcLib)) {
     fs.copyFileSync(path.join(srcLib, f), path.join(libDir, f));
   }
@@ -73,7 +73,7 @@ function cleanup(dir) {
 test('prompt-preamble: no output in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/hooks/prompt-preamble.js', { cwd: dir, encoding: 'utf8' });
+    const out = execSync('node .lore/harness/hooks/prompt-preamble.js', { cwd: dir, encoding: 'utf8' });
     assert.equal(out, '', 'should produce no output in minimal profile');
   } finally {
     cleanup(dir);
@@ -83,7 +83,7 @@ test('prompt-preamble: no output in minimal profile', () => {
 test('prompt-preamble: produces output in standard profile', () => {
   const dir = setup({ config: { profile: 'standard' } });
   try {
-    const out = execSync('node .lore/hooks/prompt-preamble.js', { cwd: dir, encoding: 'utf8' });
+    const out = execSync('node .lore/harness/hooks/prompt-preamble.js', { cwd: dir, encoding: 'utf8' });
     assert.ok(out.length > 0, 'should produce output in standard profile');
   } finally {
     cleanup(dir);
@@ -95,7 +95,7 @@ test('prompt-preamble: produces output in standard profile', () => {
 test('knowledge-tracker: no output in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/hooks/knowledge-tracker.js', {
+    const out = execSync('node .lore/harness/hooks/knowledge-tracker.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({ tool_name: 'Bash', tool_input: {}, hook_event_name: 'PostToolUse' }),
@@ -109,7 +109,7 @@ test('knowledge-tracker: no output in minimal profile', () => {
 test('knowledge-tracker: produces output in standard profile', () => {
   const dir = setup({ config: { profile: 'standard' } });
   try {
-    const out = execSync('node .lore/hooks/knowledge-tracker.js', {
+    const out = execSync('node .lore/harness/hooks/knowledge-tracker.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({ tool_name: 'Bash', tool_input: {}, hook_event_name: 'PostToolUse' }),
@@ -125,7 +125,7 @@ test('knowledge-tracker: produces output in standard profile', () => {
 test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/hooks/protect-memory.js', {
+    const out = execSync('node .lore/harness/hooks/protect-memory.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({
@@ -150,18 +150,18 @@ test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
 test('harness-guard: warns on harness-owned file write in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/hooks/harness-guard.js', {
+    const out = execSync('node .lore/harness/hooks/harness-guard.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({
         tool_name: 'Write',
-        tool_input: { file_path: path.join(dir, '.lore', 'hooks', 'session-init.js') },
+        tool_input: { file_path: path.join(dir, '.lore', 'harness', 'hooks', 'session-init.js') },
         hook_event_name: 'PreToolUse',
       }),
     });
     const parsed = JSON.parse(out);
     assert.equal(parsed.hookSpecificOutput.permissionDecision, 'allow', 'should include allow decision');
-    assert.ok(parsed.hookSpecificOutput.additionalContext.includes('WARNING'), 'should include WARNING in output');
+    assert.ok(parsed.hookSpecificOutput.additionalContext.includes('[Lore]'), 'should include [Lore] prefix in output');
   } finally {
     cleanup(dir);
   }

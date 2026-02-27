@@ -6,7 +6,7 @@
     },
     "lore-search": {
       "command": "node",
-      "args": [".lore/mcp/search-server.js"]
+      "args": [".lore/harness/mcp/search-server.js"]
     }
   }
 }

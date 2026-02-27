@@ -10,7 +10,7 @@ const os = require('os');
 // and asserts on tool listing and tool call responses.
 
 const serverSrc = path.join(__dirname, '..', '.cursor', 'mcp', 'lore-server.js');
-const libSrc = path.join(__dirname, '..', '.lore', 'lib');
+const libSrc = path.join(__dirname, '..', '.lore', 'harness', 'lib');
 
 function setup(opts = {}) {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-mcp-')));

@@ -73,7 +73,7 @@ Deep, operator-triggered repo-wide maintenance scan. Unlike `/lore-capture` (ses
 
 1. Operator selects items to address
 2. Execute approved changes: archive stale items, merge overlapping docs, route `.lore/memory.local.md` content
-3. Run `bash .lore/scripts/validate-consistency.sh`
+3. Run `bash .lore/harness/scripts/validate-consistency.sh`
 
 ## Snags
 

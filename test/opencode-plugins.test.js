@@ -9,21 +9,21 @@ const path = require('path');
 const os = require('os');
 
 const pluginsSrc = path.join(__dirname, '..', '.opencode', 'plugins');
-const libSrc = path.join(__dirname, '..', '.lore', 'lib');
+const libSrc = path.join(__dirname, '..', '.lore', 'harness', 'lib');
 
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-opencode-'));
 
-  // Shared lib — plugins resolve ../../.lore/lib/ via createRequire(import.meta.url)
-  const libDir = path.join(dir, '.lore', 'lib');
+  // Shared lib — plugins resolve ../../.lore/harness/lib/ via createRequire(import.meta.url)
+  const libDir = path.join(dir, '.lore', 'harness', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
   for (const f of fs.readdirSync(libSrc)) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
   }
 
-  // Templates — sticky files read from .lore/templates/
-  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
-  const tplDir = path.join(dir, '.lore', 'templates');
+  // Templates — sticky files read from .lore/harness/templates/
+  const tplSrc = path.join(__dirname, '..', '.lore', 'harness', 'templates');
+  const tplDir = path.join(dir, '.lore', 'harness', 'templates');
   fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Copy plugins with ESM package.json so .js files resolve as modules
@@ -191,7 +191,7 @@ test('knowledge-tracker: first bash emits capture reminder', async (t) => {
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash' });
   assert.equal(client.logs.length, 1, 'first bash should emit capture reminder');
-  assert.ok(client.logs[0].message.includes('Capturer'));
+  assert.ok(client.logs[0].message.includes('Cultivator'));
 });
 
 test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
@@ -204,9 +204,8 @@ test('knowledge-tracker: escalates at 3 consecutive bash', async (t) => {
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.ok(client.logs.at(-1).message.includes('Capture checkpoint (3 commands in a row)'));
-  assert.ok(client.logs.at(-1).message.includes('Confirm Exploration vs Execution'));
-  assert.ok(client.logs.at(-1).message.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(client.logs.at(-1).message.includes('[Lore] Capture checkpoint (3 commands)'));
+  assert.ok(client.logs.at(-1).message.includes('REQUIRED'));
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
@@ -220,8 +219,7 @@ test('knowledge-tracker: strong warning at 5 consecutive bash', async (t) => {
   for (let i = 0; i < 5; i++) {
     await hooks['tool.execute.after']({ tool: 'Bash' });
   }
-  assert.ok(client.logs.at(-1).message.includes('REQUIRED capture review (5 consecutive commands)'));
-  assert.ok(client.logs.at(-1).message.includes('Confirm Exploration vs Execution'));
+  assert.ok(client.logs.at(-1).message.includes('[Lore] REQUIRED capture review (5 commands)'));
   assert.equal(client.logs.at(-1).level, 'warn');
 });
 
@@ -259,7 +257,7 @@ test('knowledge-tracker: error pattern message on bash failure', async (t) => {
   const hooks = await KnowledgeTracker({ directory: dir, client });
   await hooks['tool.execute.after']({ tool: 'Bash', error: 'command failed' });
   assert.ok(client.logs[0].message.includes('Execution-phase failure is high-signal'));
-  assert.ok(client.logs[0].message.includes('If this is Execution phase: REQUIRED'));
+  assert.ok(client.logs[0].message.includes('REQUIRED'));
 });
 
 test('knowledge-tracker: respects custom thresholds from .lore-config', async (t) => {
@@ -271,7 +269,7 @@ test('knowledge-tracker: respects custom thresholds from .lore-config', async (t
   // 2nd bash should now nudge (custom threshold)
   await hooks['tool.execute.after']({ tool: 'Bash' });
   await hooks['tool.execute.after']({ tool: 'Bash' });
-  assert.ok(client.logs.at(-1).message.includes('Capture checkpoint (2 commands in a row)'));
+  assert.ok(client.logs.at(-1).message.includes('[Lore] Capture checkpoint (2 commands)'));
 });
 
 // ── Protect Memory ──

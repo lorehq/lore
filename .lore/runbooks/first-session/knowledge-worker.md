@@ -60,7 +60,7 @@ On hosted inference (Foundry, Bedrock, Vertex), these point to deployment names.
 After setting aliases, regenerate agent frontmatter:
 
 ```bash
-node .lore/lib/generate-agents.js
+node .lore/harness/lib/generate-agents.js
 ```
 
 **Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the orchestrator's tier with no error.

@@ -4,7 +4,7 @@
   "mcp": {
     "lore-search": {
       "type": "local",
-      "command": ["node", ".lore/mcp/search-server.js"],
+      "command": ["node", ".lore/harness/mcp/search-server.js"],
       "enabled": true
     }
   }

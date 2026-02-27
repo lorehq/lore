@@ -6,27 +6,27 @@ const path = require('path');
 const os = require('os');
 
 // prompt-preamble.js requires ./lib/parse-agents which requires ../../lib/banner.
-// Temp structure: tmp/.lore/hooks/prompt-preamble.js, tmp/.lore/hooks/lib/parse-agents.js,
-// tmp/.lore/lib/banner.js (+ other lib files).
+// Temp structure: tmp/.lore/harness/hooks/prompt-preamble.js, tmp/.lore/harness/hooks/lib/parse-agents.js,
+// tmp/.lore/harness/lib/banner.js (+ other lib files).
 
 function setup(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-preamble-'));
   // Copy hooks
-  const hooksDir = path.join(dir, '.lore', 'hooks', 'lib');
+  const hooksDir = path.join(dir, '.lore', 'harness', 'hooks', 'lib');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', '.lore', 'hooks', 'prompt-preamble.js'),
-    path.join(dir, '.lore', 'hooks', 'prompt-preamble.js'),
+    path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'prompt-preamble.js'),
+    path.join(dir, '.lore', 'harness', 'hooks', 'prompt-preamble.js'),
   );
   fs.copyFileSync(
-    path.join(__dirname, '..', '.lore', 'hooks', 'lib', 'parse-agents.js'),
-    path.join(dir, '.lore', 'hooks', 'lib', 'parse-agents.js'),
+    path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'lib', 'parse-agents.js'),
+    path.join(dir, '.lore', 'harness', 'hooks', 'lib', 'parse-agents.js'),
   );
   // Shared lib
-  const libDir = path.join(dir, '.lore', 'lib');
+  const libDir = path.join(dir, '.lore', 'harness', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'lib'))) {
-    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(libDir, f));
+  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'harness', 'lib'))) {
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'harness', 'lib', f), path.join(libDir, f));
   }
   // Create .lore/agents/ for agent scanning
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
@@ -42,19 +42,18 @@ function setup(opts = {}) {
 }
 
 function run(dir) {
-  return execSync(`node .lore/hooks/prompt-preamble.js`, { cwd: dir, encoding: 'utf8' }).trim();
+  return execSync(`node .lore/harness/hooks/prompt-preamble.js`, { cwd: dir, encoding: 'utf8' }).trim();
 }
 
 function cleanup(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-test('prompt-preamble: outputs bracketed line', () => {
+test('prompt-preamble: outputs [Lore] prefixed line', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(out.startsWith('['), 'should start with [');
-    assert.ok(out.endsWith(']'), 'should end with ]');
+    assert.ok(out.startsWith('[Lore]'), 'should start with [Lore]');
   } finally {
     cleanup(dir);
   }
@@ -64,9 +63,9 @@ test('prompt-preamble: always includes role directives', () => {
   const dir = setup();
   try {
     const out = run(dir);
-    assert.ok(out.includes('Curator'), 'should include Curator role');
+    assert.ok(out.includes('Resourceful'), 'should include Resourceful role');
     assert.ok(out.includes('Orchestrator'), 'should include Orchestrator role');
-    assert.ok(out.includes('Capturer'), 'should include Capturer role');
+    assert.ok(out.includes('Cultivator'), 'should include Cultivator role');
     assert.ok(out.includes('delegate'), 'should include delegation directive');
     assert.ok(out.includes('docs/knowledge/'), 'should include knowledge capture route');
   } finally {
@@ -95,7 +94,7 @@ test('prompt-preamble: with agents — includes delegation nudge', () => {
     const out = run(dir);
     assert.ok(out.includes('Orchestrator'), 'should include Orchestrator role');
     assert.ok(out.includes('delegate'), 'should mention delegation');
-    assert.ok(out.includes('Capturer'), 'should include Capturer role');
+    assert.ok(out.includes('Cultivator'), 'should include Cultivator role');
   } finally {
     cleanup(dir);
   }
@@ -111,8 +110,8 @@ test('prompt-preamble: with rules — still includes role directives', () => {
   try {
     const out = run(dir);
     // Preamble no longer lists rule names (they're in the static banner)
-    assert.ok(out.includes('Curator'), 'should include Curator role');
-    assert.ok(out.includes('Capturer'), 'should include Capturer role');
+    assert.ok(out.includes('Resourceful'), 'should include Resourceful role');
+    assert.ok(out.includes('Cultivator'), 'should include Cultivator role');
   } finally {
     cleanup(dir);
   }

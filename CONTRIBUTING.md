@@ -18,9 +18,9 @@ Requires **Node.js 18+**. No production dependencies — `npm install` pulls lin
 npm test                              # node:test
 npm run lint                          # ESLint
 npm run format:check                  # Prettier
-bash .lore/scripts/validate-consistency.sh  # 11 cross-reference checks
-bash .lore/scripts/check-version-sync.sh   # .lore/config.json ↔ package.json
-bash .lore/scripts/smoke-test.sh            # Fresh-clone bootstrap simulation
+bash .lore/harness/scripts/validate-consistency.sh  # 11 cross-reference checks
+bash .lore/harness/scripts/check-version-sync.sh   # .lore/config.json ↔ package.json
+bash .lore/harness/scripts/smoke-test.sh            # Fresh-clone bootstrap simulation
 ```
 
 CI runs all of these on Ubuntu + macOS, Node 18 + 20.
@@ -29,7 +29,7 @@ CI runs all of these on Ubuntu + macOS, Node 18 + 20.
 
 1. Fork the repo and create a branch from `main`
 2. Make your changes
-3. Run `npm test` and `bash scripts/validate-consistency.sh`
+3. Run `npm test` and `bash .lore/harness/scripts/validate-consistency.sh`
 4. Open a pull request
 
 ## What We're Looking For
@@ -43,7 +43,7 @@ CI runs all of these on Ubuntu + macOS, Node 18 + 20.
 
 - Keep changes focused — one concern per PR
 - Match existing code style
-- Run `bash scripts/validate-consistency.sh` before submitting
+- Run `bash .lore/harness/scripts/validate-consistency.sh` before submitting
 - Skills and agents use YAML frontmatter — see `.lore/skills/lore-create-skill/SKILL.md` for the format
 - The `lore-*` prefix is reserved for harness-owned skills and agents — these are overwritten on sync. Operator-created skills and agents must not use this prefix
 

@@ -6,29 +6,29 @@ const path = require('path');
 const os = require('os');
 
 // session-init.js uses __dirname:
-//   require('../lib/banner') → .lore/lib/banner.js
-//   root = path.join(__dirname, '../..') → parent of .lore/
-// So temp structure needs: tmp/.lore/hooks/session-init.js + tmp/.lore/lib/banner.js
+//   require('../lib/banner') → .lore/harness/lib/banner.js
+//   root = path.join(__dirname, '../../..') → parent of .lore/
+// So temp structure needs: tmp/.lore/harness/hooks/session-init.js + tmp/.lore/harness/lib/banner.js
 // and all data files under tmp/
 
 function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-session-')));
-  fs.mkdirSync(path.join(dir, '.lore', 'hooks'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'harness', 'hooks'), { recursive: true });
   fs.copyFileSync(
-    path.join(__dirname, '..', '.lore', 'hooks', 'session-init.js'),
-    path.join(dir, '.lore', 'hooks', 'session-init.js'),
+    path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'session-init.js'),
+    path.join(dir, '.lore', 'harness', 'hooks', 'session-init.js'),
   );
-  // Shared lib — hook resolves ../lib/ relative to .lore/hooks/
-  const libDir = path.join(dir, '.lore', 'lib');
+  // Shared lib — hook resolves ../lib/ relative to .lore/harness/hooks/
+  const libDir = path.join(dir, '.lore', 'harness', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
-  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'lib'))) {
-    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'lib', f), path.join(libDir, f));
+  for (const f of fs.readdirSync(path.join(__dirname, '..', '.lore', 'harness', 'lib'))) {
+    fs.copyFileSync(path.join(__dirname, '..', '.lore', 'harness', 'lib', f), path.join(libDir, f));
   }
 
-  // Templates — sticky files read from .lore/templates/
-  const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
-  const tplDir = path.join(dir, '.lore', 'templates');
+  // Templates — sticky files read from .lore/harness/templates/
+  const tplSrc = path.join(__dirname, '..', '.lore', 'harness', 'templates');
+  const tplDir = path.join(dir, '.lore', 'harness', 'templates');
   fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Minimal structure so the hook doesn't error
@@ -73,7 +73,7 @@ function setup(opts = {}) {
 }
 
 function runHook(dir) {
-  return execSync(`node "${path.join(dir, '.lore', 'hooks', 'session-init.js')}"`, {
+  return execSync(`node "${path.join(dir, '.lore', 'harness', 'hooks', 'session-init.js')}"`, {
     cwd: dir,
     encoding: 'utf8',
   });

@@ -47,7 +47,7 @@ allowed-tools: Bash, Read, etc
 ### Step 2: Sync Platform Copies
 
 ```bash
-bash .lore/scripts/sync-platform-skills.sh
+bash .lore/harness/scripts/sync-platform-skills.sh
 ```
 
 ## Splitting Rules

@@ -8,9 +8,9 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const path = require('path');
 const fs = require('fs');
-const { buildTree, getConfig } = require('../../.lore/lib/banner');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
-const { getProfile } = require('../../.lore/lib/config');
+const { buildTree, getConfig } = require('../../.lore/harness/lib/banner');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
+const { getProfile } = require('../../.lore/harness/lib/config');
 
 export const ContextPathGuide = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

@@ -27,11 +27,11 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 4. Show the operator: current version, new version, what will be synced
 5. On approval, run **from the instance directory** (cwd), passing the harness repo clone as the argument:
    ```bash
-   bash "$tmp/.lore/scripts/sync-harness.sh" "$tmp"
+   bash "$tmp/.lore/harness/scripts/sync-harness.sh" "$tmp"
    ```
    **Direction: cwd = target instance, argument = source harness repo.** Getting this backwards overwrites the harness repo with stale instance files.
 6. Update the `version` field in `.lore/config.json` to match the source
-7. **Seed review** — compare `.lore/templates/seeds/rules/` to operator rule files in `.lore/rules/`. For each seed template where the operator file exists and differs:
+7. **Seed review** — compare `.lore/harness/templates/seeds/rules/` to operator rule files in `.lore/rules/`. For each seed template where the operator file exists and differs:
    - Show the diff (seed template vs operator file)
    - Ask the operator whether to adopt the updated seed or keep their version
    - Only overwrite operator files the operator explicitly approves
@@ -42,14 +42,14 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 ## What Gets Synced
 
 **Overwritten (harness-owned):**
-- `.lore/hooks/`, `.lore/lib/`, `.lore/scripts/`, `.opencode/`
+- `.lore/harness/hooks/`, `.lore/harness/lib/`, `.lore/harness/scripts/`, `.opencode/`
 - `.claude/settings.json`, `.lore/skills/<built-in>/`
 - `.lore/instructions.md`, `.gitignore`, `opencode.json`
 - `.lore/rules/system/`, `.lore/runbooks/system/`
 - Generated copies (`CLAUDE.md`, `.cursor/rules/lore-*.mdc`) are also regenerated via `sync-platform-skills.sh`
 
 **Seed files (opt-in update):**
-- `.lore/templates/seeds/rules/` — default rule content. Created on first install if missing. On update, diffs shown for operator review.
+- `.lore/harness/templates/seeds/rules/` — default rule content. Created on first install if missing. On update, diffs shown for operator review.
 
 **Never touched (operator-owned):**
 - `docs/` (except `system/` subdirs), `.lore/agents/`, `mkdocs.yml`

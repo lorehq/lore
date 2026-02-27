@@ -58,7 +58,7 @@ The `tier` field (`fast`, `default`, or `powerful`) is resolved to a platform-sp
 ### Step 3: Sync Platform Copies
 
 ```bash
-bash .lore/scripts/sync-platform-skills.sh
+bash .lore/harness/scripts/sync-platform-skills.sh
 ```
 
 ## Naming

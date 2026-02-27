@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseFrontmatter, stripFrontmatter } = require('../.lore/lib/frontmatter');
+const { parseFrontmatter, stripFrontmatter } = require('../.lore/harness/lib/frontmatter');
 
 test('parseFrontmatter: basic key-value pairs', () => {
   const content = '---\ntitle: My Doc\nstatus: active\n---\n\nBody text.';

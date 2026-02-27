@@ -9,9 +9,9 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '..');
-const hookPath = (name) => path.join(repoRoot, '.lore', 'hooks', name);
+const hookPath = (name) => path.join(repoRoot, '.lore', 'harness', 'hooks', name);
 const cursorHookPath = (name) => path.join(repoRoot, '.cursor', 'hooks', name);
-const scriptPath = path.join(repoRoot, '.lore', 'scripts', 'lore-link.sh');
+const scriptPath = path.join(repoRoot, '.lore', 'harness', 'scripts', 'lore-link.sh');
 const isWindows = process.platform === 'win32';
 
 // -- Hub setup: minimal Lore instance structure --

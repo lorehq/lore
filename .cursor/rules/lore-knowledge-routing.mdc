@@ -17,6 +17,6 @@ Example: API returns 403 because path segments need URL-encoded slashes → reus
 
 Discovery failures are normal noise — execution failures are high-signal and require a capture decision.
 
-After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/scripts/validate-consistency.sh`. Active epic or initiative → update progress.
+After substantive work, also check: fieldnotes or skills over 80 lines or mixing methods → split. Run `.lore/harness/scripts/validate-consistency.sh`. Active epic or initiative → update progress.
 
 Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health checks.

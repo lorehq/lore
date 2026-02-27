@@ -6,6 +6,23 @@ user-invocable: false
 ---
 # Delegation Recipe
 
+Every worker spawned without this recipe risks wasted cost, lost knowledge, and broken capture. The orchestrator's job is reasoning and operator interaction — execution belongs to workers.
+
+## Tier Routing
+
+Match the worker tier to the task complexity — simple execution at the lowest tier, escalate only when reasoning demands it:
+
+- `lore-explore` — KB-aware read-only codebase exploration (searches KB first, then Glob/Grep/Read)
+- `lore-worker-fast` — API exploration, curl, bulk/parallel tasks, simple lookups, boilerplate
+- `lore-worker` — general-purpose work requiring judgment, the safe middle ground
+- `lore-worker-powerful` — complex reasoning, architectural decisions, multi-file refactors
+
+Examples:
+- Curl an API endpoint → `lore-worker-fast` (simple execution, no judgment)
+- Search the KB for a fieldnote → `lore-explore` (read-only discovery)
+- Investigate a bug across multiple files → `lore-worker` (requires judgment)
+- Design a new module architecture → `lore-worker-powerful` (complex reasoning)
+
 ## Worker Prompt Rules
 
 Name what to load — workers read the files themselves.
@@ -21,7 +38,7 @@ Include in every worker prompt:
 4. **Rules to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
 5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
 6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
-7. **Return contract** — "End with a Captures section: (A) Snags (gotchas, quirks), (B) Environment facts, (C) Procedures — or 'none' for each."
+7. **Return contract** — "End with a Captures section: (A) Snags (gotchas, quirks), (B) Environment facts, (C) Procedures — or 'none' for each." Without this, knowledge discovered during execution is lost — the cultivator principle breaks.
 
 You may also name specific skills to load — workers discover the rest via semantic search.
 
@@ -61,7 +78,10 @@ Only serialize when one worker's output is another's input. When in doubt, paral
 
 ## After Worker Returns
 
-1. Snags reported? → create fieldnote
-2. Environment facts? → write to `docs/knowledge/environment/`
-3. Procedures? → write to `.lore/runbooks/`
+Check the Captures section in every worker response:
+1. Snags reported? → propose fieldnote to operator
+2. Environment facts? → propose write to `docs/knowledge/environment/`
+3. Procedures? → propose write to `.lore/runbooks/`
 4. Nothing? → move on
+
+Workers discover — the orchestrator persists. Never skip this step.

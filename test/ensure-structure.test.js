@@ -5,25 +5,25 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const scriptPath = path.join(__dirname, '..', '.lore', 'scripts', 'ensure-structure.sh');
-const tplSrc = path.join(__dirname, '..', '.lore', 'templates', 'orphan-index.md');
+const scriptPath = path.join(__dirname, '..', '.lore', 'harness', 'scripts', 'ensure-structure.sh');
+const tplSrc = path.join(__dirname, '..', '.lore', 'harness', 'templates', 'orphan-index.md');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-structure-'));
   fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
   // Copy orphan template
-  const tplDir = path.join(dir, '.lore', 'templates');
+  const tplDir = path.join(dir, '.lore', 'harness', 'templates');
   fs.mkdirSync(tplDir, { recursive: true });
   fs.copyFileSync(tplSrc, path.join(tplDir, 'orphan-index.md'));
   // Copy script
-  const scriptDir = path.join(dir, '.lore', 'scripts');
+  const scriptDir = path.join(dir, '.lore', 'harness', 'scripts');
   fs.mkdirSync(scriptDir, { recursive: true });
   fs.copyFileSync(scriptPath, path.join(scriptDir, 'ensure-structure.sh'));
   return dir;
 }
 
 function runScript(dir) {
-  return execSync(`bash "${path.join(dir, '.lore', 'scripts', 'ensure-structure.sh')}"`, {
+  return execSync(`bash "${path.join(dir, '.lore', 'harness', 'scripts', 'ensure-structure.sh')}"`, {
     cwd: dir,
     encoding: 'utf8',
   });
@@ -59,7 +59,7 @@ test('falls back to heading when template missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Remove the template
-  fs.unlinkSync(path.join(dir, '.lore', 'templates', 'orphan-index.md'));
+  fs.unlinkSync(path.join(dir, '.lore', 'harness', 'templates', 'orphan-index.md'));
   const sub = path.join(dir, 'docs', 'guides');
   fs.mkdirSync(sub, { recursive: true });
 
@@ -93,7 +93,7 @@ test('no-op when docs/ does not exist', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-structure-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // Copy script but no docs/
-  const scriptDir = path.join(dir, '.lore', 'scripts');
+  const scriptDir = path.join(dir, '.lore', 'harness', 'scripts');
   fs.mkdirSync(scriptDir, { recursive: true });
   fs.copyFileSync(scriptPath, path.join(scriptDir, 'ensure-structure.sh'));
 

@@ -85,7 +85,7 @@ Apply link repair **after** all moves complete so the mapping is total before an
 ## Phase 5: Validate
 
 ```bash
-bash .lore/scripts/validate-consistency.sh
+bash .lore/harness/scripts/validate-consistency.sh
 ```
 
 Also run a manual check for broken relative links:

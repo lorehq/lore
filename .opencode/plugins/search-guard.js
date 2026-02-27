@@ -4,8 +4,8 @@
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { getConfig, getProfile } = require('../../.lore/lib/config');
-const { logHookEvent } = require('../../.lore/lib/hook-logger');
+const { getConfig, getProfile } = require('../../.lore/harness/lib/config');
+const { logHookEvent } = require('../../.lore/harness/lib/hook-logger');
 
 export const SearchGuard = async ({ directory, client }) => {
   const hub = process.env.LORE_HUB || directory;

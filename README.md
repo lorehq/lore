@@ -55,8 +55,8 @@ Lore is a harness built from markdown files, hooks that shape agent behavior, an
 - **Skills** (`.lore/skills/`) — Procedural capabilities and reusable commands.
 - **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills and fieldnotes per-task.
 - **Docs** (`docs/`) — Project context, rules, environment knowledge, runbooks, and work tracking.
-- **Hooks** (`.lore/hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce rules before writes, nudge knowledge capture during work.
-- **Scripts** (`.lore/scripts/`) — Platform sync, validation, nav building.
+- **Hooks** (`.lore/harness/hooks/`, `.cursor/hooks/`, `.opencode/plugins/`) — Inject context at session start, enforce rules before writes, nudge knowledge capture during work.
+- **Scripts** (`.lore/harness/scripts/`) — Platform sync, validation, nav building.
 
 All hooks are plain JavaScript you can read in minutes. They don't make network requests, execute shell commands, or access anything outside your project directory.
 

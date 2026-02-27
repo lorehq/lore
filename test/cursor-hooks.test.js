@@ -10,22 +10,22 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const hooksSrc = path.join(__dirname, '..', '.cursor', 'hooks');
-const libSrc = path.join(__dirname, '..', '.lore', 'lib');
-const tplSrc = path.join(__dirname, '..', '.lore', 'templates');
+const libSrc = path.join(__dirname, '..', '.lore', 'harness', 'lib');
+const tplSrc = path.join(__dirname, '..', '.lore', 'harness', 'templates');
 
 function setup(opts = {}) {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-cursor-')));
 
-  // Shared lib — hooks resolve ../../.lore/lib/ from .cursor/hooks/
-  const libDir = path.join(dir, '.lore', 'lib');
+  // Shared lib — hooks resolve ../../.lore/harness/lib/ from .cursor/hooks/
+  const libDir = path.join(dir, '.lore', 'harness', 'lib');
   fs.mkdirSync(libDir, { recursive: true });
   for (const f of fs.readdirSync(libSrc)) {
     fs.copyFileSync(path.join(libSrc, f), path.join(libDir, f));
   }
 
-  // Templates — sticky files read from .lore/templates/
-  const tplDir = path.join(dir, '.lore', 'templates');
+  // Templates — sticky files read from .lore/harness/templates/
+  const tplDir = path.join(dir, '.lore', 'harness', 'templates');
   fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Copy hooks
