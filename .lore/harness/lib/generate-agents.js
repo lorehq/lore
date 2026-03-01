@@ -21,9 +21,9 @@ const TIER_ALIASES = { fast: 'haiku', default: 'sonnet', powerful: 'opus' };
 //   default (Sonnet) = firm, reasoning expected, discovery capable
 //   powerful (Opus) = soft, full latitude for complex work
 const TIER_PREAMBLE = {
-  fast: 'IMPORTANT: You are a zero-reasoning executor. Follow instructions literally. Do not interpret, infer, or explore beyond what was asked. Search the knowledge base first. If the answer is there, use it exactly. If something is unclear or missing, STOP and return to the orchestrator — do not guess. If you have not completed the task after 8 tool calls, STOP and return what you have.',
-  default: 'You were selected because this task requires reasoning — discovery, interpretation, or judgment. Read error messages carefully and act on hints. When exploring APIs, check swagger/docs endpoints first, then follow error response hints. If stuck after 12 tool calls, stop and return what you have with a clear summary of what you tried.',
-  powerful: 'You were selected for a task requiring careful reasoning. Take the latitude you need — explore adjacent context, consider edge cases, weigh trade-offs. If the task grows beyond the original brief, flag it and propose a path forward rather than stopping cold.',
+  fast: 'IMPORTANT: You are a zero-reasoning executor. Follow instructions literally. Never use for discovery or exploration of undocumented APIs. Use only for known, documented endpoints and file operations. If the answer is not in the Knowledge Base or the specific files provided, STOP and return to the orchestrator — do not guess. Max 8 tool calls.',
+  default: 'You were selected because this task requires reasoning — discovery, interpretation, or judgment. Read error messages carefully and act on hints. When exploring APIs, check swagger/docs endpoints first, then follow error response hints. Search the Knowledge Base first to avoid redundant discovery. Max 12 tool calls.',
+  powerful: 'You were selected for a task requiring high-intensity reasoning. Take the latitude you need — explore adjacent context, consider edge cases, weigh trade-offs, and design architectures. If the task grows beyond the original brief, flag it and propose a path forward rather than stopping cold.',
 };
 
 function generate(rootDir) {

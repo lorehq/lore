@@ -6,62 +6,69 @@ user-invocable: false
 ---
 # Delegation Recipe
 
-## Worker Prompt Rules
+Every worker spawned without this recipe risks wasted cost, lost knowledge, and broken capture. The orchestrator's job is reasoning and operator interaction — execution belongs to workers.
 
-Name what to load — workers read the files themselves.
+## Tier Routing
 
-Include in every worker prompt:
-1. **Knowledge-base-first** — "Search the knowledge base before acting (semantic search if available, otherwise Glob/Grep)." This prevents redundant discovery and surfaces existing skills/knowledge early. See **Search Discipline** below for how workers should use results.
-2. **Task description** — what needs doing and why
-3. **Resolve before delegating** — Workers execute, they don't interpret. Resolve ambiguous or relative inputs to concrete values before they reach the worker. If it requires reasoning or judgment, the orchestrator decides; the worker receives the decision.
-   - Bad: "find large files" → worker decides what "large" means
-   - Good: "find files over 10MB" → worker executes a clear threshold
-   - Bad: "get recent orders" → worker interprets "recent"
-   - Good: "get orders with status pending" → worker filters on a concrete field
-4. **Rules to load** — name any from `docs/context/` the worker needs (e.g. `coding`, `security`); worker reads the files
-5. **Scope** — target repo path, which files may be modified. Be explicit — workers treat this as a boundary and will return if a task requires writing outside it.
-6. **Bail-out rule** — "If stuck after 10 tool calls, stop and return what you have — the orchestrator can redirect."
-7. **Return contract** — "End with a Captures section: (A) Snags (gotchas, quirks), (B) Environment facts, (C) Procedures — or 'none' for each."
+Match the worker tier to the task. The deciding factor is whether the task requires reasoning:
 
-You may also name specific skills to load — workers discover the rest via semantic search.
+- `lore-explore` — Read-only KB and codebase search. No writes, no execution.
+- `lore-worker-fast` — Zero reasoning. KB search, file reads, calling **known documented** endpoints. Never for discovery, never for connecting to undocumented services.
+- `lore-worker` — Anything requiring reasoning. API discovery, endpoint exploration, bug investigation, connecting to services not yet in the KB. The default when you're unsure.
+- `lore-worker-powerful` — Complex, high-intensity reasoning. Architecture, multi-file refactors, cross-system analysis.
+
+**The critical split: known vs unknown.** If the KB has the endpoint, path, and params documented → fast. If the worker needs to discover, interpret error messages, or figure out an API → mid tier. Fast workers cannot crack APIs — they will brute-force random paths and bail.
+
+Examples:
+- `curl` a documented endpoint with known params → `lore-worker-fast`
+- Search the KB for a fieldnote → `lore-explore`
+- Explore an undocumented API, follow redirects/hints → `lore-worker`
+- Investigate a bug across multiple files → `lore-worker`
+- Design a new module architecture → `lore-worker-powerful`
+
+## Worker Prompt Template
+
+Copy this template for every worker prompt. Fill every field — workers with missing fields produce worse results and lost knowledge.
+
+```
+KB-first: Search the knowledge base before acting (semantic search if available, otherwise Glob `docs/knowledge/`).
+
+Objective: [What the worker must accomplish. Concrete, resolved — no ambiguity for the worker to interpret.]
+
+Success criteria: [Pass/fail conditions. What makes this done vs. not done.]
+
+Scope: [Allowed paths, services, URLs. Workers treat this as a boundary.]
+
+Rules/skills to load: [Name files from .lore/rules/ or .lore/skills/. Include `security` for writes or sensitive data. Write "none" if no rules apply — do not omit the field.]
+
+Bail-out: [Number of tool calls without progress before stopping. Use tier defaults: lore-explore 5, lore-worker-fast 5, lore-worker 12, lore-worker-powerful 20.]
+
+Return format: End with a Captures section: (A) Snags/gotchas, (B) Environment facts, (C) Procedures — or "none" for each.
+
+Uncertainty: [What to do when unsure. Examples: "return both candidates", "stop and report", "use the more conservative option".]
+```
+
+**Resolve before delegating.** Workers execute, they don't interpret. All ambiguity is resolved by the orchestrator before it reaches the worker.
+- Bad: "find large files" → worker decides threshold
+- Good: "find files over 10MB" → worker executes concrete threshold
 
 Workers report findings — the orchestrator decides what to persist.
 
-## Search Discipline
+## Parallel Decomposition
 
-Semantic search indexes the knowledge base (`docs/`, `.lore/skills/`, `docs/context/`). Workers who understand this avoid wasted tool calls.
+Before spawning, ask: can this be split into independent chunks? If yes, spawn concurrently.
+- **By target** — one worker per service, file, or endpoint
+- **By concern** — research vs implementation vs validation
+- Serialize only when one output feeds another
 
-**Act on what you find.** When a semantic snippet contains the answer (a URL, parameter, command), use it and move on. Don't gather more data once you have enough to act. If the snippet is partial and you need more from that file, Read it by path. Grep and Glob add nothing when the file is already identified.
-
-**Trust negative results.** Semantic search covers the knowledge base thoroughly. When a query returns nothing relevant, the KB doesn't have it — escalate to the orchestrator rather than re-searching the same directories with Grep/Glob. Filesystem search finds what semantic search misses only outside indexed paths (external repos, application code, generated files).
-
-**Match the tool to the territory:**
-- KB paths (`docs/`, `.lore/`, `docs/context/`) → semantic search, then Read by path
-- External repos and application code → Grep/Glob (not indexed)
-- Already-identified file → Read directly (skip search entirely)
-
-**Bail on dry holes.** If you haven't found what you need after a few searches, stop digging. Return to the orchestrator with what you tried and what you found — they have context you don't and can redirect. Spending 15 tool calls searching is always worse than returning early and getting pointed in the right direction.
-
-## Parallel Workers
-
-**Parallelize by default.** Before spawning any worker, ask: can this task be split into independent chunks? If yes, spawn them concurrently — don't serialize what can run in parallel.
-
-Decomposition patterns:
-- **By target** — one worker per repo, service, file, or endpoint
-- **By concern** — separate research from implementation, validation from execution
-- **By independence** — any subtasks with no data dependency between them run concurrently
-
-Only serialize when one worker's output is another's input. When in doubt, parallelize — merging results is cheaper than waiting in sequence.
-
-**Block or don't block.** Blocking workers (foreground) tie up the orchestrator until they finish — fine for short, predictable tasks you trust to converge. Non-blocking workers (background) return control immediately so the orchestrator can monitor, intervene, or do other work. Use non-blocking for open-ended exploration (unknown APIs, undocumented services, broad searches) where divergence is plausible.
-
-**Poll, don't fire-and-forget.** When workers run non-blocking, check on them periodically. Don't launch background workers then immediately block waiting for the first one — that defeats the purpose. Poll to detect stuck workers early, then act on it.
-
-**Race stuck workers.** Racing requires non-blocking workers — you can only intervene on what you can observe. If a worker is burning tool calls without converging, spawn a replacement with narrower scope or clearer instructions. Use whichever returns useful results first. A stuck worker usually means the prompt was too broad — the fix is a better-scoped replacement, not more patience.
+For open-ended work, spawn non-blocking and monitor. Replace stalled workers with narrower scope.
 
 ## After Worker Returns
 
-1. Snags reported? → create fieldnote
-2. Environment facts? → write to `docs/knowledge/environment/`
-3. Procedures? → write to `.lore/runbooks/`
+Check the Captures section in every worker response:
+1. Snags reported? → propose fieldnote to operator
+2. Environment facts? → propose write to `docs/knowledge/environment/`
+3. Procedures? → propose write to `.lore/runbooks/`
 4. Nothing? → move on
+
+Workers discover — the orchestrator persists. Never skip this step.

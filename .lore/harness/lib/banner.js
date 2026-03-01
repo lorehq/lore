@@ -248,6 +248,8 @@ WORKERS: ${workerList}`;
     const agentsTree = buildTree(path.join(directory, '.lore', 'agents'), '', { maxDepth: treeDepth });
     if (agentsTree.length > 0) trees.push('.lore/agents/\n' + agentsTree.join('\n'));
     if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
+  } else {
+    output += '\n\nKNOWLEDGE MAP: (Lazy-loaded \u2014 use semantic search to find files in docs/, .lore/skills/, or .lore/fieldnotes/)';
   }
 
   return output;

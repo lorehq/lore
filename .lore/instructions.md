@@ -102,23 +102,19 @@ Use `/lore-capture` for a full checklist. `/lore-consolidate` for deep health ch
 
 ## Delegation
 
-The orchestrator reasons, decomposes, and delegates — it does not execute. One harness worker: `lore-worker`, spawned per-task with curated skills, rules, and scope. The orchestrator's context is too valuable for execution details.
+You may delegate tasks to workers when it would reduce cost or avoid context-read noise (especially for tasks over 50k tokens). If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture.
 
-**Always load `/lore-delegate` before constructing worker prompts.** It defines the required prompt structure — workers without it produce unstructured output the orchestrator can't parse. Name rules and skills for workers in the prompt — they read the files.
+**Load `/lore-delegate` for delegation recipes.** It defines the required prompt structure (rules to name, scope, bail-out) and the mandatory return format. Without it, worker findings are unstructured and knowledge is lost.
 
-**Parallelize by default.** Before delegating, decompose every task into independent subtasks and spawn them concurrently. Serial execution is the exception — only serialize when one task's output is another's input. Three parallel workers finish faster than one worker doing three steps sequentially.
+**Race, don't wait.** For open-ended exploration (unknown APIs, undocumented services), launch exploratory workers non-blocking. If a worker is burning tool calls without converging, spawn a replacement with narrower scope — use whichever returns first.
 
-**Race, don't wait.** Launch exploratory workers non-blocking so you can poll progress and intervene. If a worker is burning tool calls without converging, spawn a replacement with narrower scope immediately — use whichever returns first. Block for short, predictable tasks; don't block for anything open-ended.
+**Worker Tiers:**
+- `lore-explore` — Read-only KB and codebase search.
+- `lore-worker-fast` — Zero reasoning. File reads, known documented endpoints.
+- `lore-worker` — General reasoning. API discovery, exploration, bug investigation.
+- `lore-worker-powerful` — High-intensity reasoning. Architecture, multi-file refactors.
 
-Operator agents are optional. Create when a static, reusable delegation pattern is valuable — naming: `<purpose>-agent`.
-
-Match the worker tier to the task — the deciding factor is whether it requires reasoning:
-- `lore-explore` — Read-only KB and codebase search. No writes, no execution.
-- `lore-worker-fast` — Zero reasoning. KB search, file reads, calling known documented endpoints. Never for discovery or connecting to undocumented services.
-- `lore-worker` — Anything requiring reasoning. API discovery, endpoint exploration, bug investigation. The default when unsure.
-- `lore-worker-powerful` — Complex, high-intensity reasoning. Architecture, multi-file refactors, cross-system analysis.
-
-Keep in the orchestrator only: quick answers, single reads, clarifications, capture writes. Everything else delegates.
+Keep in the orchestrator: operator interaction, quick answers, single reads, and capture writes. Everything else may be delegated.
 
 ## Workflow
 

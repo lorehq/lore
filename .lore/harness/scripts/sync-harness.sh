@@ -6,7 +6,7 @@
 #
 # Harness-owned (synced):
 #   .lore/harness/hooks/, .lore/harness/lib/, .lore/harness/mcp/, .lore/harness/scripts/, .lore/harness/templates/,
-#   .lore/fieldnotes/, .opencode/, .cursor/, opencode.json, .mcp.json,
+#   .lore/fieldnotes/, .opencode/, .cursor/, .gemini/, opencode.json, .mcp.json,
 #   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
 #   .lore/instructions.md, .gitignore
 #
@@ -71,6 +71,8 @@ cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Copy hooks directly, then copy only harness-owned rules.
 cp -Rf "$SOURCE/.cursor/hooks/." "$TARGET/.cursor/hooks/"
 cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
+mkdir -p "$TARGET/.gemini"
+cp -Rf "$SOURCE/.gemini/." "$TARGET/.gemini/"
 # MCP server — exposes lore_check_in and lore_context as Cursor tools.
 # Both the server script and the config are harness-owned.
 mkdir -p "$TARGET/.cursor/mcp"

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Generates CLAUDE.md from instructions.md + static banner content.
-// Delegation enforcement level is dynamic — based on tier configuration.
-// Usage: node generate-claude-md.js /path/to/repo
+// Generates GEMINI.md from instructions.md + static banner content.
+// Usage: node generate-gemini-md.js /path/to/repo
 
 const fs = require('fs');
 const path = require('path');
@@ -26,9 +25,10 @@ const cfg = getConfig(absRoot);
 const delegationBlock = `
 ## Delegation Guidance
 
-You may delegate tasks to workers when it would reduce cost — especially when your context has grown large (50k+ tokens) and a fresh worker avoids accumulated costs. If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture. Load \\\`/lore-delegate\\\` (use the Skill tool) for recipes on worker prompt construction and return format.
+You may delegate tasks to workers when it would reduce cost — especially when your context has grown large (50k+ tokens) and a fresh worker avoids accumulated costs. If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture. Load \\\`/lore-delegate\\\` (read the file) for recipes on worker prompt construction and return format.
 `;
 
-const claudeMd = instructions + '\n' + delegationBlock + '\n' + staticBanner + '\n';
+const geminiMd = instructions + '\n' + delegationBlock + '\n' + staticBanner + '\n';
 
-fs.writeFileSync(path.join(absRoot, 'CLAUDE.md'), claudeMd);
+fs.writeFileSync(path.join(absRoot, 'GEMINI.md'), geminiMd);
+process.stdout.write('Generated GEMINI.md\n');

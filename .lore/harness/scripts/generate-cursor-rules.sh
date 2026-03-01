@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Generates tiered .cursor/rules/lore-*.mdc files from canonical Lore sources.
 #
-# Produces 8 rule files in a 3-4-1 tier pattern:
-#   Always-on (3):  lore-core, lore-project, lore-delegation
+# Produces 10 rule files in a 5-4-1 tier pattern:
+#   Always-on (5):  lore-core, lore-project, lore-delegation,
+#                   lore-ambiguity, lore-search-discipline
 #   Glob-based (4): lore-work-tracking, lore-knowledge-routing,
 #                   lore-skill-creation, lore-docs-formatting
 #   Agent-req (1):  lore-knowledge-map
@@ -242,7 +243,7 @@ if (coreProfile === 'minimal') {
 if (coreFieldnoteLine) staticBannerBlock += `\n\nFIELDNOTES: ${coreFieldnoteLine}`;
 if (coreBLSkills.length > 0) staticBannerBlock += '\n\n' + coreBLSkills.map(s => s.body).join('\n\n');
 
-const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction.';
+const mcpSection = '\n\n## MCP Tools\n\nCall `lore_check_in` after every 2-3 shell commands to check for capture nudges and session state. Call `lore_context` when you need to navigate the knowledge base or after context compaction. YOU MUST call `lore_write_guard` with the target file path before every file write or edit.';
 writeMdc('lore-core.mdc',
   'description: Lore harness instructions — core behaviors, knowledge routing, ownership, skill/agent creation\nalwaysApply: true',
   instructions + '\n\n' + staticBannerBlock + mcpSection
@@ -255,6 +256,40 @@ if (rules) projectBody += (projectBody ? '\n\n' : '') + rules;
 writeMdc('lore-project.mdc',
   'description: Project identity, agent behavior rules, and coding/docs rules\nalwaysApply: true',
   projectBody || '# Project\n\nNo project rules configured yet.'
+);
+
+// 9. lore-ambiguity — scan user input for vague terms
+const ambiguityRules = `
+# Ambiguity Guard
+
+You MUST resolve or clarify the following patterns in user input to concrete values before acting or delegating:
+
+- **Relative time:** "last week", "yesterday", "recent sprint", "next month"
+- **Relative quantities:** "a few", "some", "many", "enough", "too many"
+- **Vague criteria:** "large files", "important items", "slow records", "relevant results"
+- **Open-ended scope:** "everything from", "all of", "stuff in about"
+
+When detected, stop and ask the operator for specific dates, thresholds, or boundaries.
+`.trim();
+writeMdc('lore-ambiguity.mdc',
+  'description: Ambiguity guard — ensures precise execution by flagging vague time, quantity, or scope terms\nalwaysApply: true',
+  ambiguityRules
+);
+
+// 10. lore-search-discipline — enforce search strategy
+const searchDiscipline = `
+# Search Discipline
+
+Follow this search strategy strictly to minimize token waste and redundant exploration:
+
+1. **Knowledge Base First:** Search \`docs/\`, \`.lore/skills/\`, and \`.lore/rules/\` using semantic search (\`lore_search\` or \`lore_context\`) before using file-system tools.
+2. **Indexed Paths:** Do NOT use \`glob\` or \`grep_search\` on paths indexed in the Knowledge Base unless you have already identified the specific file.
+3. **Unindexed Territory:** Use broad \`glob\` first, then \`grep_search\` for specifics in external repos or application code.
+4. **Act on Findings:** Once a file/section is identified, read it directly. Don't gather more data than needed to act.
+`.trim();
+writeMdc('lore-search-discipline.mdc',
+  'description: Search strategy enforcement — Semantic -> Glob -> Grep. Prevents redundant codebase crawls.\nalwaysApply: true',
+  searchDiscipline
 );
 
 // -- Tier 2: Glob-based (loaded when matching files are touched) --------------
