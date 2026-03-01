@@ -8,7 +8,7 @@
 #   .lore/harness/hooks/, .lore/harness/lib/, .lore/harness/mcp/, .lore/harness/scripts/, .lore/harness/templates/,
 #   .lore/fieldnotes/, .opencode/, .cursor/, .gemini/, opencode.json, .mcp.json,
 #   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
-#   .lore/instructions.md, .gitignore
+#   .lore/instructions.md, .gitignore, .windsurfrules
 #
 # Operator-owned (never touched):
 #   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
@@ -152,6 +152,7 @@ if [ -s "$TARGET/.lore/operator.gitignore" ]; then
 fi
 cp "$SOURCE/opencode.json" "$TARGET/opencode.json"
 cp "$SOURCE/.mcp.json" "$TARGET/.mcp.json"
+[ -f "$SOURCE/.windsurfrules" ] && cp "$SOURCE/.windsurfrules" "$TARGET/.windsurfrules"
 
 # Generate platform copies from canonical .lore/ source
 bash "$TARGET/.lore/harness/scripts/sync-platform-skills.sh"

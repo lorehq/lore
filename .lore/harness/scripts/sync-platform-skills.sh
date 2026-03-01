@@ -72,6 +72,7 @@ node -e "require('./.lore/harness/lib/generate-agents').generate(process.argv[1]
 if [ -f "$REPO_ROOT/.lore/instructions.md" ]; then
   node "$REPO_ROOT/.lore/harness/scripts/generate-claude-md.js" "$REPO_ROOT"
   node "$REPO_ROOT/.lore/harness/scripts/generate-gemini-md.js" "$REPO_ROOT"
+  node "$REPO_ROOT/.lore/harness/scripts/generate-windsurf-rules.js" "$REPO_ROOT"
 fi
 
 # -- Cursor rules --
