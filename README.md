@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/github/v/release/lorehq/lore)](https://github.com/lorehq/lore/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
-[![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Gemini%20CLI%20%7C%20Cursor%20%7C%20Windsurf%20%7C%20OpenCode-purple)]()
+[![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Gemini%20CLI%20%7C%20Cursor%20%7C%20Windsurf%20%7C%20Roo%20Code%20%7C%20OpenCode-purple)]()
 
 Lore wraps your coding agent in a harness — persistent memory, rule enforcement, orchestrated delegation, and work tracking. Your agent starts every session knowing your project instead of starting over. Plain files, git-versioned, zero runtime dependencies.
 
@@ -25,6 +25,7 @@ Then open a session in your editor:
 | Gemini CLI | `gemini` — loads foundational mandates from `GEMINI.md` |
 | Cursor | Open the project — hooks activate via `.cursor/hooks.json` |
 | Windsurf | Open the project — loads context from `.windsurfrules` |
+| Roo Code | Open the project — loads context from `.clinerules` |
 | OpenCode | `opencode` |
 
 No configuration needed. Your first session gets a full context banner immediately.
@@ -84,6 +85,7 @@ Tell your agent to link work repos to the hub — it generates configs so hooks 
 | **Gemini CLI** | Hooks + MCP + `GEMINI.md` | Supported |
 | **Cursor** | Hooks + MCP server + `.mdc` rules | Experimental |
 | **Windsurf** | `.windsurfrules` file | Experimental |
+| **Roo Code** | `.clinerules` + MCP | Experimental |
 | **OpenCode** | ESM plugins + `opencode.json` | Experimental |
 
 All platforms share the same knowledge base. Skills, fieldnotes, agents, and rules written once sync to platform-specific formats automatically.

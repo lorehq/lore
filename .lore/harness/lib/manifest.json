@@ -26,6 +26,10 @@
     "opencode": {
       "capabilities": ["hooks"],
       "hookType": "opencode"
+    },
+    "roocode": {
+      "capabilities": ["mandates", "mcp"],
+      "mandateFile": ".clinerules"
     }
   }
 }
