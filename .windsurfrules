@@ -137,11 +137,8 @@ Initiatives, epics, and items use YAML frontmatter (`status: active`) and active
 - **Notes** (`docs/workflow/notes/<slug>.md`): Lightweight capture — bugs, ideas, observations. Single files with minimal frontmatter (`title`, `status`, `created`). Not tracked in the session banner.
 - **Brainstorms** (`docs/workflow/brainstorms/<slug>/`): Collaborative thinking sessions between operator and agent. No `status` field — not tracked work.
 
-
 ## Delegation Guidance
-You may delegate tasks to specialized workers when it would reduce cost — especially when your context has grown large (50k+ tokens) and a fresh worker avoids accumulated costs. If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture. Load `/lore-delegate` for recipes on worker prompt construction and return format.
-
-
+You may delegate tasks to workers when it would reduce cost — especially when your context has grown large (50k+ tokens) and a fresh worker avoids accumulated costs. If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture. Load `/lore-delegate` for recipes on worker prompt construction and return format.
 
 ## Ambiguity Guard
 You MUST resolve or clarify the following patterns in user input to concrete values before acting or delegating:
@@ -151,32 +148,12 @@ You MUST resolve or clarify the following patterns in user input to concrete val
 - **Open-ended scope:** "everything from", "all of", "stuff in about"
 When detected, stop and ask the operator for specific dates, thresholds, or boundaries.
 
-
-
 ## Search Discipline
 Follow this search strategy strictly to minimize token waste and redundant exploration:
-1. **Knowledge Base First:** Search `docs/`, `.lore/skills/`, and `.lore/rules/` first.
-2. **Indexed Paths:** Do NOT use broad codebase searches on paths already indexed in the Knowledge Base unless you have identified the specific file.
+1. **Knowledge Base First:** Search `docs/`, `.lore/skills/`, and `.lore/rules/` using semantic search (`lore_search` or `lore_context`) before using file-system tools.
+2. **Indexed Paths:** Do NOT use `glob` or `grep_search` on paths indexed in the Knowledge Base unless you have already identified the specific file.
 3. **Unindexed Territory:** Use broad searches first, then narrow down for specifics in external repos or application code.
 4. **Act on Findings:** Once a file/section is identified, read it directly. Don't gather more data than needed to act.
-
-
-
-## Project Context & Rules
-# Agent Rules
-
-<!-- Injected into every agent session as PROJECT context. -->
-<!-- Customize with your project identity and behavior rules. -->
-<!-- Coding rules belong in docs/context/rules/ — also injected. -->
-
-## About
-
-Describe your project — what it is, what repos are involved, key constraints.
-
-## Agent Behavior
-
-Rules for how the agent should operate in this instance.
-
 
 === LORE v0.15.0 ===
 

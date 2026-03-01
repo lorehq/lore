@@ -1,8 +1,3 @@
----
-description: Ambiguity guard
-alwaysApply: true
----
-
 ## Ambiguity Guard
 You MUST resolve or clarify the following patterns in user input to concrete values before acting or delegating:
 - **Relative time:** "last week", "yesterday", "recent sprint", "next month"

@@ -1,0 +1,2 @@
+## Delegation Guidance
+You may delegate tasks to workers when it would reduce cost — especially when your context has grown large (50k+ tokens) and a fresh worker avoids accumulated costs. If you delegate, you are responsible for the **Worker Contract** to ensure findings are reported back for capture. Load `/lore-delegate` for recipes on worker prompt construction and return format.

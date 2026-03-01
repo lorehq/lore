@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/session-init.js" }]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/prompt-preamble.js" }]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "read_file|grep_search",
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/protect-memory.js" }]
+      },
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          { "type": "command", "command": "node .lore/harness/hooks/context-path-guide.js" },
+          { "type": "command", "command": "node .lore/harness/hooks/rule-guard.js" },
+          { "type": "command", "command": "node .lore/harness/hooks/harness-guard.js" }
+        ]
+      },
+      {
+        "matcher": "read_file|glob",
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/search-guard.js" }]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/knowledge-tracker.js || true" }]
+      }
+    ]
+  },
+  "mcp": {
+    "mcpServers": {
+      "lore-mcp": {
+        "command": "node",
+        "args": [".cursor/mcp/lore-server.js"]
+      },
+      "lore-search": {
+        "command": "node",
+        "args": [".lore/harness/mcp/search-server.js"]
+      }
+    }
+  }
+}

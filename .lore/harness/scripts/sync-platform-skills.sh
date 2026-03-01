@@ -65,19 +65,7 @@ if [ -d "$REPO_ROOT/.lore/fieldnotes" ]; then
   fi
 fi
 
-# All agents — workers from template, non-workers from .lore/agents/ with tier → model stamping
-node -e "require('./.lore/harness/lib/generate-agents').generate(process.argv[1])" "$REPO_ROOT"
-
-# -- Instructions + static banner --
-if [ -f "$REPO_ROOT/.lore/instructions.md" ]; then
-  node "$REPO_ROOT/.lore/harness/scripts/generate-claude-md.js" "$REPO_ROOT"
-  node "$REPO_ROOT/.lore/harness/scripts/generate-gemini-md.js" "$REPO_ROOT"
-  node "$REPO_ROOT/.lore/harness/scripts/generate-windsurf-rules.js" "$REPO_ROOT"
-fi
-
-# -- Cursor rules --
-# Generate tiered .cursor/rules/lore-*.mdc files from canonical sources.
-# These replace .cursorrules with always-on, glob-based, and agent-requested rules.
-bash "$REPO_ROOT/.lore/harness/scripts/generate-cursor-rules.sh"
+# -- Instructions + platform context (via Projector) --
+node "$REPO_ROOT/.lore/harness/lib/projector.js" "$REPO_ROOT"
 
 echo "Platform copies synced from .lore/"

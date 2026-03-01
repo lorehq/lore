@@ -1,5 +1,5 @@
 ---
-description: Worker agent delegation — how orchestrator spawns workers with curated skills
+description: Worker agent delegation
 alwaysApply: true
 ---
 

@@ -1,0 +1,31 @@
+{
+  "platforms": {
+    "claude": {
+      "capabilities": ["mandates", "hooks", "mcp", "agents"],
+      "mandateFile": "CLAUDE.md",
+      "hookFile": ".claude/settings.json",
+      "agentsDir": ".claude/agents",
+      "hookType": "claude"
+    },
+    "gemini": {
+      "capabilities": ["mandates", "hooks", "mcp"],
+      "mandateFile": "GEMINI.md",
+      "hookFile": ".gemini/settings.json",
+      "hookType": "gemini"
+    },
+    "windsurf": {
+      "capabilities": ["mandates"],
+      "mandateFile": ".windsurfrules"
+    },
+    "cursor": {
+      "capabilities": ["mdc", "mcp", "hooks"],
+      "rulesDir": ".cursor/rules",
+      "hookFile": ".cursor/hooks.json",
+      "hookType": "cursor"
+    },
+    "opencode": {
+      "capabilities": ["hooks"],
+      "hookType": "opencode"
+    }
+  }
+}

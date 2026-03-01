@@ -1,8 +1,3 @@
----
-description: Search strategy enforcement
-alwaysApply: true
----
-
 ## Search Discipline
 Follow this search strategy strictly to minimize token waste and redundant exploration:
 1. **Knowledge Base First:** Search `docs/`, `.lore/skills/`, and `.lore/rules/` using semantic search (`lore_search` or `lore_context`) before using file-system tools.
