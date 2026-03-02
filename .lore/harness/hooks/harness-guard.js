@@ -23,7 +23,7 @@ if (['write', 'edit'].includes(toolName)) {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'deny',
-        permissionDecisionReason: '[Lore] Access to the Secure Enclave (~/.lore/) is READ-ONLY. You MUST explicitly ask the operator for permission before modifying any global knowledge or primitives.',
+        permissionDecisionReason: '[Lore] Access to the Local Intelligence Enclave (~/.lore/) is READ-ONLY. You MUST explicitly ask the operator for permission before modifying any global knowledge or primitives.',
       },
     });
     fs.writeSync(1, out + '\n');
