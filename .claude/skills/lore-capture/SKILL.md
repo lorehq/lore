@@ -1,11 +1,10 @@
 ---
 name: lore-capture
 description: Session-scoped knowledge capture — review work, create fieldnotes, sync platform copies
-type: command
-user-invocable: true
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate
+model: sonnet
 ---
 
+## USAGE
 # Capture
 
 Session-scoped review: capture what was learned, update what changed.

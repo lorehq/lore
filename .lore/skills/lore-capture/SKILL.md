@@ -3,6 +3,7 @@ name: lore-capture
 description: Session-scoped knowledge capture — review work, create fieldnotes, sync platform copies
 type: command
 user-invocable: true
+domain: docs
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate
 ---
 

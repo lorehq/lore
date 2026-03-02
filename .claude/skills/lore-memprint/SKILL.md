@@ -1,6 +1,6 @@
 ---
-name: lore-docker-update-volume-conflict
-description: Pulling a new lore-docker image fails with PermissionError on runtime_data volume — remove volumes before restart
+name: lore-memprint
+description: Memory Imprinting — tier hot session facts from STM into the long-term KB
 model: sonnet
 ---
 
@@ -668,31 +668,15 @@ For multi-step work, state the plan up front:
 - Prompt refinement is continuous — revisit when models update, inputs shift, or new failure modes appear.
 
 ## USAGE
-# lore-docker-update-volume-conflict
+# Memprint
 
-## The Snag
+Imprint "hot" session experiences into the permanent knowledge base.
 
-After pulling a new `lorehq/lore-docker` image, the container crashes on startup with:
+## Technical Overview (Heat-Based Tiering)
+Lore uses **Automated Storage Tiering** to manage context. facts start in the **Hot Tier** (Redis STM) and are promoted to the **Persistent Tier** (Markdown KB) only after reaching a heat threshold.
 
-```
-PermissionError: [Errno 13] Permission denied: PosixPath('/runtime-data/docs-work')
-```
-
-The `runtime_data` named volume was created by the previous container with different file ownership. The new image's entrypoint calls `shutil.rmtree()` on that path and fails.
-
-## Fix
-
-Stop the container **and remove volumes**, then start fresh:
-
-```bash
-docker compose -f .lore/docker-compose.yml down -v
-LORE_DOCS_PORT=<port> LORE_SEMANTIC_PORT=<port> docker compose -f .lore/docker-compose.yml up -d
-```
-
-The `-v` flag removes the `runtime_data` named volume so the new container creates it fresh with correct ownership.
-
-## Notes
-
-- `down` without `-v` leaves the volumes intact — the error will recur
-- Semantic search re-indexes on first start after volume removal (may take 30-60s)
-- This only affects image version upgrades, not normal restarts
+## Process
+1. **Scan STM**: Retrieve all session facts from Redis.
+2. **Heat Filter**: Filter for facts that have been reinforced (accessed) recently or frequently.
+3. **Promotion**: Present the "Print-Ready" facts to the operator.
+4. **Commit**: Burn approved facts into the appropriate Enclave or Project KB segment.
