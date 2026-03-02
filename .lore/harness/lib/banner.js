@@ -51,6 +51,34 @@ function getFieldnotes(directory) {
   return notes;
 }
 
+function getRunbookEntries(directory) {
+  const runbooks = [];
+  const names = new Set();
+  const dirs = [path.join(directory, '.lore', 'runbooks'), path.join(getEnclavePath(), 'runbooks')];
+  for (const rbDir of dirs) {
+    try {
+      if (!fs.existsSync(rbDir)) continue;
+      // Recursive scan for runbooks
+      const scan = (d) => {
+        const files = fs.readdirSync(d, { withFileTypes: true });
+        for (const f of files) {
+          const fullPath = path.join(d, f.name);
+          if (f.isDirectory() && f.name !== 'system' && f.name !== 'first-session') scan(fullPath);
+          else if (f.name.endsWith('.md') && f.name !== 'index.md') {
+            const name = f.name.replace(/\.md$/, '');
+            if (!names.has(name)) {
+              runbooks.push({ name });
+              names.add(name);
+            }
+          }
+        }
+      };
+      scan(rbDir);
+    } catch (e) { debug('getRunbookEntries: %s', e.message); }
+  }
+  return runbooks;
+}
+
 function scanWork(dir) {
   const active = [];
   try {
@@ -106,6 +134,7 @@ function getBannerLoadedSkills(directory) {
 function buildStaticBanner(directory) {
   const agentEntries = getAgentEntries(directory);
   const fieldnotes = getFieldnotes(directory);
+  const runbooks = getRunbookEntries(directory);
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
   const profile = getProfile(directory);
@@ -120,6 +149,7 @@ function buildStaticBanner(directory) {
 
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
+  const runbookLine = runbooks.length > 0 ? runbooks.map((r) => r.name).join(', ') : '';
 
   let output = `=== LORE${version}${profileTag} ===
 
@@ -134,6 +164,9 @@ PROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, aut
   if (fieldnoteLine) output += `
 
 FIELDNOTES: ${fieldnoteLine}`;
+  if (runbookLine) output += `
+
+AVAILABLE RUNBOOKS: ${runbookLine}`;
 
   const bannerSkills = getBannerLoadedSkills(directory);
   if (bannerSkills.length > 0) output += '
