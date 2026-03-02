@@ -11,7 +11,7 @@
 #   .lore/instructions.md, .gitignore, .windsurfrules
 #
 # Operator-owned (never touched):
-#   docs/, non-lore-* skills/agents, mkdocs.yml, .lore/config.json,
+#   non-lore-* skills/agents, .lore/config.json,
 #   .lore/memory.local.md, .lore/operator.gitignore
 #
 # .gitignore is harness-owned but merged: harness rules are written first,

@@ -9,14 +9,13 @@ function stripJsonComments(str) {
     if (str[i] === '"') {
       let j = i + 1;
       while (j < str.length && str[j] !== '"') {
-        if (str[j] === '\') j++;
+        if (str[j] === '\\') j++;
         j++;
       }
       result += str.slice(i, j + 1);
       i = j + 1;
     } else if (str[i] === '/' && str[i + 1] === '/') {
-      i = str.indexOf('
-', i);
+      i = str.indexOf('\n', i);
       if (i === -1) break;
     } else if (str[i] === '/' && str[i + 1] === '*') {
       i = str.indexOf('*/', i + 2);

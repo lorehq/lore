@@ -4,8 +4,9 @@ const http = require('http');
 const { debug } = require('./debug');
 const { buildTree } = require('./tree');
 const { getConfig, getProfile, getEnclavePath } = require('./config');
-const { getLoreToken } = require('./security');
+const { ensureStickyFiles } = require('./sticky');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
+const { getLoreToken } = require('./security');
 
 async function getHotPrimitives(directory, limit = 5) {
   const cfg = getConfig(directory);
@@ -169,10 +170,6 @@ async function buildStaticBanner(directory) {
   const profileTag = profile !== 'standard' ? ` [${profile.toUpperCase()}]` : '';
   const docker = cfg.docker || {};
   const semanticSearchUrl = docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
-  const inFlight = path.join(directory, 'docs', 'active-work', 'in-flight');
-  const initiatives = scanWork(path.join(inFlight, 'initiatives'));
-  const epics = scanWork(path.join(inFlight, 'epics'));
-  const items = scanWork(path.join(inFlight, 'items'));
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
   const runbookLine = runbooks.length > 0 ? runbooks.map((r) => r.name).join(', ') : '';
@@ -181,20 +178,21 @@ async function buildStaticBanner(directory) {
 WORKERS: ${workerList}`;
   if (semanticSearchUrl) output += `
 SEMANTIC SEARCH: ${semanticSearchUrl}`;
-  if (profile === 'minimal') output += '
-PROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
-  else if (profile === 'discovery') output += '
-PROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge-base/machine/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.';
+  if (profile === 'minimal') {
+    output += `
+PROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.`;
+  } else if (profile === 'discovery') {
+    output += `
+PROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge-base/machine/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.`;
+  }
   if (fieldnoteLine) output += `
 
 FIELDNOTES: ${fieldnoteLine}`;
   if (runbookLine) output += `
 
 AVAILABLE RUNBOOKS: ${runbookLine}`;
-
-  // CONTEXT BUDGETER: Only inline hot memories nearing expiration or top relevance
   if (hotMem.length > 0) {
-    const fading = hotMem.filter(m => m.current_score < 1.5); 
+    const fading = hotMem.filter(m => m.current_score < 1.5);
     if (fading.length > 0) output += `
 
 WARNING: ${fading.length} memory facts are fading. Run /lore-reconcile to persist them.`;
@@ -202,40 +200,20 @@ WARNING: ${fading.length} memory facts are fading. Run /lore-reconcile to persis
 
 ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
   }
-
   const bannerSkills = getBannerLoadedSkills(directory);
-  if (bannerSkills.length > 0) output += '
-
-' + bannerSkills.map((s) => s.body).join('
-
-');
-  if (initiatives.length > 0) output += `
-
-ACTIVE INITIATIVES: ${initiatives.join('; ')}`;
-  if (epics.length > 0) output += `
-
-ACTIVE EPICS: ${epics.join('; ')}`;
-  if (items.length > 0) output += `
-
-ACTIVE ITEMS: ${items.join('; ')}`;
-
+  if (bannerSkills.length > 0) output += "\n\n" + bannerSkills.map((s) => s.body).join("\n\n");
   try {
     const agentRulesPath = path.join(getEnclavePath(), 'rules', 'lore-agent-rules.md');
     const raw = fs.readFileSync(agentRulesPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    if (stripped) output += '
-
-PROJECT IDENTITY:
-' + stripped;
+    if (stripped) output += "\n\nPROJECT IDENTITY:\n" + stripped;
   } catch (e) { debug('project-identity: %s', e.message); }
-
   try {
     const allRules = [];
     const rulesDirs = [path.join(getEnclavePath(), 'rules'), path.join(directory, '.lore', 'rules')];
     const seen = new Set();
-    // CONTEXT BUDGETER: Limit to 10 total rules in banner
     for (const rDir of rulesDirs) {
-      if (!fs.existsSync(rDir) || allRules.length >= 10) continue;
+      if (!fs.existsSync(rDir)) continue;
       const files = fs.readdirSync(rDir).filter(f => f.endsWith('.md') && f !== 'lore-agent-rules.md' && !fs.lstatSync(path.join(rDir, f)).isDirectory()).sort();
       for (const f of files) {
         if (seen.has(f) || allRules.length >= 10) continue;
@@ -252,12 +230,7 @@ PROJECT IDENTITY:
         }
       }
     }
-    if (allRules.length > 0) output += '
-
-RULES:
-' + allRules.join('
-
-');
+    if (allRules.length > 0) output += "\n\nRULES:\n" + allRules.join("\n\n");
   } catch (e) { debug('rules: %s', e.message); }
   return output;
 }
@@ -270,8 +243,7 @@ function buildDynamicBanner(directory) {
     if (fs.existsSync(operatorPath)) {
       const raw = fs.readFileSync(operatorPath, 'utf8');
       const stripped = stripFrontmatter(raw).trim();
-      if (stripped && !stripped.includes('- **Name:**')) output += 'OPERATOR PROFILE:
-' + stripped;
+      if (stripped && !stripped.includes('- **Name:**')) output += "OPERATOR PROFILE:\n" + stripped;
     }
   } catch (e) { debug('operator-profile: %s', e.message); }
   try {
@@ -280,11 +252,8 @@ function buildDynamicBanner(directory) {
       const raw = fs.readFileSync(userPath, 'utf8');
       const stripped = stripFrontmatter(raw).trim();
       if (stripped) {
-        if (output) output += '
-
-';
-        output += 'USER CONTEXT:
-' + stripped;
+        if (output) output += "\n\n";
+        output += "USER CONTEXT:\n" + stripped;
       }
     }
   } catch (e) { debug('user-context: %s', e.message); }
@@ -293,11 +262,8 @@ function buildDynamicBanner(directory) {
     const raw = fs.readFileSync(memPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
     if (stripped && !stripped.includes('Transient memory')) {
-      if (output) output += '
-
-';
-      output += 'SESSION MEMORY:
-' + stripped;
+      if (output) output += "\n\n";
+      output += "SESSION MEMORY:\n" + stripped;
     }
   } catch (e) { debug('memory: %s', e.message); }
   return output;

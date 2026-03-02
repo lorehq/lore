@@ -52,7 +52,7 @@ The operator types `/lore-update` to sync their instance with the latest Lore re
 - `.lore/harness/templates/seeds/rules/` — default rule content. Created on first install if missing. On update, diffs shown for operator review.
 
 **Never touched (operator-owned):**
-- `docs/` (except `system/` subdirs), `.lore/agents/`, `mkdocs.yml`
+- `.lore/agents/`
 - `.lore/config.json`, `.lore/memory.local.md`, `.lore/operator.gitignore`
 
 ## Snags

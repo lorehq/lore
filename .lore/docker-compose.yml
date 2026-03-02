@@ -10,7 +10,6 @@ services:
       - REPO_ROOT=/data/repo
       - DOCS_SOURCE=/data/repo/docs
       - SKILLS_SOURCE=/data/repo/.lore/skills
-    environment:
       - LORE_TOKEN=${LORE_TOKEN}
     volumes:
       - ..:/data/repo
@@ -21,14 +20,10 @@ services:
 
   lore-memory:
     image: redis/redis-stack-server:latest
-    environment:
-      - LORE_TOKEN=${LORE_TOKEN}
     volumes:
       - redis_data:/data
     restart: unless-stopped
 
-environment:
-      - LORE_TOKEN=${LORE_TOKEN}
-    volumes:
+volumes:
   runtime_data:
   redis_data:
