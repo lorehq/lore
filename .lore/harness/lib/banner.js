@@ -1,10 +1,33 @@
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const { debug } = require('./debug');
 const { buildTree } = require('./tree');
 const { getConfig, getProfile, getEnclavePath } = require('./config');
 const { ensureStickyFiles } = require('./sticky');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
+
+async function getHotPrimitives(directory, limit = 5) {
+  const cfg = getConfig(directory);
+  if (!cfg.docker || !cfg.docker.search) return [];
+
+  return new Promise((resolve) => {
+    const req = http.request({
+      hostname: cfg.docker.search.address,
+      port: cfg.docker.search.port,
+      path: `/memory/hot?limit=${limit}`,
+      method: 'GET',
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { resolve([]); }
+      });
+    });
+    req.on('error', () => resolve([]));
+    req.end();
+  });
+}
 
 function getAgentEntries(directory) {
   const entries = [];
@@ -58,7 +81,6 @@ function getRunbookEntries(directory) {
   for (const rbDir of dirs) {
     try {
       if (!fs.existsSync(rbDir)) continue;
-      // Recursive scan for runbooks
       const scan = (d) => {
         const files = fs.readdirSync(d, { withFileTypes: true });
         for (const f of files) {
@@ -131,10 +153,12 @@ function getBannerLoadedSkills(directory) {
   return loaded;
 }
 
-function buildStaticBanner(directory) {
+async function buildStaticBanner(directory) {
   const agentEntries = getAgentEntries(directory);
   const fieldnotes = getFieldnotes(directory);
   const runbooks = getRunbookEntries(directory);
+  const hotMem = await getHotPrimitives(directory);
+
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
   const profile = getProfile(directory);
@@ -167,6 +191,12 @@ FIELDNOTES: ${fieldnoteLine}`;
   if (runbookLine) output += `
 
 AVAILABLE RUNBOOKS: ${runbookLine}`;
+
+  if (hotMem.length > 0) {
+    output += `
+
+ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
+  }
 
   const bannerSkills = getBannerLoadedSkills(directory);
   if (bannerSkills.length > 0) output += '

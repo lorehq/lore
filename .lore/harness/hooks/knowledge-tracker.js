@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { processToolUse, getThresholds } = require('../lib/tracker');
 const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
+const { pingActivity } = require('./lib/activity-ping');
 
 // -- State file location --
 const cwd = process.cwd();
@@ -50,6 +51,7 @@ const tool = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
 const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
+pingActivity(filePath, hubDir);
 debug('knowledge-tracker: tool=%s file=%s event=%s', tool, filePath, event);
 
 const { getProfile } = require('../lib/config');
