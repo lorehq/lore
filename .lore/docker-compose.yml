@@ -1,28 +1,28 @@
-# Lore runtime — docs UI + semantic search + maintenance watcher.
-# Pulls the published image. Run with: docker compose -f .lore/docker-compose.yml up -d
-# LORE_DOCS_PORT and LORE_SEMANTIC_PORT set by /lore-docker for multi-instance support.
-# COMPOSE_PROJECT_NAME set in .env at project root (written by create-lore).
 name: ${COMPOSE_PROJECT_NAME:-lore}
 services:
   lore-runtime:
     image: lorehq/lore-docker:latest
     ports:
-      - '${LORE_DOCS_PORT}:8000'
-      - '${LORE_SEMANTIC_PORT}:8080'
+      - '${LORE_DOCS_PORT:-9184}:8000'
+      - '${LORE_SEMANTIC_PORT:-9185}:8080'
     environment:
-      - DEFAULT_K=${SEMANTIC_DEFAULT_K:-8}
-      - MAX_K=${SEMANTIC_MAX_K:-20}
-      - MAX_CHUNK_CHARS=${SEMANTIC_MAX_CHUNK_CHARS:-1000}
-      - SNIPPET_CHARS=${SEMANTIC_SNIPPET_CHARS:-200}
-      - RESULT_MODE=${SEMANTIC_RESULT_MODE:-paths_min}
-      - EMBED_MODEL=${SEMANTIC_EMBED_MODEL:-BAAI/bge-small-en-v1.5}
+      - REDIS_URL=redis://lore-memory:6379
       - REPO_ROOT=/data/repo
       - DOCS_SOURCE=/data/repo/docs
       - SKILLS_SOURCE=/data/repo/.lore/skills
     volumes:
       - ..:/data/repo
       - runtime_data:/runtime-data
+    depends_on:
+      - lore-memory
+    restart: unless-stopped
+
+  lore-memory:
+    image: redis/redis-stack-server:latest
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
 
 volumes:
   runtime_data:
+  redis_data:
