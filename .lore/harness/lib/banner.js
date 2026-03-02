@@ -1,73 +1,60 @@
-// Shared: session banner builder.
-// Used by hooks/session-init.js (CJS) and .opencode/plugins/session-init.js (ESM).
-//
-// Decomposed: tree building (lib/tree.js), config reading (lib/config.js),
-// sticky file scaffolding (lib/sticky.js). This module handles banner assembly
-// and re-exports everything for backward compatibility.
-
 const fs = require('fs');
 const path = require('path');
 const { debug } = require('./debug');
 const { buildTree } = require('./tree');
-const { getConfig, getProfile } = require('./config');
+const { getConfig, getProfile, getEnclavePath } = require('./config');
 const { ensureStickyFiles } = require('./sticky');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
 
-function getAgentNames(directory) {
-  try {
-    const agentsDir = path.join(directory, '.lore', 'agents');
-    return fs
-      .readdirSync(agentsDir)
-      .filter((f) => f.endsWith('.md'))
-      .map((f) => f.replace(/\.md$/, ''));
-  } catch (e) {
-    debug('getAgentNames: %s', e.message);
-    return [];
-  }
-}
-
-// Returns [{name}] entries for banner output (from agent frontmatter).
 function getAgentEntries(directory) {
-  try {
-    const agentsDir = path.join(directory, '.lore', 'agents');
-    const entries = [];
-    for (const f of fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md'))) {
-      const content = fs.readFileSync(path.join(agentsDir, f), 'utf8');
-      const { attrs } = parseFrontmatter(content);
-      if (attrs.name) entries.push({ name: attrs.name });
-    }
-    return entries;
-  } catch (e) {
-    debug('getAgentEntries: %s', e.message);
-    return [];
+  const entries = [];
+  const names = new Set();
+  const dirs = [path.join(directory, '.lore', 'agents'), path.join(getEnclavePath(), 'agents')];
+  for (const agentsDir of dirs) {
+    try {
+      if (!fs.existsSync(agentsDir)) continue;
+      for (const f of fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md'))) {
+        const content = fs.readFileSync(path.join(agentsDir, f), 'utf8');
+        const { attrs } = parseFrontmatter(content);
+        const name = attrs.name || f.replace(/\.md$/, '');
+        if (name && !names.has(name)) {
+          entries.push({ name });
+          names.add(name);
+        }
+      }
+    } catch (e) { debug('getAgentEntries: %s', e.message); }
   }
+  return entries;
 }
 
-// Returns fieldnotes (snag collections) with descriptions from .lore/fieldnotes/*/FIELDNOTE.md.
 function getFieldnotes(directory) {
-  try {
-    const fieldnotesDir = path.join(directory, '.lore', 'fieldnotes');
-    const notes = [];
-    for (const d of fs.readdirSync(fieldnotesDir, { withFileTypes: true })) {
-      if (!d.isDirectory()) continue;
-      const fieldnoteFile = path.join(fieldnotesDir, d.name, 'FIELDNOTE.md');
-      if (!fs.existsSync(fieldnoteFile)) continue;
-      const content = fs.readFileSync(fieldnoteFile, 'utf8');
-      const { attrs } = parseFrontmatter(content);
-      if (attrs.name) notes.push({ name: attrs.name, description: attrs.description || '' });
-    }
-    return notes;
-  } catch (e) {
-    debug('getFieldnotes: %s', e.message);
-    return [];
+  const notes = [];
+  const names = new Set();
+  const dirs = [path.join(directory, '.lore', 'fieldnotes'), path.join(getEnclavePath(), 'fieldnotes')];
+  for (const fieldnotesDir of dirs) {
+    try {
+      if (!fs.existsSync(fieldnotesDir)) continue;
+      for (const d of fs.readdirSync(fieldnotesDir, { withFileTypes: true })) {
+        if (!d.isDirectory()) continue;
+        const fieldnoteFile = path.join(fieldnotesDir, d.name, 'FIELDNOTE.md');
+        if (!fs.existsSync(fieldnoteFile)) continue;
+        const content = fs.readFileSync(fieldnoteFile, 'utf8');
+        const { attrs } = parseFrontmatter(content);
+        const name = attrs.name || d.name;
+        if (name && !names.has(name)) {
+          notes.push({ name, description: attrs.description || '' });
+          names.add(name);
+        }
+      }
+    } catch (e) { debug('getFieldnotes: %s', e.message); }
   }
+  return notes;
 }
 
-// Scan work items (roadmaps or plans) and return active labels.
-// YAML parsing: single-line values only — no multi-line, no flow sequences.
 function scanWork(dir) {
   const active = [];
   try {
+    if (!fs.existsSync(dir)) return [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name === 'archive') continue;
@@ -75,288 +62,162 @@ function scanWork(dir) {
       if (!fs.existsSync(indexPath)) continue;
       const content = fs.readFileSync(indexPath, 'utf8');
       const { attrs } = parseFrontmatter(content);
-      const status = attrs.status;
-      if (status !== 'active' && status !== 'on-hold') continue;
-      const title = attrs.title || entry.name;
-      let label = title;
-      if (attrs.summary) label += ` (${attrs.summary})`;
-      if (status === 'on-hold') label += ' [ON HOLD]';
-      active.push(label);
+      if (attrs.status === 'active' || attrs.status === 'on-hold') {
+        let label = attrs.title || entry.name;
+        if (attrs.summary) label += ` (${attrs.summary})`;
+        if (attrs.status === 'on-hold') label += ' [ON HOLD]';
+        active.push(label);
+      }
     }
-  } catch (e) {
-    debug('scanWork: %s: %s', dir, e.message);
-  }
+  } catch (e) { debug('scanWork: %s', e.message); }
   return active;
 }
 
-// Returns skills with banner-loaded: true — content inlined into session banner.
-// Scans both .lore/skills/ and .lore/fieldnotes/.
 function getBannerLoadedSkills(directory) {
   const loaded = [];
-  const dirs = [path.join(directory, '.lore', 'skills'), path.join(directory, '.lore', 'fieldnotes')];
-  for (const skillsDir of dirs) {
+  const names = new Set();
+  const baseDirs = [
+    path.join(directory, '.lore', 'skills'),
+    path.join(directory, '.lore', 'fieldnotes'),
+    path.join(getEnclavePath(), 'skills'),
+    path.join(getEnclavePath(), 'fieldnotes')
+  ];
+  for (const skillsDir of baseDirs) {
     try {
+      if (!fs.existsSync(skillsDir)) continue;
       for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
         if (!d.isDirectory()) continue;
-        const manifest = skillsDir.includes('fieldnotes')
-          ? path.join(skillsDir, d.name, 'FIELDNOTE.md')
-          : path.join(skillsDir, d.name, 'SKILL.md');
+        const isFn = skillsDir.includes('fieldnotes');
+        const manifest = path.join(skillsDir, d.name, isFn ? 'FIELDNOTE.md' : 'SKILL.md');
         if (!fs.existsSync(manifest)) continue;
         const content = fs.readFileSync(manifest, 'utf8');
         const { attrs } = parseFrontmatter(content);
-        if (attrs['banner-loaded'] === 'true') {
-          loaded.push({ name: attrs.name || d.name, body: stripFrontmatter(content).trim() });
+        const name = attrs.name || d.name;
+        if (attrs['banner-loaded'] === 'true' && !names.has(name)) {
+          loaded.push({ name, body: stripFrontmatter(content).trim() });
+          names.add(name);
         }
       }
-    } catch (e) {
-      debug('getBannerLoadedSkills: %s: %s', skillsDir, e.message);
-    }
+    } catch (e) { debug('getBannerLoadedSkills: %s', e.message); }
   }
   return loaded;
 }
 
-// Static banner: file-driven content that only changes when source files change.
-// Suitable for baking into CLAUDE.md and .mdc files at generation time.
 function buildStaticBanner(directory) {
   const agentEntries = getAgentEntries(directory);
   const fieldnotes = getFieldnotes(directory);
-
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
   const profile = getProfile(directory);
   const profileTag = profile !== 'standard' ? ` [${profile.toUpperCase()}]` : '';
-  const treeDepth = cfg.treeDepth ?? 5;
   const docker = cfg.docker || {};
-  const semanticSearchUrl =
-    docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
+  const semanticSearchUrl = docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
 
-  const inFlight = path.join(directory, 'docs', 'workflow', 'in-flight');
+  const inFlight = path.join(directory, 'docs', 'active-work', 'in-flight');
   const initiatives = scanWork(path.join(inFlight, 'initiatives'));
   const epics = scanWork(path.join(inFlight, 'epics'));
   const items = scanWork(path.join(inFlight, 'items'));
 
-  // Notes (docs/workflow/notes/) intentionally excluded from scanning — lightweight capture, no banner inclusion
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
 
   let output = `=== LORE${version}${profileTag} ===
 
 WORKERS: ${workerList}`;
+  if (semanticSearchUrl) output += `
+SEMANTIC SEARCH: ${semanticSearchUrl}`;
+  if (profile === 'minimal') output += '
+PROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
+  else if (profile === 'discovery') output += '
+PROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge-base/environment/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.';
 
-  if (semanticSearchUrl) {
-    output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
-  }
+  if (fieldnoteLine) output += `
 
-  if (profile === 'minimal') {
-    output += '\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.';
-  } else if (profile === 'discovery') {
-    output +=
-      '\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge/environment/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.';
-  }
-
-  if (fieldnoteLine) output += `\n\nFIELDNOTES: ${fieldnoteLine}`;
+FIELDNOTES: ${fieldnoteLine}`;
 
   const bannerSkills = getBannerLoadedSkills(directory);
-  if (bannerSkills.length > 0) {
-    output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
-  }
+  if (bannerSkills.length > 0) output += '
 
-  if (initiatives.length > 0) output += `\n\nACTIVE INITIATIVES: ${initiatives.join('; ')}`;
-  if (epics.length > 0) output += `\n\nACTIVE EPICS: ${epics.join('; ')}`;
-  if (items.length > 0) output += `\n\nACTIVE ITEMS: ${items.join('; ')}`;
+' + bannerSkills.map((s) => s.body).join('
+
+');
+
+  if (initiatives.length > 0) output += `
+
+ACTIVE INITIATIVES: ${initiatives.join('; ')}`;
+  if (epics.length > 0) output += `
+
+ACTIVE EPICS: ${epics.join('; ')}`;
+  if (items.length > 0) output += `
+
+ACTIVE ITEMS: ${items.join('; ')}`;
 
   try {
-    const raw = fs.readFileSync(path.join(directory, 'docs', 'context', 'agent-rules.md'), 'utf8');
+    const agentRulesPath = path.join(getEnclavePath(), 'rules', 'lore-agent-rules.md');
+    const raw = fs.readFileSync(agentRulesPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    if (stripped && !stripped.includes('Describe your project')) output += '\n\nPROJECT:\n' + stripped;
-  } catch (e) {
-    debug('agent-rules: %s', e.message);
-  }
+    if (stripped) output += '
+
+PROJECT IDENTITY:
+' + stripped;
+  } catch (e) { debug('project-identity: %s', e.message); }
 
   try {
-    const rulesDir = path.join(directory, '.lore', 'rules');
-    const rulesFile = path.join(directory, '.lore', 'rules.md');
-    if (semanticSearchUrl) {
-      // Semantic search available — list all rule names, agent finds content on demand
-      // Merge operator rules + system/ rules (operator names take precedence)
-      if (fs.existsSync(rulesDir) && fs.statSync(rulesDir).isDirectory()) {
-        const operatorNames = fs.readdirSync(rulesDir).filter((f) => f.endsWith('.md') && f !== 'index.md');
-        const operatorSet = new Set(operatorNames);
-        let systemNames = [];
-        const systemDir = path.join(rulesDir, 'system');
-        try {
-          systemNames = fs
-            .readdirSync(systemDir)
-            .filter((f) => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f));
-        } catch (_) {}
-        const allNames = [...operatorNames, ...systemNames].map((f) => f.replace(/\.md$/, '')).sort();
-        if (allNames.length > 0) {
-          output += '\n\nAVAILABLE RULES (load when relevant): ' + allNames.join(', ');
+    const allRules = [];
+    const rulesDirs = [path.join(getEnclavePath(), 'rules'), path.join(directory, '.lore', 'rules')];
+    const seen = new Set();
+    for (const rDir of rulesDirs) {
+      if (!fs.existsSync(rDir)) continue;
+      const files = fs.readdirSync(rDir).filter(f => f.endsWith('.md') && f !== 'lore-agent-rules.md' && !fs.lstatSync(path.join(rDir, f)).isDirectory()).sort();
+      for (const f of files) {
+        if (seen.has(f)) continue;
+        const content = stripFrontmatter(fs.readFileSync(path.join(rDir, f), 'utf8')).trim();
+        if (content) { allRules.push(content); seen.add(f); }
+      }
+      const sDir = path.join(rDir, 'system');
+      if (fs.existsSync(sDir)) {
+        const sFiles = fs.readdirSync(sDir).filter(f => f.endsWith('.md') && !seen.has(f)).sort();
+        for (const f of sFiles) {
+          const content = stripFrontmatter(fs.readFileSync(path.join(sDir, f), 'utf8')).trim();
+          if (content) { allRules.push(content); seen.add(f); }
         }
       }
-    } else {
-      // No semantic search — inject all rules in full
-      // Merge operator rules + system/ rules (operator files take precedence)
-      const requiredParts = [];
-      if (fs.existsSync(rulesDir) && fs.statSync(rulesDir).isDirectory()) {
-        const operatorFiles = fs
-          .readdirSync(rulesDir)
-          .filter((f) => f.endsWith('.md'))
-          .sort((a, b) => {
-            if (a === 'index.md') return -1;
-            if (b === 'index.md') return 1;
-            return a.localeCompare(b);
-          });
-        const operatorSet = new Set(operatorFiles);
-        for (const file of operatorFiles) {
-          const raw = fs.readFileSync(path.join(rulesDir, file), 'utf8');
-          const stripped = stripFrontmatter(raw).trim();
-          if (stripped) requiredParts.push(stripped);
-        }
-        // Add system/ rules not overridden by operator files
-        const systemDir = path.join(rulesDir, 'system');
-        try {
-          const systemFiles = fs
-            .readdirSync(systemDir)
-            .filter((f) => f.endsWith('.md') && f !== 'index.md' && !operatorSet.has(f))
-            .sort();
-          for (const file of systemFiles) {
-            const raw = fs.readFileSync(path.join(systemDir, file), 'utf8');
-            const stripped = stripFrontmatter(raw).trim();
-            if (stripped) requiredParts.push(stripped);
-          }
-        } catch (_) {}
-      } else if (fs.existsSync(rulesFile)) {
-        const raw = fs.readFileSync(rulesFile, 'utf8');
-        const stripped = stripFrontmatter(raw).trim();
-        if (stripped) requiredParts.push(stripped);
-      }
-      if (requiredParts.length > 0) output += '\n\nRULES:\n' + requiredParts.join('\n\n');
     }
-  } catch (e) {
-    debug('rules: %s', e.message);
-  }
+    if (allRules.length > 0) output += '
 
-  if (!semanticSearchUrl) {
-    const trees = [];
-    const docsTree = buildTree(path.join(directory, 'docs'), '', { maxDepth: treeDepth });
-    if (docsTree.length > 0) trees.push('docs/\n' + docsTree.join('\n'));
-    const fieldnotesTree = buildTree(path.join(directory, '.lore', 'fieldnotes'), '', { maxDepth: treeDepth });
-    if (fieldnotesTree.length > 0) trees.push('.lore/fieldnotes/\n' + fieldnotesTree.join('\n'));
-    const skillsTree = buildTree(path.join(directory, '.lore', 'skills'), '', { maxDepth: treeDepth });
-    if (skillsTree.length > 0) trees.push('.lore/skills/\n' + skillsTree.join('\n'));
-    const agentsTree = buildTree(path.join(directory, '.lore', 'agents'), '', { maxDepth: treeDepth });
-    if (agentsTree.length > 0) trees.push('.lore/agents/\n' + agentsTree.join('\n'));
-    if (trees.length > 0) output += '\n\nKNOWLEDGE MAP:\n' + trees.join('\n');
-  } else {
-    output += '\n\nKNOWLEDGE MAP: (Lazy-loaded \u2014 use semantic search to find files in docs/, .lore/skills/, or .lore/fieldnotes/)';
-  }
+RULES:
+' + allRules.join('
+
+');
+  } catch (e) { debug('rules: %s', e.message); }
 
   return output;
 }
 
-// Dynamic banner: gitignored content that changes between/within sessions.
-// Injected at runtime via hooks — never baked into static files.
 function buildDynamicBanner(directory) {
   let output = '';
-
   try {
-    const profilePath = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
+    const profilePath = path.join(getEnclavePath(), 'knowledge-base', 'local', 'operator-profile.md');
     const raw = fs.readFileSync(profilePath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    // Skip injection if the profile is still the default template
-    if (stripped && !stripped.includes('- **Name:**\n- **Role:**')) {
-      output += 'OPERATOR PROFILE:\n' + stripped;
-    }
-  } catch (e) {
-    debug('operator-profile: %s', e.message);
-  }
+    if (stripped && !stripped.includes('- **Name:**')) output += 'OPERATOR PROFILE:
+' + stripped;
+  } catch (e) { debug('operator-profile: %s', e.message); }
 
-  const memPath = path.join(directory, '.lore/memory.local.md');
+  const memPath = path.join(directory, '.lore', 'memory.local.md');
   try {
-    const mem = fs.readFileSync(memPath, 'utf8').trim();
-    if (mem && mem !== '# Local Memory') {
-      if (output) output += '\n\n';
-      output += `LOCAL MEMORY:\n${mem}`;
-    }
-  } catch (e) {
-    debug('local-memory: %s', e.message);
-  }
-
-  return output;
-}
-
-// Full banner: static + dynamic combined. Backward compatible.
-function buildBanner(directory) {
-  let output = buildStaticBanner(directory);
-  const dynamic = buildDynamicBanner(directory);
-  if (dynamic) output += '\n\n' + dynamic;
-  return output;
-}
-
-// Cursor-specific banner: dynamic-only content that can't live in static .mdc rules.
-// Complements the tiered .cursor/rules/lore-*.mdc files which handle project identity,
-// rules, knowledge map, delegation, and other static context.
-// This banner provides only what changes between sessions:
-//   - Version header
-//   - Active initiatives/epics/items (scanned from docs/workflow/in-flight/ frontmatter)
-//   - Local memory (.lore/memory.local.md, gitignored)
-function buildCursorBanner(directory) {
-  const cfg = getConfig(directory);
-  const version = cfg.version ? ` v${cfg.version}` : '';
-
-  // Active work items — changes frequently, can't be static
-  const inFlight = path.join(directory, 'docs', 'workflow', 'in-flight');
-  const initiatives = scanWork(path.join(inFlight, 'initiatives'));
-  const epics = scanWork(path.join(inFlight, 'epics'));
-  const items = scanWork(path.join(inFlight, 'items'));
-
-  let output = `=== LORE${version} ===`;
-
-  if (initiatives.length > 0) output += `\n\nACTIVE INITIATIVES: ${initiatives.join('; ')}`;
-  if (epics.length > 0) output += `\n\nACTIVE EPICS: ${epics.join('; ')}`;
-  if (items.length > 0) output += `\n\nACTIVE ITEMS: ${items.join('; ')}`;
-
-  // Operator profile — gitignored, can't be in .mdc rules
-  try {
-    const profilePath = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
-    const raw = fs.readFileSync(profilePath, 'utf8');
+    const raw = fs.readFileSync(memPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    if (stripped && !stripped.includes('- **Name:**\n- **Role:**')) {
-      output += '\n\nOPERATOR PROFILE:\n' + stripped;
-    }
-  } catch (e) {
-    debug('operator-profile: %s', e.message);
-  }
+    if (stripped && !stripped.includes('Transient memory')) {
+      if (output) output += '
 
-  // Local memory — gitignored, can't be in .mdc rules
-  const memPath = path.join(directory, '.lore/memory.local.md');
-  try {
-    const mem = fs.readFileSync(memPath, 'utf8').trim();
-    if (mem && mem !== '# Local Memory') output += `\n\nLOCAL MEMORY:\n${mem}`;
-  } catch (e) {
-    debug('local-memory: %s', e.message);
-  }
+';
+      output += 'SESSION MEMORY:
+' + stripped;
+    }
+  } catch (e) { debug('memory: %s', e.message); }
 
   return output;
 }
 
-// Re-export everything for backward compatibility.
-// New code can import directly from lib/tree, lib/config, lib/sticky.
-module.exports = {
-  buildBanner,
-  buildStaticBanner,
-  buildDynamicBanner,
-  buildCursorBanner,
-  buildTree,
-  ensureStickyFiles,
-  getAgentNames,
-  getAgentEntries,
-  getConfig,
-  getProfile,
-  getBannerLoadedSkills,
-  getFieldnotes,
-  parseFrontmatter,
-  scanWork,
-  stripFrontmatter,
-};
+module.exports = { buildStaticBanner, buildDynamicBanner, getAgentEntries, getFieldnotes, getBannerLoadedSkills, getConfig, getProfile, parseFrontmatter, stripFrontmatter };
