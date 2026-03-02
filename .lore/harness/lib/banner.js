@@ -4,18 +4,23 @@ const http = require('http');
 const { debug } = require('./debug');
 const { buildTree } = require('./tree');
 const { getConfig, getProfile, getEnclavePath } = require('./config');
-const { ensureStickyFiles } = require('./sticky');
+const { getLoreToken } = require('./security');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
 
 async function getHotPrimitives(directory, limit = 5) {
   const cfg = getConfig(directory);
   if (!cfg.docker || !cfg.docker.search) return [];
+  const token = getLoreToken(directory);
   return new Promise((resolve) => {
     const req = http.request({
       hostname: cfg.docker.search.address,
       port: cfg.docker.search.port,
       path: `/memory/hot?limit=${limit}`,
       method: 'GET',
+      timeout: 100,
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+      }
     }, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
@@ -24,6 +29,7 @@ async function getHotPrimitives(directory, limit = 5) {
       });
     });
     req.on('error', () => resolve([]));
+    req.on('timeout', () => { req.destroy(); resolve([]); });
     req.end();
   });
 }
@@ -185,9 +191,18 @@ FIELDNOTES: ${fieldnoteLine}`;
   if (runbookLine) output += `
 
 AVAILABLE RUNBOOKS: ${runbookLine}`;
-  if (hotMem.length > 0) output += `
+
+  // CONTEXT BUDGETER: Only inline hot memories nearing expiration or top relevance
+  if (hotMem.length > 0) {
+    const fading = hotMem.filter(m => m.current_score < 1.5); 
+    if (fading.length > 0) output += `
+
+WARNING: ${fading.length} memory facts are fading. Run /lore-reconcile to persist them.`;
+    output += `
 
 ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
+  }
+
   const bannerSkills = getBannerLoadedSkills(directory);
   if (bannerSkills.length > 0) output += '
 
@@ -203,6 +218,7 @@ ACTIVE EPICS: ${epics.join('; ')}`;
   if (items.length > 0) output += `
 
 ACTIVE ITEMS: ${items.join('; ')}`;
+
   try {
     const agentRulesPath = path.join(getEnclavePath(), 'rules', 'lore-agent-rules.md');
     const raw = fs.readFileSync(agentRulesPath, 'utf8');
@@ -212,22 +228,25 @@ ACTIVE ITEMS: ${items.join('; ')}`;
 PROJECT IDENTITY:
 ' + stripped;
   } catch (e) { debug('project-identity: %s', e.message); }
+
   try {
     const allRules = [];
     const rulesDirs = [path.join(getEnclavePath(), 'rules'), path.join(directory, '.lore', 'rules')];
     const seen = new Set();
+    // CONTEXT BUDGETER: Limit to 10 total rules in banner
     for (const rDir of rulesDirs) {
-      if (!fs.existsSync(rDir)) continue;
+      if (!fs.existsSync(rDir) || allRules.length >= 10) continue;
       const files = fs.readdirSync(rDir).filter(f => f.endsWith('.md') && f !== 'lore-agent-rules.md' && !fs.lstatSync(path.join(rDir, f)).isDirectory()).sort();
       for (const f of files) {
-        if (seen.has(f)) continue;
+        if (seen.has(f) || allRules.length >= 10) continue;
         const content = stripFrontmatter(fs.readFileSync(path.join(rDir, f), 'utf8')).trim();
         if (content) { allRules.push(content); seen.add(f); }
       }
       const sDir = path.join(rDir, 'system');
-      if (fs.existsSync(sDir)) {
+      if (fs.existsSync(sDir) && allRules.length < 10) {
         const sFiles = fs.readdirSync(sDir).filter(f => f.endsWith('.md') && !seen.has(f)).sort();
         for (const f of sFiles) {
+          if (allRules.length >= 10) break;
           const content = stripFrontmatter(fs.readFileSync(path.join(sDir, f), 'utf8')).trim();
           if (content) { allRules.push(content); seen.add(f); }
         }
