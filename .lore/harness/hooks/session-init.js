@@ -1,44 +1,31 @@
-// Hook: SessionStart
-// Fires on startup, resume, and after context compaction.
-// Prints the session banner with delegation info and local memory.
-
 const path = require('path');
-const { execSync } = require('child_process');
 const { buildDynamicBanner, ensureStickyFiles } = require('../lib/banner');
 const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
+const { getConfig } = require('../lib/config');
 
-const { generate: generateAgents } = require('../lib/generate-agents');
-
-const root = path.join(__dirname, '..', '..', '..');
+const root = process.env.LORE_HUB || process.cwd();
 debug('session-init: root=%s', root);
-generateAgents(root);
+
+// 1. Ensure sticky files (MEMORY.local.md, etc.) exist
 ensureStickyFiles(root);
-try {
-  execSync(`bash "${path.join(root, '.lore', 'harness', 'scripts', 'ensure-structure.sh')}"`, {
-    stdio: 'pipe',
+
+// 2. Build and print the dynamic session banner (Operator Profile + Session Memory)
+// Static content (Rules, Skills, Fieldnotes) is now handled via platform-native projections.
+async function run() {
+  const banner = await buildDynamicBanner(root);
+  if (banner) {
+    require('fs').writeSync(1, banner + '\n');
+  }
+
+  // 3. Log event for context cost tracking
+  logHookEvent({
+    platform: 'claude',
+    hook: 'session-init',
+    event: 'SessionStart',
+    outputSize: (banner || '').length,
+    directory: root,
   });
-} catch (e) {
-  debug('ensure-structure: %s', e.message);
 }
 
-// Regenerate CLAUDE.md with latest static banner content
-try {
-  execSync(`node "${path.join(root, '.lore', 'harness', 'scripts', 'generate-claude-md.js')}" "${root}"`, {
-    stdio: 'pipe',
-  });
-} catch (e) {
-  debug('generate-claude-md: %s', e.message);
-}
-
-// Only output dynamic content (operator profile + local memory) — static content is in CLAUDE.md
-const banner = buildDynamicBanner(root);
-if (banner) require('fs').writeSync(1, banner + '\n');
-// Log banner size to track one-time session start context cost
-logHookEvent({
-  platform: 'claude',
-  hook: 'session-init',
-  event: 'SessionStart',
-  outputSize: banner.length,
-  directory: root,
-});
+run().catch(e => debug('session-init error: %s', e.message));

@@ -54,11 +54,11 @@ Active work is tracked in `docs/active-work/` (Jira/PM mirror).
 WORKERS: lore-explore, lore-worker-fast, lore-worker-powerful, lore-worker
 SEMANTIC SEARCH: http://localhost:9185/search
 
-FIELDNOTES: bash-heredoc-json-injection, bash-macos-compat, bash-set-e-return-guard, bw-create-item, c8-subprocess-coverage-blind-spot, ceph-vlan-arp-conflict, ci-lint-scans-checkout-dirs, claude-cli-no-root-skip-perms, claude-code-pretooluse-output-format, claude-global-hooks-conflict, cursor-hook-output-limits, eslint-10-node-18-crash, fastembed-local-files-only, gh-multi-account, git-crlf-shell-scripts, git-mv-gitignored-files, github-pages-frontmatter-required, gitignored-nav-drift, lxc-container-gotchas, lxc-gpu-passthrough, mcp-stdio-content-length-framing, mkdocs-panzoom-serve-assets, node-macos-stdin-fd, opencode-session-created-not-a-hook, pbs-backup-troubleshooting, platform-command-collisions, proxmox-bridge-rename, pymdownx-extension-order, safe-edit-special-chars, unicode-escape-edit-mismatch
+FIELDNOTES: none
 
-AVAILABLE RUNBOOKS: docs-code-alignment-sweep, ansible-docker-role, bidirectional-code-docs-sync, ceph-operations, code-tidy-sweep, docs-site-restructure, k3s-operations, opnsense-api, orders-inventory-field-test, runbooks-overview, session-token-usage-from-claude-logs, terraform-operations, testing-opencode-plugins, vaultwarden-bw-cli, vaultwarden-env-vars
+AVAILABLE RUNBOOKS: none
 
-ACTIVE MEMORY (Hot): FIELDNOTE
+ACTIVE MEMORY (Hot): none
 
 # Delegation Recipe
 

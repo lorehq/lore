@@ -1,8 +1,0 @@
----
-description: Formatting standards for documentation files — checkboxes, strikethrough, no emoji
-globs: docs/**/*.md, *.md
----
-
-# Docs Formatting
-
-No formatting rules configured yet.

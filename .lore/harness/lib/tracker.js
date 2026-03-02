@@ -5,8 +5,7 @@ const path = require('path');
 
 function isKnowledgePath(filePath, rootDir) {
   const resolved = path.resolve(filePath);
-  const { getEnclavePath } = require('./config');
-  const prefixes = ['docs', '.lore/skills', '.lore/fieldnotes', '.claude/skills', getEnclavePath()].map(
+  const prefixes = ['docs', '.lore/skills', '.lore/fieldnotes', '.claude/skills'].map(
     (p) => path.resolve(rootDir || process.cwd(), ...p.split('/')) + path.sep,
   );
   return prefixes.some((pre) => resolved.startsWith(pre));
@@ -48,9 +47,9 @@ function getThresholds(directory) {
 // with escalation at nudge/warn thresholds. Failures always emit.
 function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, rootDir }) {
   const decision =
-    'REQUIRED before finish choose one - (A) fieldnote captured, (B) environment fact captured (URL/endpoint/service/host/port/auth/header/redirect/base path), or (C) no capture needed + reason.';
+    '\x1b[91m[\u25A0 LORE-PROTOCOL-DECISION]\x1b[0m REQUIRED CAPTURE: Did you find a gotcha/boobytrap? Write to Redis (Hot Cache) or propose graduation to the Enclave.';
   const failureReview =
-    'Execution-phase failure is high-signal. If the resolved fix is reusable, capture it as a fieldnote before completion.';
+    '\x1b[91m[\u25A0 LORE-PROTOCOL-FAILURE]\x1b[0m Execution failure detected. This is a high-signal event. You MUST record the fix/workaround into Redis Hot Cache immediately.';
 
   if (isReadOnly(tool)) {
     return { silent: true, bashCount: 0 };
@@ -65,13 +64,13 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
 
   // Failures always emit
   if (isFailure) {
-    return { message: `[Lore] ${failureReview} ${decision}`, level: 'warn', bashCount: newCount, silent: false };
+    return { message: `${failureReview} ${decision}`, level: 'warn', bashCount: newCount, silent: false };
   }
 
   // Memory scratch warning always emits
   if (isWriteTool(tool) && filePath && filePath.replace(/\\/g, '/').includes('.lore/memory.local.md')) {
     return {
-      message: '[Lore] Snag buried in scratch notes? Move to /lore-create-fieldnote.',
+      message: '\x1b[91m[\u25A0 LORE-PROTOCOL-MEMORY]\x1b[0m High-attention Redis state detected. If this is a reusable snag/boobytrap, PROPOSE TO ENCLAVE for permanent storage.',
       level: 'info',
       bashCount: newCount,
       silent: false,
@@ -86,7 +85,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // Bash: emit only at threshold crossings
   if (newCount === nudge) {
     return {
-      message: `[Lore] Capture checkpoint (${newCount} commands). ${decision}`,
+      message: `\x1b[91m[\u25A0 LORE-PROTOCOL-CHECKPOINT]\x1b[0m (${newCount} commands). Are you drifting? ${decision}`,
       level: 'warn',
       bashCount: newCount,
       silent: false,
@@ -94,7 +93,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   }
   if (newCount === warn || (newCount > warn && newCount % warn === 0)) {
     return {
-      message: `[Lore] REQUIRED capture review (${newCount} commands). ${decision}`,
+      message: `\x1b[91m[\u25A0 LORE-PROTOCOL-WARNING]\x1b[0m (${newCount} consecutive commands). STOP. ${decision}`,
       level: 'warn',
       bashCount: newCount,
       silent: false,
@@ -104,7 +103,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // First bash in a sequence — capture reminder; subsequent silent until thresholds
   if (newCount === 1) {
     return {
-      message: '[Lore] Cultivator: snag \u2192 fieldnote | new fact \u2192 docs/knowledge/',
+      message: '\x1b[91m[\u25A0 LORE-PROTOCOL-NUDGE]\x1b[0m Capturer Identity Active: Hunt for boobytraps/quirks \u2192 Write to Redis (Hot) \u2192 Propose to Enclave.',
       level: 'info',
       bashCount: newCount,
       silent: false,

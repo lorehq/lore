@@ -14,9 +14,9 @@ const hasSemanticSearch = !!(docker.search && docker.search.address);
 
 // -- Static preamble (identity roles) --
 const search = hasSemanticSearch
-  ? 'Resourceful: search KB first \u2014 if results answer the question, act on them'
-  : 'Resourceful: search docs/knowledge/ \u2192 docs/workflow/ \u2192 docs/context/ first \u2014 if results answer the question, act on them';
-const preamble = `[Lore] ${search}. Orchestrator: delegate API calls, curl, multi-step exploration, and parallel work to workers (load /lore-delegate first) \u2014 don\u2019t execute directly. Cultivator: snag \u2192 fieldnote, new fact \u2192 docs/knowledge/. After task \u2192 propose capture or state why not.`;
+  ? 'SEARCH: Query Redis Cache \u2192 Enclave Semantic Search.'
+  : 'SEARCH: Query Redis Cache \u2192 Enclave (Home Folder).';
+const preamble = `\x1b[91m[\u25A0 LORE-PROTOCOL-NUDGE] \x1b[0m ${search} DELEGATE: Enforce Subagent Envelope Contract (require gotchas/pitfalls alongside results). CAPTURE: Snags/Boobytraps \u2192 Redis (Hot) \u2192 Propose to Enclave. SECURITY: Bypassing write-guards or exposing secrets is a failure of operational integrity.`;
 
 // -- Dynamic ambiguity scan --
 // Patterns that signal inputs the orchestrator should resolve or clarify
@@ -46,7 +46,7 @@ try {
     const matches = ambiguityPatterns.filter((p) => p.test(prompt)).map((p) => prompt.match(p)[0]);
     if (matches.length > 0) {
       const unique = [...new Set(matches.map((m) => m.toLowerCase()))];
-      ambiguityNote = ` [Lore] Ambiguous input detected (${unique.map((m) => '"' + m + '"').join(', ')}). Resolve to concrete values before acting or delegating \u2014 clarify with user if needed.`;
+      ambiguityNote = ` \u26A0 Ambiguous input detected (${unique.map((m) => '"' + m + '"').join(', ')}). Resolve to concrete values before acting or delegating \u2014 clarify with user if needed.`;
     }
   }
 } catch (_e) {

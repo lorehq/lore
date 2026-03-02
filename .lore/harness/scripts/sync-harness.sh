@@ -65,19 +65,19 @@ cp -Rf "$SOURCE/.lore/harness/hooks/." "$TARGET/.lore/harness/hooks/"
 cp -Rf "$SOURCE/.lore/harness/lib/." "$TARGET/.lore/harness/lib/"
 cp -Rf "$SOURCE/.lore/harness/scripts/." "$TARGET/.lore/harness/scripts/"
 mkdir -p "$TARGET/.opencode" "$TARGET/.cursor/hooks" "$TARGET/.claude"
-cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
+[ -d "$SOURCE/.opencode" ] && cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Selective .cursor/ sync — hooks and hooks.json are harness-owned,
 # but .cursor/rules/ contains both harness and instance-specific .mdc files.
 # Copy hooks directly, then copy only harness-owned rules.
-cp -Rf "$SOURCE/.cursor/hooks/." "$TARGET/.cursor/hooks/"
-cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
+[ -d "$SOURCE/.cursor/hooks" ] && cp -Rf "$SOURCE/.cursor/hooks/." "$TARGET/.cursor/hooks/"
+[ -f "$SOURCE/.cursor/hooks.json" ] && cp "$SOURCE/.cursor/hooks.json" "$TARGET/.cursor/hooks.json"
 mkdir -p "$TARGET/.gemini"
-cp -Rf "$SOURCE/.gemini/." "$TARGET/.gemini/"
+[ -d "$SOURCE/.gemini" ] && cp -Rf "$SOURCE/.gemini/." "$TARGET/.gemini/"
 # MCP server — exposes lore_check_in and lore_context as Cursor tools.
 # Both the server script and the config are harness-owned.
 mkdir -p "$TARGET/.cursor/mcp"
-cp "$SOURCE/.cursor/mcp/lore-server.js" "$TARGET/.cursor/mcp/lore-server.js"
-cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
+[ -f "$SOURCE/.cursor/mcp/lore-server.js" ] && cp "$SOURCE/.cursor/mcp/lore-server.js" "$TARGET/.cursor/mcp/lore-server.js"
+[ -f "$SOURCE/.cursor/mcp.json" ] && cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
 # Knowledge base search MCP — platform-agnostic semantic search tool.
 mkdir -p "$TARGET/.lore/harness/mcp"
 cp "$SOURCE/.lore/harness/mcp/search-server.js" "$TARGET/.lore/harness/mcp/search-server.js"
@@ -141,7 +141,7 @@ fi
 # Single files
 [ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
-cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
+[ -f "$SOURCE/.claude/settings.json" ] && cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 # Bootstrap operator.gitignore on first sync — never overwrite if it exists
 [ -f "$TARGET/.lore/operator.gitignore" ] || cp "$SOURCE/.lore/operator.gitignore" "$TARGET/.lore/operator.gitignore"
 # Merge .gitignore: always inject harness rules, then append operator additions

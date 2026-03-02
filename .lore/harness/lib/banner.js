@@ -173,40 +173,27 @@ async function buildStaticBanner(directory) {
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
   const runbookLine = runbooks.length > 0 ? runbooks.map((r) => r.name).join(', ') : '';
-  let output = `=== LORE${version}${profileTag} ===
-
-WORKERS: ${workerList}`;
-  if (semanticSearchUrl) output += `
-SEMANTIC SEARCH: ${semanticSearchUrl}`;
+  let output = `=== LORE${version}${profileTag} ===\n\nWORKERS: ${workerList}`;
+  if (semanticSearchUrl) output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
   if (profile === 'minimal') {
-    output += `
-PROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.`;
+    output += `\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.`;
   } else if (profile === 'discovery') {
-    output += `
-PROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge-base/machine/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.`;
+    output += `\nPROFILE: discovery \u2014 capture aggressively. Map every service, endpoint, auth header, and redirect to docs/knowledge-base/machine/. Create fieldnotes for every non-obvious fix. Run /lore-capture at natural breakpoints.`;
   }
-  if (fieldnoteLine) output += `
-
-FIELDNOTES: ${fieldnoteLine}`;
-  if (runbookLine) output += `
-
-AVAILABLE RUNBOOKS: ${runbookLine}`;
+  if (fieldnoteLine) output += `\n\nFIELDNOTES: ${fieldnoteLine}`;
+  if (runbookLine) output += `\n\nAVAILABLE RUNBOOKS: ${runbookLine}`;
   if (hotMem.length > 0) {
     const fading = hotMem.filter(m => m.current_score < 1.5);
-    if (fading.length > 0) output += `
-
-WARNING: ${fading.length} memory facts are fading. Run /lore-reconcile to persist them.`;
-    output += `
-
-ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
+    if (fading.length > 0) output += `\n\nWARNING: ${fading.length} memory facts are fading. Run /lore-reconcile to persist them.`;
+    output += `\n\nACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
   }
   const bannerSkills = getBannerLoadedSkills(directory);
-  if (bannerSkills.length > 0) output += "\n\n" + bannerSkills.map((s) => s.body).join("\n\n");
+  if (bannerSkills.length > 0) output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
   try {
     const agentRulesPath = path.join(getEnclavePath(), 'rules', 'lore-agent-rules.md');
     const raw = fs.readFileSync(agentRulesPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
-    if (stripped) output += "\n\nPROJECT IDENTITY:\n" + stripped;
+    if (stripped) output += '\n\nPROJECT IDENTITY:\n' + stripped;
   } catch (e) { debug('project-identity: %s', e.message); }
   try {
     const allRules = [];
@@ -221,7 +208,7 @@ ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/
         if (content) { allRules.push(content); seen.add(f); }
       }
       const sDir = path.join(rDir, 'system');
-      if (fs.existsSync(sDir) && allRules.length < 10) {
+      if (fs.existsSync(sDir)) {
         const sFiles = fs.readdirSync(sDir).filter(f => f.endsWith('.md') && !seen.has(f)).sort();
         for (const f of sFiles) {
           if (allRules.length >= 10) break;
@@ -230,7 +217,7 @@ ACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/
         }
       }
     }
-    if (allRules.length > 0) output += "\n\nRULES:\n" + allRules.join("\n\n");
+    if (allRules.length > 0) output += '\n\nRULES:\n' + allRules.join('\n\n');
   } catch (e) { debug('rules: %s', e.message); }
   return output;
 }
@@ -243,7 +230,7 @@ function buildDynamicBanner(directory) {
     if (fs.existsSync(operatorPath)) {
       const raw = fs.readFileSync(operatorPath, 'utf8');
       const stripped = stripFrontmatter(raw).trim();
-      if (stripped && !stripped.includes('- **Name:**')) output += "OPERATOR PROFILE:\n" + stripped;
+      if (stripped && !stripped.includes('- **Name:**')) output += 'OPERATOR PROFILE:\n' + stripped;
     }
   } catch (e) { debug('operator-profile: %s', e.message); }
   try {
@@ -252,8 +239,8 @@ function buildDynamicBanner(directory) {
       const raw = fs.readFileSync(userPath, 'utf8');
       const stripped = stripFrontmatter(raw).trim();
       if (stripped) {
-        if (output) output += "\n\n";
-        output += "USER CONTEXT:\n" + stripped;
+        if (output) output += '\n\n';
+        output += 'USER CONTEXT:\n' + stripped;
       }
     }
   } catch (e) { debug('user-context: %s', e.message); }
@@ -262,8 +249,8 @@ function buildDynamicBanner(directory) {
     const raw = fs.readFileSync(memPath, 'utf8');
     const stripped = stripFrontmatter(raw).trim();
     if (stripped && !stripped.includes('Transient memory')) {
-      if (output) output += "\n\n";
-      output += "SESSION MEMORY:\n" + stripped;
+      if (output) output += '\n\n';
+      output += 'SESSION MEMORY:\n' + stripped;
     }
   } catch (e) { debug('memory: %s', e.message); }
   return output;

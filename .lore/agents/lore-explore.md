@@ -2,6 +2,7 @@
 name: lore-explore
 description: KB-aware codebase exploration. Read-only search and discovery.
 skills: [lore-semantic-search]
+model: haiku
 ---
 # Explorer Agent
 
