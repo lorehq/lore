@@ -29,14 +29,42 @@ function stripJsonComments(str) {
   return result.replace(/,(\s*[}\]])/g, '$1');
 }
 
-function getConfig(directory) {
-  try {
-    const raw = fs.readFileSync(path.join(directory, '.lore', 'config.json'), 'utf8');
-    return JSON.parse(stripJsonComments(raw));
-  } catch (e) {
-    debug('getConfig: %s', e.message);
-    return {};
+function getEnclavePath() {
+  return path.join(process.env.HOME || process.env.USERPROFILE, '.lore');
+}
+
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (!target[key]) target[key] = {};
+      deepMerge(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
   }
+  return target;
+}
+
+function getConfig(directory) {
+  let config = {};
+  try {
+    const globalPath = path.join(getEnclavePath(), 'config.json');
+    if (fs.existsSync(globalPath)) {
+      const raw = fs.readFileSync(globalPath, 'utf8');
+      config = JSON.parse(stripJsonComments(raw));
+    }
+  } catch (e) { debug('globalConfig: %s', e.message); }
+
+  try {
+    const localPath = path.join(directory, '.lore', 'config.json');
+    if (fs.existsSync(localPath)) {
+      const raw = fs.readFileSync(localPath, 'utf8');
+      const local = JSON.parse(stripJsonComments(raw));
+      config = deepMerge(config, local);
+    }
+  } catch (e) { debug('localConfig: %s', e.message); }
+
+  return config;
 }
 
 const VALID_PROFILES = ['minimal', 'standard', 'discovery'];
@@ -44,10 +72,6 @@ const VALID_PROFILES = ['minimal', 'standard', 'discovery'];
 function getProfile(directory) {
   const cfg = getConfig(directory);
   return VALID_PROFILES.includes(cfg.profile) ? cfg.profile : 'standard';
-}
-
-function getEnclavePath() {
-  return path.join(process.env.HOME || process.env.USERPROFILE, '.lore');
 }
 
 module.exports = { getConfig, getProfile, getEnclavePath, VALID_PROFILES };
