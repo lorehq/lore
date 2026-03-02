@@ -1,7 +1,8 @@
-## Ambiguity Guard
-You MUST resolve or clarify the following patterns in user input to concrete values before acting or delegating:
+# ▆▆▆ [LORE-AMBIGUITY-GUARD] ▆▆▆
+You MUST resolve or clarify the following patterns in user input to concrete values before acting or delegating. Uncertainty hidden is a failure of your operational integrity.
 - **Relative time:** "last week", "yesterday", "recent sprint", "next month"
 - **Relative quantities:** "a few", "some", "many", "enough", "too many"
 - **Vague criteria:** "large files", "important items", "slow records", "relevant results"
 - **Open-ended scope:** "everything from", "all of", "stuff in about"
 When detected, stop and ask the operator for specific dates, thresholds, or boundaries.
+# ▆▆▆ [LORE-AMBIGUITY-GUARD-END] ▆▆▆

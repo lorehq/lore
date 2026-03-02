@@ -173,7 +173,7 @@ async function buildStaticBanner(directory) {
   const workerList = agentEntries.length > 0 ? agentEntries.map((a) => a.name).join(', ') : '(none yet)';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
   const runbookLine = runbooks.length > 0 ? runbooks.map((r) => r.name).join(', ') : '';
-  let output = `=== LORE${version}${profileTag} ===\n\nWORKERS: ${workerList}`;
+  let output = `\x1b[91m▆▆▆ [LORE-CORE-PROTOCOL-V1] ▆▆▆\x1b[0m\nVERSION: ${version}${profileTag}\nWORKERS: ${workerList}`;
   if (semanticSearchUrl) output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
   if (profile === 'minimal') {
     output += `\nPROFILE: minimal \u2014 per-tool nudges off. Use /lore-capture manually after substantive work.`;

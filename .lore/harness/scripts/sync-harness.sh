@@ -60,10 +60,11 @@ for d in hooks lib scripts mcp templates; do
 done
 
 # Harness directories — overwrite contents, don't delete operator extras
-mkdir -p "$TARGET/.lore/harness/hooks" "$TARGET/.lore/harness/lib" "$TARGET/.lore/harness/scripts" "$TARGET/.lore/harness/mcp" "$TARGET/.lore/harness/templates"
+mkdir -p "$TARGET/.lore/harness/hooks" "$TARGET/.lore/harness/lib" "$TARGET/.lore/harness/scripts" "$TARGET/.lore/harness/mcp" "$TARGET/.lore/harness/templates" "$TARGET/.lore/harness/fragments"
 cp -Rf "$SOURCE/.lore/harness/hooks/." "$TARGET/.lore/harness/hooks/"
 cp -Rf "$SOURCE/.lore/harness/lib/." "$TARGET/.lore/harness/lib/"
 cp -Rf "$SOURCE/.lore/harness/scripts/." "$TARGET/.lore/harness/scripts/"
+cp -Rf "$SOURCE/.lore/harness/fragments/." "$TARGET/.lore/harness/fragments/"
 mkdir -p "$TARGET/.opencode" "$TARGET/.cursor/hooks" "$TARGET/.claude"
 [ -d "$SOURCE/.opencode" ] && cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Selective .cursor/ sync — hooks and hooks.json are harness-owned,
