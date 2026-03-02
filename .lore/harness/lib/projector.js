@@ -30,10 +30,7 @@ async function project() {
   const ambiguityGuard = getFragment('ambiguity-guard.md');
   const searchDiscipline = getFragment('search-discipline.md');
   const delegationGuidance = getFragment('delegation-guidance.md');
-  const TIER_PREAMBLE = { fast: getFragment('agent-preamble-fast.md'), default: getFragment('agent-preamble-default.md'), powerful: getFragment('agent-preamble-powerful.md') };
 
-  const canonicalDir = path.join(absRoot, '.lore', 'agents');
-  fs.mkdirSync(canonicalDir, { recursive: true });
   const allAgentFiles = new Set();
   const agentDirs = [path.join(enclavePath, 'agents'), path.join(absRoot, '.lore', 'agents')];
   for (const d of agentDirs) { try { if (fs.existsSync(d)) for (const f of fs.readdirSync(d).filter(f => f.endsWith('.md'))) allAgentFiles.add(f); } catch (_) {} }
@@ -58,7 +55,19 @@ async function project() {
         writeIfChanged(path.join(absRoot, platform.hookFile), content);
       }
     }
+    if (caps.includes('primers') && platform.agentsDir) {
+      const platformPrimersDir = path.join(absRoot, platform.agentsDir.replace('agents', 'skills'));
+      const pDirs = [path.join(enclavePath, 'primers'), path.join(absRoot, '.lore', 'primers')];
+      for (const d of pDirs) {
+        try { if (!fs.existsSync(d)) continue;
+          for (const f of fs.readdirSync(d).filter(f => f.endsWith('.md'))) {
+            const src = readOr(path.join(d, f));
+            const pname = f.replace(/\.md$/, '');
+            writeIfChanged(path.join(platformPrimersDir, pname, 'SKILL.md'), `---\nname: ${pname}\ndescription: Cognitive Primer for ${pname.replace('prim-', '')}\ntype: primer\nuser-invocable: false\nallowed-tools: Read\n---\n\n${stripFrontmatter(src)}`);
+          }
+        } catch (_) {}
+      }
+    }
   }
 }
-
 project();

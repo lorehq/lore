@@ -1,7 +1,7 @@
 {
   "platforms": {
     "claude": {
-      "capabilities": ["mandates", "hooks", "mcp", "agents"],
+      "capabilities": ["mandates", "hooks", "mcp", "agents", "primers"],
       "mandateFile": "CLAUDE.md",
       "hookFile": ".claude/settings.json",
       "agentsDir": ".claude/agents",
