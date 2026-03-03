@@ -2,8 +2,6 @@
 MEMORY.local.md
 site/
 node_modules/
-docs/knowledge/local/
-.lore/links
 .env
 
 # Windows: AI agents may run `> nul` (cmd syntax) in Git Bash, creating a literal file

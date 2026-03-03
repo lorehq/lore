@@ -20,7 +20,6 @@ echo "Work dir: $WORK"
 tar cf - \
   --exclude='.git' \
   --exclude='node_modules' \
-  --exclude='docs/knowledge/local' \
   -C "$REPO_ROOT" . | tar xf - -C "$WORK"
 
 cd "$WORK"
@@ -28,7 +27,6 @@ cd "$WORK"
 # 1. Sticky file bootstrap
 echo "--- Sticky files ---"
 node -e "require('./.lore/harness/lib/banner').ensureStickyFiles('.')"
-[[ -f docs/knowledge/local/index.md ]] || { echo "FAIL: docs/knowledge/local/index.md not created"; exit 1; }
 [[ -f docs/context/agent-rules.md ]] || { echo "FAIL: docs/context/agent-rules.md not created"; exit 1; }
 [[ -d .lore/rules ]] || { echo "FAIL: .lore/rules/ not created"; exit 1; }
 [[ -f .lore/memory.local.md ]] || { echo "FAIL: .lore/memory.local.md not created"; exit 1; }

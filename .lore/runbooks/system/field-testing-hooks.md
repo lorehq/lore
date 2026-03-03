@@ -19,7 +19,7 @@ Add to `~/.bashrc` or `~/.zshrc` to persist across sessions. Zero overhead when 
 
 Work normally across platforms for 2-7 days. No behavior change needed — just use the tools as you would.
 
-Log location: `.git/lore-hook-events.jsonl` in each workspace where hooks fire. For linked repos (`LORE_HUB`), logs write to the hub instance's `.git/`.
+Log location: `.git/lore-hook-events.jsonl` in each workspace where hooks fire.
 
 ## Analyze
 

@@ -21,9 +21,8 @@ services:
   lore-memory:
     image: redis/redis-stack-server:latest
     volumes:
-      - redis_data:/data
+      - ${LORE_REDIS_DATA:-${HOME}/.lore/redis-data}:/data
     restart: unless-stopped
 
 volumes:
   runtime_data:
-  redis_data:

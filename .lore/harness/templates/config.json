@@ -3,11 +3,6 @@
   "version": "{{version}}",
   "created": "{{created}}",
   "profile": "standard",
-  "subagentDefaults": {
-    "claude": { "fast": "haiku", "default": "sonnet", "powerful": "opus" },
-    "opencode": { "fast": "openai/gpt-5-codex-mini", "default": "openai/gpt-5.2-codex", "powerful": "openai/gpt-5.3-codex" },
-    "cursor": { "fast": "haiku", "default": "sonnet", "powerful": "opus" }
-  },
   "docker": {
     "semantic": {
       "defaultK": 8,

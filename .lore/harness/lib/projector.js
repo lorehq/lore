@@ -3,36 +3,26 @@ const fs = require('fs');
 const path = require('path');
 const { buildStaticBanner } = require('./banner');
 const { stripFrontmatter, parseFrontmatter } = require('./frontmatter');
-const { getConfig, getEnclavePath } = require('./config');
+const { getConfig, getGlobalPath } = require('./config');
 const { getLoreToken } = require('./security');
 
 const baseManifest = require('./manifest.json');
 const root = process.argv[2] || process.cwd();
 const absRoot = path.resolve(root);
-const enclavePath = getEnclavePath();
+const globalPath = getGlobalPath();
 const loreToken = getLoreToken(absRoot);
 
 const cfg = getConfig(absRoot);
 const MANIFEST = { ...baseManifest, platforms: { ...baseManifest.platforms, ...(cfg.manifest || {}) } };
-const TIER_ALIASES = { fast: 'haiku', default: 'sonnet', powerful: 'opus' };
 
 function readOr(filePath, fallback = '') { try { return fs.readFileSync(filePath, 'utf8'); } catch (_) { return fallback; } }
 function writeIfChanged(dest, content) { if (readOr(dest) === content) return; fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, content); }
 
-function stampModel(src, model) {
-  if (!model) return src;
-  const fmMatch = src.match(/^---\n([\s\S]*?)\n---/);
-  if (!fmMatch) return src;
-  let fm = fmMatch[1].replace(/^model:.*\n?/m, '');
-  fm += `\nmodel: ${model}`;
-  return src.replace(fmMatch[1], fm.replace(/\n+$/, ''));
-}
-
 async function project() {
   const instructions = readOr(path.join(absRoot, '.lore', 'instructions.md')).trim();
   const staticBanner = await buildStaticBanner(absRoot);
-  
-  const domainAssets = { rules: {}, primers: {} };
+
+  const domainAssets = { rules: {} };
   const scanAssets = (dir, type) => {
     if (!fs.existsSync(dir)) return;
     for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.md'))) {
@@ -44,14 +34,8 @@ async function project() {
     }
   };
 
-  scanAssets(path.join(enclavePath, 'rules'), 'rules');
+  scanAssets(path.join(globalPath, 'rules'), 'rules');
   scanAssets(path.join(absRoot, '.lore', 'rules'), 'rules');
-  scanAssets(path.join(enclavePath, 'primers'), 'primers');
-  scanAssets(path.join(absRoot, '.lore', 'primers'), 'primers');
-
-  const allAgentFiles = new Set();
-  const agentDirs = [path.join(enclavePath, 'agents'), path.join(absRoot, '.lore', 'agents')];
-  for (const d of agentDirs) { try { if (fs.existsSync(d)) for (const f of fs.readdirSync(d).filter(f => f.endsWith('.md'))) allAgentFiles.add(f); } catch (_) {} }
 
   for (const [name, platform] of Object.entries(MANIFEST.platforms)) {
     const caps = platform.capabilities || [];
@@ -71,10 +55,9 @@ async function project() {
         writeIfChanged(path.join(absRoot, platform.hookFile), content);
       }
     }
-    if (caps.includes('agents') && platform.agentsDir) {
+    if (caps.includes('skills') && platform.agentsDir) {
       const platformSkillsDir = path.join(absRoot, platform.agentsDir.replace('agents', 'skills'));
-      const skillDirs = [path.join(enclavePath, 'skills'), path.join(absRoot, '.lore', 'skills')];
-      const platformTiers = (cfg.subagentDefaults && cfg.subagentDefaults[name]) || {};
+      const skillDirs = [path.join(globalPath, 'skills'), path.join(absRoot, '.lore', 'skills')];
 
       for (const sDir of skillDirs) {
         if (!fs.existsSync(sDir)) continue;
@@ -86,19 +69,25 @@ async function project() {
           const skillSrc = fs.readFileSync(manifest, 'utf8');
           const { attrs } = parseFrontmatter(skillSrc);
           const domain = attrs.domain || 'general';
-          const tier = attrs.tier || 'default';
-          const modelAlias = platformTiers[tier] || TIER_ALIASES[tier] || TIER_ALIASES.default;
 
           const rules = (domainAssets.rules[domain] || []).join('\n\n');
-          const primers = (domainAssets.primers[domain] || []).join('\n\n');
-          
+
           let finalBody = '';
           if (rules) finalBody += `## MANDATES & CONSTRAINTS\n${rules}\n\n`;
-          if (primers) finalBody += `## COGNITIVE PRIMING\n${primers}\n\n`;
           finalBody += `## USAGE\n${stripFrontmatter(skillSrc).trim()}`;
 
           const target = path.join(platformSkillsDir, d.name, 'SKILL.md');
-          writeIfChanged(target, stampModel(`---\nname: ${attrs.name || d.name}\ndescription: ${attrs.description || ''}\n---\n\n${finalBody}`, modelAlias));
+          writeIfChanged(target, `---\nname: ${attrs.name || d.name}\ndescription: ${attrs.description || ''}\n---\n\n${finalBody}`);
+        }
+      }
+    }
+    if (caps.includes('agents') && platform.agentsDir) {
+      const platformAgentsDir = path.join(absRoot, platform.agentsDir);
+      const agentDirs = [path.join(globalPath, 'agents'), path.join(absRoot, '.lore', 'agents')];
+      for (const aDir of agentDirs) {
+        if (!fs.existsSync(aDir)) continue;
+        for (const f of fs.readdirSync(aDir).filter(f => f.endsWith('.md'))) {
+          writeIfChanged(path.join(platformAgentsDir, f), fs.readFileSync(path.join(aDir, f), 'utf8'));
         }
       }
     }

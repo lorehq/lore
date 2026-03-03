@@ -20,7 +20,7 @@ try {
 
 const toolName = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
-const hubDir = process.env.LORE_HUB || process.cwd();
+const hubDir = process.cwd();
 const result = checkMemoryAccess(toolName, filePath, hubDir);
 debug('protect-memory: tool=%s file=%s blocked=%s', toolName, filePath, !!result);
 if (!result) {

@@ -6,20 +6,20 @@ const path = require('path');
 const { getConfig, getProfile } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
-const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..', '..');
+const hubDir = path.join(__dirname, '..', '..', '..');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
 const cfg = getConfig(hubDir);
 const docker = cfg.docker || {};
 const hasSemanticSearch = !!(docker.search && docker.search.address);
 
-// -- Static preamble (identity roles) --
+// -- Static preamble --
 const search = hasSemanticSearch
-  ? 'SEARCH: Query Redis Cache \u2192 Enclave Semantic Search.'
-  : 'SEARCH: Query Redis Cache \u2192 Enclave (Home Folder).';
-const preamble = `\x1b[91m[\u25A0 LORE-PROTOCOL-NUDGE] \x1b[0m ${search} DELEGATE: Enforce Subagent Envelope Contract (require gotchas/pitfalls alongside results). CAPTURE: Snags/Boobytraps \u2192 Redis (Hot) \u2192 Propose to Enclave. SECURITY: Bypassing write-guards or exposing secrets is a failure of operational integrity.`;
+  ? 'SEARCH: Semantic search \u2192 Knowledge base \u2192 Filesystem.'
+  : 'SEARCH: Knowledge base \u2192 Filesystem.';
+const preamble = `\x1b[93m[\u25A0 LORE-PROTOCOL]\x1b[0m ${search} CAPTURE: Non-obvious fixes \u2192 fieldnotes. SECURITY: Reference secrets by name, never embed values.`;
 
 // -- Dynamic ambiguity scan --
-// Patterns that signal inputs the orchestrator should resolve or clarify
+// Patterns that signal ambiguous inputs to resolve or clarify
 // before acting or delegating. Broad categories, not specific keywords.
 const ambiguityPatterns = [
   // Relative time — needs concrete date/range

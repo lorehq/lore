@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getEnclavePath } = require('../lib/config');
+const { getGlobalPath } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
 let input = {};
@@ -13,17 +13,17 @@ try {
 
 const toolName = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
-const hubDir = process.env.LORE_HUB || process.cwd();
-const enclavePath = getEnclavePath();
+const hubDir = process.cwd();
+const globalPath = getGlobalPath();
 
 if (['write', 'edit'].includes(toolName)) {
   const resolvedPath = path.resolve(filePath);
-  if (resolvedPath.startsWith(enclavePath)) {
+  if (resolvedPath.startsWith(globalPath)) {
     const out = JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'deny',
-        permissionDecisionReason: '[Lore] Access to the Local Intelligence Enclave (~/.lore/) is READ-ONLY. You MUST explicitly ask the operator for permission before modifying any global knowledge or primitives.',
+        permissionDecisionReason: '[Lore] The global directory (~/.lore/) is READ-ONLY. You MUST explicitly ask the operator for permission before modifying global content.',
       },
     });
     fs.writeSync(1, out + '\n');

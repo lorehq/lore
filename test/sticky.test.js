@@ -18,11 +18,8 @@ test('ensureStickyFiles: creates all sticky files from scratch', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   ensureStickyFiles(dir);
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'index.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'documentation.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'coding.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'security.md')));
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'workflow', 'notes', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
@@ -35,13 +32,9 @@ test('ensureStickyFiles: idempotent — does not overwrite existing files', (t) 
   // Write custom content to agent-rules
   const rulesPath = path.join(dir, 'docs', 'context', 'agent-rules.md');
   fs.writeFileSync(rulesPath, '# Custom Rules');
-  // Write custom coding rule
-  const codingPath = path.join(dir, '.lore', 'rules', 'coding.md');
-  fs.writeFileSync(codingPath, '# My Coding Rules');
   // Run again
   ensureStickyFiles(dir);
   assert.equal(fs.readFileSync(rulesPath, 'utf8'), '# Custom Rules');
-  assert.equal(fs.readFileSync(codingPath, 'utf8'), '# My Coding Rules');
 });
 
 test('ensureStickyFiles: skips rules dir when rules.md flat file exists', (t) => {
@@ -68,17 +61,7 @@ test('ensureStickyFiles: creates seed files in existing rules dir', (t) => {
   // Custom file should still exist
   assert.ok(fs.existsSync(path.join(convDir, 'custom.md')));
   // Seed files should have been created
-  assert.ok(fs.existsSync(path.join(convDir, 'coding.md')));
-  assert.ok(fs.existsSync(path.join(convDir, 'documentation.md')));
   assert.ok(fs.existsSync(path.join(convDir, 'security.md')));
-});
-
-test('ensureStickyFiles: local index content mentions gitignored', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  ensureStickyFiles(dir);
-  const content = fs.readFileSync(path.join(dir, 'docs', 'knowledge', 'local', 'index.md'), 'utf8');
-  assert.ok(content.includes('gitignored'));
 });
 
 test('ensureStickyFiles: MEMORY.local.md has header', (t) => {

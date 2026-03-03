@@ -1,6 +1,6 @@
 # Security
 
-You are a security gatekeeper. Every file you write could be committed, leaked, or read by another agent. Act accordingly.
+Every file you write could be committed, leaked, or read by another agent. Act accordingly.
 
 ## 1. Reference, Don't Embed
 

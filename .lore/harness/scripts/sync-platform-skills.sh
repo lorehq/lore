@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Copies canonical skills and agents from .lore/ to platform-specific directories.
-# Copies .lore/ canonical files into platform directories. Overwrites existing
-# files but never deletes operator-added content in .claude/skills/ etc.
+# Overwrites existing files but never deletes operator-added content in .claude/skills/ etc.
 #
 # Currently supports: Claude Code (.claude/skills/, .claude/agents/), Cursor (.cursor/rules/lore-*.mdc), OpenCode
 # Future: Windsurf, etc.
@@ -13,8 +12,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # -- Claude Code skills --
 # Copy ALL lore skills to .claude/skills/ so Claude can discover and use them.
 # The user-invocable frontmatter field in each SKILL.md controls whether they
-# appear as /commands — non-command fieldnotes (snags, recipes) are still visible
-# to the agent for reference without being exposed to the user.
+# appear as /commands.
 if [ -d "$REPO_ROOT/.lore/skills" ]; then
   mkdir -p "$REPO_ROOT/.claude/skills"
   node -e "
@@ -34,35 +32,14 @@ if [ -d "$REPO_ROOT/.lore/skills" ]; then
   " "$REPO_ROOT"
 fi
 
-# -- Claude Code fieldnotes → .claude/skills/fn-* --
-# Merge fieldnotes into .claude/skills/ with fn- prefix for unified discovery.
-# Canonical source remains .lore/fieldnotes/ — this is a platform projection.
-if [ -d "$REPO_ROOT/.lore/fieldnotes" ]; then
-  mkdir -p "$REPO_ROOT/.claude/skills"
-  node -e "
-    const fs = require('fs');
-    const path = require('path');
-    const root = process.argv[1];
-    const srcDir = path.join(root, '.lore', 'fieldnotes');
-    const outDir = path.join(root, '.claude', 'skills');
-
-    for (const d of fs.readdirSync(srcDir, { withFileTypes: true })) {
-      if (!d.isDirectory()) continue;
-      const fieldnoteFile = path.join(srcDir, d.name, 'FIELDNOTE.md');
-      if (!fs.existsSync(fieldnoteFile)) continue;
-      const outNoteDir = path.join(outDir, 'fn-' + d.name);
-      fs.cpSync(path.join(srcDir, d.name), outNoteDir, { recursive: true, force: true });
-      // Claude Code requires SKILL.md — rename the projection copy
-      const projectedFieldnote = path.join(outNoteDir, 'FIELDNOTE.md');
-      const projectedSkill = path.join(outNoteDir, 'SKILL.md');
-      if (fs.existsSync(projectedFieldnote)) fs.renameSync(projectedFieldnote, projectedSkill);
-    }
-  " "$REPO_ROOT"
-  # Cleanup legacy .claude/fieldnotes/ if present
-  if [ -d "$REPO_ROOT/.claude/fieldnotes" ]; then
-    rm -rf "$REPO_ROOT/.claude/fieldnotes"
-    echo "Cleaned up legacy .claude/fieldnotes/"
-  fi
+# -- Claude Code agents --
+# Copy user-defined agent definitions to .claude/agents/ for platform discovery.
+if [ -d "$REPO_ROOT/.lore/agents" ]; then
+  mkdir -p "$REPO_ROOT/.claude/agents"
+  for f in "$REPO_ROOT"/.lore/agents/*.md; do
+    [ -f "$f" ] || continue
+    cp "$f" "$REPO_ROOT/.claude/agents/$(basename "$f")"
+  done
 fi
 
 # -- Instructions + platform context (via Projector) --

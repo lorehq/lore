@@ -2,9 +2,7 @@
 // Matches Write and Edit. Injects concise rule reminders based on
 // the target file path:
 //   - Security: always, for any write to any file in the repo
-//   - Docs: writes to docs/workflow/, docs/knowledge/, or docs/ generally
-//   - Work Items: writes to docs/workflow/ (in addition to Docs)
-//   - Knowledge Capture: writes to docs/knowledge/ (in addition to Docs)
+//   - Docs: writes to docs/ generally
 //
 // After hardcoded injections, lists any remaining rules as a menu
 // so the LLM can self-serve if relevant. Operator-created rules
@@ -31,7 +29,7 @@ try {
 const filePath = (input.tool_input || {}).file_path || '';
 if (!filePath) process.exit(0);
 
-const hubDir = process.env.LORE_HUB || process.cwd();
+const hubDir = process.cwd();
 const { getProfile } = require('../lib/config');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
 const resolved = path.resolve(filePath);
@@ -46,26 +44,22 @@ const relative = resolved.slice(repoPrefix.length);
 debug('rule-guard: file=%s relative=%s', filePath, relative);
 
 // Extract bold principle lines from a rule file: **Bold text.**
-// Checks parent dir first (operator override), then system/ fallback.
 function extractPrinciples(filename) {
   const rulesDir = path.join(hubDir, '.lore', 'rules');
-  const candidates = [path.join(rulesDir, filename), path.join(rulesDir, 'system', filename)];
-  for (const rulePath of candidates) {
-    try {
-      const content = fs.readFileSync(rulePath, 'utf8');
-      const lines = content.split('\n');
-      const principles = [];
-      for (const line of lines) {
-        const match = line.match(/^\*\*(.+?)\*\*$/);
-        if (match) principles.push(match[1]);
-      }
-      if (principles.length > 0) return principles;
-    } catch (e) {
-      // Try next candidate
+  const rulePath = path.join(rulesDir, filename);
+  try {
+    const content = fs.readFileSync(rulePath, 'utf8');
+    const lines = content.split('\n');
+    const principles = [];
+    for (const line of lines) {
+      const match = line.match(/^\*\*(.+?)\*\*$/);
+      if (match) principles.push(match[1]);
     }
+    return principles;
+  } catch (e) {
+    debug('rule-guard: could not read %s', filename);
+    return [];
   }
-  debug('rule-guard: could not read %s from parent or system/', filename);
-  return [];
 }
 
 // Determine which rules apply based on path
@@ -89,58 +83,29 @@ if (security.length === 0) {
 }
 if (security.length > 0) {
   rules.push(
-    '[Lore] Security — assess this write. Does it contain secrets, credentials, or sensitive values? Replace with references (env var names, vault paths) or escalate to the operator. When uncertain, ask before writing.',
+    '\x1b[91m[■ LORE-SECURITY]\x1b[0m Assess this write. Does it contain secrets, credentials, or sensitive values? Replace with references (env var names, vault paths) or escalate to the operator. When uncertain, ask before writing.',
   );
 }
 
-// Path-specific rules
-const isWork = relative.startsWith('docs/workflow/') || relative.startsWith('docs\\workflow\\');
-const isKnowledge = relative.startsWith('docs/knowledge/') || relative.startsWith('docs\\knowledge\\');
+// Docs rule applies to all docs/ paths
 const isDocs = relative.startsWith('docs/') || relative.startsWith('docs\\');
-
-// Docs rule applies to all docs/ paths (including work/ and knowledge/)
 if (isDocs) {
   const docs = extractPrinciples('documentation.md');
   if (docs.length > 0) {
-    rules.push('[Lore] Docs: ' + docs.join(' | '));
-  }
-}
-
-// Additional domain-specific rules
-if (isWork) {
-  const workItems = extractPrinciples('work-items.md');
-  if (workItems.length > 0) {
-    rules.push('[Lore] Work items: ' + workItems.join(' | '));
-  }
-} else if (isKnowledge) {
-  const knowledge = extractPrinciples('knowledge-capture.md');
-  if (knowledge.length > 0) {
-    rules.push('[Lore] Knowledge: ' + knowledge.join(' | '));
+    rules.push('\x1b[96m[■ LORE-DOCS]\x1b[0m ' + docs.join(' | '));
   }
 }
 
 // Build menu of rules not already injected above
 const injected = new Set(['index.md', 'security.md']);
 if (isDocs) injected.add('documentation.md');
-if (isWork) injected.add('work-items.md');
-if (isKnowledge) injected.add('knowledge-capture.md');
 
-const rulesDir2 = path.join(hubDir, '.lore', 'rules');
+const rulesDir = path.join(hubDir, '.lore', 'rules');
 try {
-  // Merge operator rules + system/ rules, operator takes precedence
-  const operatorFiles = fs.readdirSync(rulesDir2).filter((f) => f.endsWith('.md') && !injected.has(f));
-  const operatorNames = new Set(operatorFiles);
-  let systemFiles = [];
-  const systemDir = path.join(rulesDir2, 'system');
-  try {
-    systemFiles = fs
-      .readdirSync(systemDir)
-      .filter((f) => f.endsWith('.md') && !injected.has(f) && !operatorNames.has(f));
-  } catch (_) {}
-  const allFiles = [...operatorFiles, ...systemFiles];
-  if (allFiles.length > 0) {
-    const names = allFiles.map((f) => f.replace(/\.md$/, ''));
-    rules.push('[Lore] Other rules: ' + names.join(', ') + ' — read .lore/rules/<name>.md if relevant');
+  const files = fs.readdirSync(rulesDir).filter((f) => f.endsWith('.md') && !injected.has(f) && !fs.lstatSync(path.join(rulesDir, f)).isDirectory());
+  if (files.length > 0) {
+    const names = files.map((f) => f.replace(/\.md$/, ''));
+    rules.push('\x1b[96m[■ LORE-RULES]\x1b[0m ' + names.join(', ') + ' — read .lore/rules/<name>.md if relevant');
   }
 } catch (e) {
   debug('rule-guard: could not list rules: %s', e.message);

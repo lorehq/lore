@@ -17,7 +17,7 @@ Grounds the agent in operator identity, network topology, infrastructure, and se
 
 ### Operator Profile
 
-Create `docs/knowledge/local/operator-profile.md` (gitignored).
+Create `~/.lore/knowledge-base/operator-profile.md`.
 
 Minimum fields:
 - Name, homelab purpose (learning, media, home automation, development)
@@ -40,7 +40,7 @@ This file is injected as PROJECT context every session.
 
 ### Machine Inventory
 
-Create `docs/knowledge/local/machine.md` (gitignored).
+Create `~/.lore/knowledge-base/environment/machine.md`.
 
 Capture: hostname, OS, installed runtimes, CLI tools (Ansible, Terraform, kubectl, docker, ssh), shell environment. This is the management workstation — not the homelab nodes (those come in Phase 4).
 
@@ -64,7 +64,7 @@ After setting aliases, regenerate agent frontmatter:
 node .lore/harness/lib/generate-agents.js
 ```
 
-**Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the orchestrator's tier with no error.
+**Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the caller's tier with no error.
 
 Verify by asking the agent to run a worker test: each tier (fast/default/powerful) should report the model it's running on.
 
@@ -84,7 +84,7 @@ Options:
 | `pass` (GPG-based) | Lightweight, git-friendly, no server needed |
 | 1Password / Bitwarden (cloud) | Cross-machine sync without self-hosting |
 
-Authenticate the CLI, verify access, and document the tool and item naming convention in `docs/knowledge/environment/`.
+Authenticate the CLI, verify access, and document the tool and item naming convention in `~/.lore/knowledge-base/environment/`.
 
 Typical homelab items to catalog (names and purposes only, never values):
 - Proxmox API tokens
@@ -111,7 +111,7 @@ Ask the operator what runs routing/firewall — OPNsense, pfSense, OpenWrt, Unif
 
 ### Document
 
-Extract and write to `docs/knowledge/environment/network-topology.md`:
+Extract and write to `~/.lore/knowledge-base/environment/network-topology.md`:
 
 - **VLANs** — ID, name, purpose, subnet, gateway, DHCP range
 - **Firewall rules** — inter-VLAN policy, port forwards, NAT
@@ -134,13 +134,13 @@ Connect to the hypervisor management interface. For Proxmox (most common):
 - **Proxmox API** — URL + API token from keystore (Phase 3)
 - **SSH** — enumerate via `pvesh` or `/etc/pve`
 
-Document in `docs/knowledge/environment/hypervisors.md`:
+Document in `~/.lore/knowledge-base/environment/hypervisors.md`:
 - Nodes, CPU/RAM specs, cluster membership
 - HA configuration and resource groups
 
 ### Storage
 
-Document in `docs/knowledge/environment/storage.md`:
+Document in `~/.lore/knowledge-base/environment/storage.md`:
 - **Ceph** — monitors, OSDs, pools, cluster networks, replication factor
 - **ZFS** — pools, datasets, compression settings, snapshot policies
 - **NFS/SMB exports** — what's shared, from where, to which networks
@@ -148,7 +148,7 @@ Document in `docs/knowledge/environment/storage.md`:
 
 ### Compute
 
-Enumerate all VMs and containers across nodes. Document in `docs/knowledge/environment/compute-inventory.md`:
+Enumerate all VMs and containers across nodes. Document in `~/.lore/knowledge-base/environment/compute-inventory.md`:
 - VMID, name, hosting node, allocated resources (CPU, RAM, disk)
 - Network interfaces and IPs — cross-reference with VLAN map from Phase 4
 - Purpose — ask operator to annotate anything not inferrable from hostname
@@ -185,7 +185,7 @@ Proxmox Backup Server, Borg, Restic, rsync — schedules, targets, retention pol
 
 Arr stack, Jellyfin/Plex, Immich, Home Assistant — document each service's role, host, storage, and network connections.
 
-Write service docs to `docs/knowledge/environment/` — one per logical group (containers, dns, backups, media) or one per host, based on operator preference. Propose the structure and wait for approval before writing.
+Write service docs to `~/.lore/knowledge-base/environment/` — one per logical group (containers, dns, backups, media) or one per host, based on operator preference. Propose the structure and wait for approval before writing.
 
 **Snags, gotchas, quirks become fieldnotes.** During service mapping, snags will surface — a container needing a specific network mode, a backup that fails silently, a DNS rebinding issue. Each is a fieldnote candidate. Propose; create after operator approval.
 
@@ -195,11 +195,7 @@ Write service docs to `docs/knowledge/environment/` — one per logical group (c
 
 **Goal:** Connect existing infrastructure-as-code repos or establish a starting point.
 
-**If IaC already exists** (Terraform for Proxmox VMs, Ansible for host config, Pulumi, NixOS): discover repos, map what's managed vs manual, document the boundary. Link work repos:
-
-```bash
-/lore-link
-```
+**If IaC already exists** (Terraform for Proxmox VMs, Ansible for host config, Pulumi, NixOS): discover repos, map what's managed vs manual, document the boundary.
 
 **If no IaC yet:** propose a starting point based on Phases 4–6 discovery:
 - Ansible inventory from discovered hosts and roles
@@ -228,7 +224,7 @@ Ports are auto-computed per project (hash-based). After starting:
 
 **Run after the environment is substantially documented — not before.**
 
-Once Phases 1–6 are complete and the KB has accumulated, run the knowledge defrag runbook to restructure `docs/knowledge/` by content rather than creation order.
+Once Phases 1–6 are complete and the KB has accumulated, run the knowledge defrag runbook to restructure the global knowledge base by content rather than creation order.
 
 ```bash
 git checkout -b knowledge-defrag-$(date +%Y%m%d)

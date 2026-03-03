@@ -12,7 +12,7 @@ const { pingActivity } = require('./lib/activity-ping');
 
 // -- State file location --
 const cwd = process.cwd();
-const hubDir = process.env.LORE_HUB || cwd;
+const hubDir = cwd;
 const hash = crypto.createHash('md5').update(cwd).digest('hex').slice(0, 8);
 const gitDir = path.join(cwd, '.git');
 const STATE_FILE = fs.existsSync(gitDir)

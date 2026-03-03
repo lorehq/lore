@@ -10,7 +10,7 @@ allowed-tools: Write, Edit, Read, Glob
 
 **Every snag (gotcha, quirk) becomes a fieldnote. No exceptions.**
 
-Fieldnotes capture environmental knowledge from failures — auth quirks, encoding issues, parameter tricks, platform incompatibilities. They live in `.lore/fieldnotes/` and use `FIELDNOTE.md` as their manifest (projected as `SKILL.md` into `.claude/skills/fn-*` for platform compatibility).
+Fieldnotes capture environmental knowledge from failures — auth quirks, encoding issues, parameter tricks, platform incompatibilities. They live in `~/.lore/knowledge-base/fieldnotes/` and use `FIELDNOTE.md` as their manifest. Agents discover them via the banner name list and semantic search.
 
 ## When to Create
 
@@ -22,9 +22,9 @@ Fieldnotes capture environmental knowledge from failures — auth quirks, encodi
 
 ### Step 1: Create Fieldnote File
 
-**Location**: `.lore/fieldnotes/<fieldnote-name>/FIELDNOTE.md`
+**Location**: `~/.lore/knowledge-base/fieldnotes/<fieldnote-name>/FIELDNOTE.md`
 
-Keep it **30-80 lines**. Only document what's non-obvious. Fieldnotes must be generic — no usernames, URLs, account IDs (that goes in `docs/knowledge/environment/`).
+Keep it **30-80 lines**. Only document what's non-obvious. Fieldnotes must be generic — no usernames, URLs, account IDs (that goes in the global knowledge base `~/.lore/knowledge-base/environment/`).
 
 ```markdown
 ---
@@ -42,12 +42,6 @@ allowed-tools: Bash, Read, etc
 
 ## Workaround
 [How to fix or avoid the issue]
-```
-
-### Step 2: Sync Platform Copies
-
-```bash
-bash .lore/harness/scripts/sync-platform-skills.sh
 ```
 
 ## Splitting Rules

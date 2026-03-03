@@ -15,9 +15,8 @@ const path = require('path');
 const http = require('http');
 const readline = require('readline');
 
-// Hub resolution — linked repos set LORE_HUB to point back to the hub instance;
-// direct instances resolve relative to this file's location (.lore/harness/mcp/ → repo root).
-const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..', '..');
+// Resolve repo root relative to this file's location (.lore/harness/mcp/ → repo root).
+const hubDir = path.join(__dirname, '..', '..', '..');
 
 // ── Shared lib imports ──────────────────────────────────────────────────────
 

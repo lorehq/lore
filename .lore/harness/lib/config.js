@@ -28,7 +28,7 @@ function stripJsonComments(str) {
   return result.replace(/,(\s*[}\]])/g, '$1');
 }
 
-function getEnclavePath() {
+function getGlobalPath() {
   return path.join(process.env.HOME || process.env.USERPROFILE, '.lore');
 }
 
@@ -47,7 +47,7 @@ function deepMerge(target, source) {
 function getConfig(directory) {
   let config = {};
   try {
-    const globalPath = path.join(getEnclavePath(), 'config.json');
+    const globalPath = path.join(getGlobalPath(), 'config.json');
     if (fs.existsSync(globalPath)) {
       const raw = fs.readFileSync(globalPath, 'utf8');
       config = JSON.parse(stripJsonComments(raw));
@@ -73,4 +73,4 @@ function getProfile(directory) {
   return VALID_PROFILES.includes(cfg.profile) ? cfg.profile : 'standard';
 }
 
-module.exports = { getConfig, getProfile, getEnclavePath, VALID_PROFILES };
+module.exports = { getConfig, getProfile, getGlobalPath, VALID_PROFILES };

@@ -4,7 +4,7 @@ const { debug } = require('../lib/debug');
 const { logHookEvent } = require('../lib/hook-logger');
 const { getConfig } = require('../lib/config');
 
-const root = process.env.LORE_HUB || process.cwd();
+const root = process.cwd();
 debug('session-init: root=%s', root);
 
 // 1. Ensure sticky files (MEMORY.local.md, etc.) exist

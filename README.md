@@ -1,6 +1,6 @@
 # Lore
 
-**Coding agent harness.**
+**Agentic coding tool harness.**
 
 [![CI](https://github.com/lorehq/lore/actions/workflows/test.yml/badge.svg)](https://github.com/lorehq/lore/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/lorehq/lore)](https://github.com/lorehq/lore/releases)
@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Gemini%20CLI%20%7C%20Cursor%20%7C%20Windsurf%20%7C%20Roo%20Code%20%7C%20OpenCode-purple)]()
 
-Lore wraps your coding agent in a harness — persistent memory, rule enforcement, orchestrated delegation, and work tracking. Your agent starts every session knowing your project instead of starting over. Plain files, git-versioned, zero runtime dependencies.
+Lore wraps your agentic coding tool in a harness — persistent memory, rule enforcement, delegation, and work tracking. Your agent starts every session knowing your project instead of starting over. Plain files, git-versioned, zero runtime dependencies.
 
 ## Quick Start
 
@@ -40,9 +40,9 @@ No configuration needed. Your first session gets a full context banner immediate
 
 **Rules are enforced, not just documented.** Your coding standards, docs rules, and security policies are injected before every file write. The agent sees the relevant rules right when it matters.
 
-**One knowledge base, every platform, every repo.** Capture a fieldnote in Claude Code — it's available in Cursor and OpenCode. Link repos to one hub — they all share the same knowledge. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
+**One knowledge base, every platform.** Capture a fieldnote in Claude Code — it's available in Cursor and OpenCode. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
 
-**Complex work delegates to focused workers.** The harness orchestrates delegation: when work benefits from a fresh context window, it spawns workers loaded with curated skills and rules. Compound tasks split across parallel workers for maximum throughput.
+**Complex work delegates to focused workers.** When work benefits from a fresh context window, the harness spawns workers loaded with curated skills and rules. Compound tasks split across parallel workers for maximum throughput.
 
 ## Before / After
 
@@ -63,17 +63,12 @@ Lore is a harness built from markdown files, hooks that shape agent behavior, an
 
 All hooks are plain JavaScript you can read in minutes. They don't make network requests, execute shell commands, or access anything outside your project directory.
 
-## Working Across Repos
-
-Tell your agent to link work repos to the hub — it generates configs so hooks fire from the hub even when you open the work repo directly. One hub, many repos, shared knowledge. See the [cross-repo guide](https://lorehq.github.io/lore-docs/guides/working-across-repos/).
-
 ## Commands
 
 | Command | What it does |
 |---------|-------------|
 | `/lore-capture` | Review session work, capture fieldnotes, update registries, validate consistency |
 | `/lore-consolidate` | Deep health check — stale items, overlaps, knowledge drift |
-| `/lore-link <path>` | Link a work repo to this hub |
 | `/lore-docker` | Start/stop the local Docker sidecar — semantic search + live MkDocs UI |
 | `/lore-field-repair` | Diagnose and fix a harness bug in source |
 

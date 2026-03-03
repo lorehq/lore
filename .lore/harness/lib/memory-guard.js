@@ -25,7 +25,7 @@ function checkMemoryAccess(tool, filePath, rootDir) {
     reason:
       '[Lore] Memory relocated to .lore/memory.local.md. Route your knowledge:\n' +
       '  SNAG \u2192 /lore-create-fieldnote (no exceptions)\n' +
-      '  KNOWLEDGE \u2192 docs/knowledge/environment/\n' +
+      '  KNOWLEDGE \u2192 global KB (~/.lore/knowledge-base/)\n' +
       '  TEMPORARY \u2192 .lore/memory.local.md',
   };
 }

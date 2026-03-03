@@ -1,7 +1,7 @@
 {
   "platforms": {
     "claude": {
-      "capabilities": ["mandates", "hooks", "mcp", "agents", "primers"],
+      "capabilities": ["mandates", "hooks", "mcp", "skills", "agents"],
       "mandateFile": "CLAUDE.md",
       "hookFile": ".claude/settings.json",
       "agentsDir": ".claude/agents",
@@ -18,10 +18,8 @@
       "mandateFile": ".windsurfrules"
     },
     "cursor": {
-      "capabilities": ["mdc", "mcp", "hooks"],
-      "rulesDir": ".cursor/rules",
-      "hookFile": ".cursor/hooks.json",
-      "hookType": "cursor"
+      "capabilities": ["mdc", "mcp"],
+      "rulesDir": ".cursor/rules"
     },
     "opencode": {
       "capabilities": ["hooks"],

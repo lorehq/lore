@@ -49,7 +49,8 @@ test('first bash: emits capture reminder', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('Cultivator'), 'first bash should emit capture reminder');
+  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'first bash should emit LORE-CAPTURE reminder');
+  assert.ok(out.additionalContext.includes('fieldnote'), 'first bash should mention fieldnote');
 });
 
 test('3rd consecutive bash: nudge', (t) => {
@@ -60,8 +61,9 @@ test('3rd consecutive bash: nudge', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('[Lore] Capture checkpoint (3 commands)'));
-  assert.ok(out.additionalContext.includes('REQUIRED'));
+  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('3 commands'), 'should include command count');
+  assert.ok(out.additionalContext.includes('Pause point'), 'should include pause point message');
 });
 
 test('5th consecutive bash: strong warning', (t) => {
@@ -73,15 +75,18 @@ test('5th consecutive bash: strong warning', (t) => {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('[Lore] REQUIRED capture review (5 commands)'));
+  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('5 consecutive commands'), 'should include consecutive command count');
+  assert.ok(out.additionalContext.includes('Consider stopping'), 'should include stop suggestion');
 });
 
 test('bash failure: error pattern message', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
-  assert.ok(out.additionalContext.includes('Execution-phase failure is high-signal'));
-  assert.ok(out.additionalContext.includes('REQUIRED'));
+  assert.ok(out.additionalContext.includes('LORE-FAILURE'), 'should include LORE-FAILURE');
+  assert.ok(out.additionalContext.includes('Execution failure'), 'should include execution failure message');
+  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'should include LORE-CAPTURE for fieldnote suggestion');
 });
 
 test('knowledge capture resets counter', (t) => {
@@ -101,7 +106,7 @@ test('knowledge capture resets counter', (t) => {
   assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset after capture');
 });
 
-test('MEMORY.local.md write: scratch notes warning', (t) => {
+test('MEMORY.local.md write: session memory warning', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, {
@@ -109,7 +114,8 @@ test('MEMORY.local.md write: scratch notes warning', (t) => {
     tool_input: { file_path: path.join(dir, '.lore', 'memory.local.md') },
     hook_event_name: 'PostToolUse',
   });
-  assert.ok(out.additionalContext.includes('scratch notes'));
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
+  assert.ok(out.additionalContext.includes('Session memory updated'), 'should include session memory updated message');
 });
 
 test('non-bash tool resets bash counter', (t) => {

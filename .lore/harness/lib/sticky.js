@@ -21,11 +21,7 @@ function readSeed(directory, seedPath) {
 }
 
 // Seed rule files: template name → target filename.
-// Template 'docs.md' creates 'documentation.md' (renamed from legacy 'docs.md').
 const SEED_RULES = [
-  { seed: 'coding.md', target: 'coding.md' },
-  { seed: 'docs.md', target: 'documentation.md' },
-  { seed: 'prompt-engineering.md', target: 'prompt-engineering.md' },
   { seed: 'security.md', target: 'security.md' },
 ];
 
@@ -40,18 +36,6 @@ const SEED_RUNBOOKS = [
 
 function ensureStickyFiles(directory) {
   try {
-    const localIndex = path.join(directory, 'docs', 'knowledge', 'local', 'index.md');
-    if (!fs.existsSync(localIndex)) {
-      fs.mkdirSync(path.join(directory, 'docs', 'knowledge', 'local'), { recursive: true });
-      fs.writeFileSync(localIndex, readTemplate(directory, 'local-index.md'));
-    }
-
-    const operatorProfile = path.join(directory, 'docs', 'knowledge', 'local', 'operator-profile.md');
-    if (!fs.existsSync(operatorProfile)) {
-      fs.mkdirSync(path.join(directory, 'docs', 'knowledge', 'local'), { recursive: true });
-      fs.writeFileSync(operatorProfile, readTemplate(directory, 'operator-profile.md'));
-    }
-
     const agentRulesPath = path.join(directory, 'docs', 'context', 'agent-rules.md');
     if (!fs.existsSync(agentRulesPath)) {
       fs.mkdirSync(path.join(directory, 'docs', 'context'), { recursive: true });
@@ -65,7 +49,7 @@ function ensureStickyFiles(directory) {
 
 ## Deployment State
 
-This instance has just been deployed and has not yet been set up. The operator profile is blank, the environment is undocumented, and worker tier routing has not been verified.
+This instance has just been deployed and has not yet been set up. The operator profile is blank and the environment is undocumented.
 
 When the operator starts a session, guide them to complete first-session setup before taking on other work. The runbooks are at .lore/runbooks/first-session/ \u2014 ask which profile fits (knowledge-worker, homelab, or personal) and follow it phase by phase.
 

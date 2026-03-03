@@ -7,7 +7,7 @@ const path = require('path');
 const { getConfig, getProfile } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
-const hubDir = process.env.LORE_HUB || path.join(__dirname, '..', '..', '..');
+const hubDir = path.join(__dirname, '..', '..', '..');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
 
 const cfg = getConfig(hubDir);
@@ -33,12 +33,12 @@ const isIndexed = /^(docs\/|\.lore\/skills\/|\.lore\/rules\/)/.test(targetPath);
 
 let msg = '';
 if (hasSearch && isIndexed) {
-  msg = `[Lore] Resourceful: "${targetPath}" is indexed in the Knowledge Base. Use semantic search first to find the specific file/section before using ${tool}.`;
+  msg = `\x1b[96m[■ LORE-SEARCH]\x1b[0m "${targetPath}" is indexed in the Knowledge Base. Use semantic search first to find the specific file/section before using ${tool}.`;
 } else if (hasSearch && !isIndexed && (tool === 'glob' || tool === 'grep_search')) {
   // External repos / app code — Glob/Grep is correct, but still reinforce search discipline
-  msg = `[Lore] Resourceful: File-system search in unindexed territory. Use broad Globs first, then Grep for specifics. Act on what you find — don't over-explore.`;
+  msg = `\x1b[96m[■ LORE-SEARCH]\x1b[0m File-system search in unindexed territory. Use broad Globs first, then Grep for specifics. Act on what you find — don't over-explore.`;
 } else if (!hasSearch && isIndexed) {
-  msg = `[Lore] Resourceful: Semantic search unavailable. Use Glob on "docs/knowledge/" first, then Grep.`;
+  msg = `\x1b[96m[■ LORE-SEARCH]\x1b[0m Semantic search unavailable. Use Glob/Grep on the global knowledge base (~/.lore/knowledge-base/) first.`;
 }
 
 if (!msg) process.exit(0);

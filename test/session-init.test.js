@@ -159,18 +159,6 @@ test('dirs-only tree skips archive directories', (t) => {
   assert.ok(!out.includes('archive/'), 'archive/ should be skipped from tree');
 });
 
-test('creates sticky docs/knowledge/local/ when missing', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const localIndex = path.join(dir, 'docs', 'knowledge', 'local', 'index.md');
-  assert.ok(!fs.existsSync(localIndex), 'should not exist before hook runs');
-  runHook(dir);
-  assert.ok(fs.existsSync(localIndex), 'local/index.md should be created');
-  const content = fs.readFileSync(localIndex, 'utf8');
-  assert.ok(content.includes('Local Notes'));
-  assert.ok(content.includes('gitignored'));
-});
-
 test('creates sticky docs/context/agent-rules.md when missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -224,11 +212,7 @@ test('creates sticky rules directory scaffold when neither path exists', (t) => 
   assert.ok(!fs.existsSync(rulesDir), 'should not exist before hook runs');
   runHook(dir);
   assert.ok(fs.existsSync(path.join(rulesDir, 'index.md')), 'index.md should be created');
-  assert.ok(fs.existsSync(path.join(rulesDir, 'documentation.md')), 'documentation.md should be created');
-  assert.ok(fs.existsSync(path.join(rulesDir, 'coding.md')), 'coding.md should be created');
   assert.ok(fs.existsSync(path.join(rulesDir, 'security.md')), 'security.md should be created');
-  const docsContent = fs.readFileSync(path.join(rulesDir, 'documentation.md'), 'utf8');
-  assert.ok(docsContent.includes('Duplicate') || docsContent.includes('Documentation'));
 });
 
 test('does not overwrite existing rules.md with scaffold', (t) => {
@@ -254,7 +238,7 @@ test('does not overwrite existing rules directory with scaffold', (t) => {
   const content = fs.readFileSync(path.join(dir, '.lore', 'rules', 'index.md'), 'utf8');
   assert.ok(content.includes('My Rules'), 'should preserve operator content');
   // Seed files are created individually even when dir exists
-  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'coding.md')), 'should create seed rule files');
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'security.md')), 'should create seed rule files');
 });
 
 test('hook output excludes static knowledge map regardless of treeDepth', (t) => {
@@ -269,18 +253,6 @@ test('hook output excludes static knowledge map regardless of treeDepth', (t) =>
   assert.ok(!out.includes('KNOWLEDGE MAP:'), 'knowledge map belongs in CLAUDE.md, not hook output');
 });
 
-test('creates sticky operator-profile.md when missing', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const profilePath = path.join(dir, 'docs', 'knowledge', 'local', 'operator-profile.md');
-  assert.ok(!fs.existsSync(profilePath), 'should not exist before hook runs');
-  runHook(dir);
-  assert.ok(fs.existsSync(profilePath), 'operator-profile.md should be created');
-  const content = fs.readFileSync(profilePath, 'utf8');
-  assert.ok(content.includes('# Operator Profile'));
-  assert.ok(content.includes('OPERATOR PROFILE context'));
-});
-
 test('does not inject default operator profile template', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -288,36 +260,25 @@ test('does not inject default operator profile template', (t) => {
   assert.ok(!out.includes('OPERATOR PROFILE:'), 'default template should not be injected');
 });
 
-test('injects customized operator profile', (t) => {
+test('does not inject project-local operator profile (global directory-only now)', (t) => {
   const dir = setup({
     operatorProfile: '# Operator Profile\n\n## Identity\n\n- **Name:** Jane Doe\n- **Role:** Staff Engineer',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  assert.ok(out.includes('OPERATOR PROFILE:'), 'should inject customized profile');
-  assert.ok(out.includes('Jane Doe'));
-  assert.ok(out.includes('Staff Engineer'));
+  // Operator profile is now read from the global directory (~/.lore/knowledge-base/operator/), not the project
+  assert.ok(!out.includes('Jane Doe'), 'project-local operator profile should not be injected');
 });
 
-test('hook outputs operator profile without static content', (t) => {
+test('hook output excludes both project-local operator profile and static PROJECT', (t) => {
   const dir = setup({
     agentRules: '# My Project\n\nProject rules here.',
     operatorProfile: '# Operator Profile\n\n- **Name:** Jane Doe\n- **Role:** Lead Dev',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir);
-  // Hook output is dynamic-only — operator profile appears but PROJECT is in CLAUDE.md
-  assert.ok(out.includes('OPERATOR PROFILE:'), 'operator profile is dynamic content');
-  assert.ok(out.includes('Jane Doe'));
+  // Operator profile is now global directory-only; project-local path is not read by buildDynamicBanner
+  assert.ok(!out.includes('Jane Doe'), 'project-local operator profile should not be injected');
   assert.ok(!out.includes('PROJECT:'), 'project context belongs in CLAUDE.md');
 });
 
-test('does not overwrite existing operator-profile.md with scaffold', (t) => {
-  const dir = setup({
-    operatorProfile: '# Operator Profile\n\nCustom operator content here.',
-  });
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  runHook(dir);
-  const content = fs.readFileSync(path.join(dir, 'docs', 'knowledge', 'local', 'operator-profile.md'), 'utf8');
-  assert.ok(content.includes('Custom operator content here.'), 'should preserve operator content');
-});

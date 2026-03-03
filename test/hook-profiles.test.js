@@ -43,14 +43,6 @@ function setup(opts = {}) {
     fs.copyFileSync(path.join(srcLib, f), path.join(libDir, f));
   }
 
-  // Copy .cursor/hooks/ for capture-nudge profile tests
-  const cursorHooksDir = path.join(dir, '.cursor', 'hooks');
-  fs.mkdirSync(cursorHooksDir, { recursive: true });
-  const cursorSrc = path.join(__dirname, '..', '.cursor', 'hooks');
-  for (const f of fs.readdirSync(cursorSrc)) {
-    fs.copyFileSync(path.join(cursorSrc, f), path.join(cursorHooksDir, f));
-  }
-
   // Create .lore/agents/ (prompt-preamble scans it)
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
 
@@ -145,9 +137,9 @@ test('protect-memory: blocks MEMORY.md write in minimal profile', () => {
   }
 });
 
-// -- harness-guard: warns in both profiles --
+// -- harness-guard: now only protects global directory path (~/.lore/) --
 
-test('harness-guard: warns on harness-owned file write in minimal profile', () => {
+test('harness-guard: no output for project-level harness file write', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
     const out = execSync('node .lore/harness/hooks/harness-guard.js', {
@@ -159,42 +151,10 @@ test('harness-guard: warns on harness-owned file write in minimal profile', () =
         hook_event_name: 'PreToolUse',
       }),
     });
-    const parsed = JSON.parse(out);
-    assert.equal(parsed.hookSpecificOutput.permissionDecision, 'allow', 'should include allow decision');
-    assert.ok(parsed.hookSpecificOutput.additionalContext.includes('[Lore]'), 'should include [Lore] prefix in output');
+    // harness-guard now only blocks global directory writes; project-level harness writes produce no output
+    assert.equal(out.trim(), '', 'should produce no output for project-level harness file write');
   } finally {
     cleanup(dir);
   }
 });
 
-// -- capture-nudge (Cursor) --
-
-test('capture-nudge: bare allow in minimal profile (no agent_message)', () => {
-  const dir = setup({ config: { profile: 'minimal' } });
-  try {
-    const out = execSync('node .cursor/hooks/capture-nudge.js', {
-      cwd: dir,
-      encoding: 'utf8',
-    });
-    const parsed = JSON.parse(out.trim());
-    assert.equal(parsed.permission, 'allow');
-    assert.equal(parsed.agent_message, undefined, 'should not include agent_message in minimal');
-  } finally {
-    cleanup(dir);
-  }
-});
-
-test('capture-nudge: has agent_message in standard profile', () => {
-  const dir = setup({ config: { profile: 'standard' } });
-  try {
-    const out = execSync('node .cursor/hooks/capture-nudge.js', {
-      cwd: dir,
-      encoding: 'utf8',
-    });
-    const parsed = JSON.parse(out.trim());
-    assert.equal(parsed.permission, 'allow');
-    assert.ok(parsed.agent_message, 'should include agent_message in standard');
-  } finally {
-    cleanup(dir);
-  }
-});

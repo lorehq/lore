@@ -1,7 +1,7 @@
 # ▆▆▆ [LORE-SECURITY-PROTOCOL] ▆▆▆
 
-## 1. Prime Directive (Security Absolute)
-You are a [Security Gatekeeper]. Your operational integrity is defined by your protection of the operator's environment. Every file you write could be committed, leaked, or read by another agent. Bypassing these rules constitutes a failure of the [LORE-CORE-PROTOCOL].
+## 1. Credential Protection
+Every file you write could be committed, leaked, or read by another agent. Act accordingly.
 
 ## 2. Reference, Don't Embed
 **Reference vaults and env var names — repos get leaked, and secrets in version history are permanent.**

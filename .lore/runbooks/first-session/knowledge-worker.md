@@ -14,7 +14,7 @@ Grounds the agent in operator identity, tooling, and environment before any proj
 
 ### Operator Profile
 
-Create `docs/knowledge/local/operator-profile.md` (gitignored).
+Create `~/.lore/knowledge-base/operator-profile.md`.
 
 Minimum fields:
 - Name, role, organization
@@ -37,7 +37,7 @@ This file is injected as PROJECT context every session.
 
 ### Machine Inventory
 
-Create `docs/knowledge/local/machine.md` (gitignored).
+Create `~/.lore/knowledge-base/environment/machine.md`.
 
 Capture: hostname, OS, installed runtimes (Node, Python, .NET, Go, etc.), CLI tools, shell environment. Prevents the agent from assuming a generic environment.
 
@@ -63,7 +63,7 @@ After setting aliases, regenerate agent frontmatter:
 node .lore/harness/lib/generate-agents.js
 ```
 
-**Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the orchestrator's tier with no error.
+**Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the caller's tier with no error.
 
 Verify by asking the agent to run a worker test: each tier (fast/default/powerful) should report the model it's running on.
 
@@ -85,7 +85,7 @@ Options:
 | Cloud KMS (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager) | Existing cloud infrastructure |
 | `pass` (GPG-based) | Unix environments; minimal dependencies |
 
-Authenticate the CLI, verify access, and document the tool and item naming convention in `docs/knowledge/environment/identity/`.
+Authenticate the CLI, verify access, and document the tool and item naming convention in `~/.lore/knowledge-base/environment/identity/`.
 
 If importing browser-saved passwords, export from the browser, import via the keystore CLI, then delete the export file — it is plaintext.
 
@@ -103,7 +103,7 @@ Authenticate in this sequence:
 2. **Cloud provider CLI** (`az login`, `aws configure`, `gcloud auth login`) — needed before cloud-dependent tools
 3. **Token-based tools** — retrieve PATs and API keys from the keystore, export as env var or pass as flag
 
-For each tool, document in `docs/knowledge/environment/`:
+For each tool, document in `~/.lore/knowledge-base/environment/`:
 - Auth method and verification command
 - Keystore item name (if applicable)
 - Session management snags (token expiry, multi-account switching)
@@ -117,7 +117,7 @@ For each tool, document in `docs/knowledge/environment/`:
 
 **Goal:** Map the services the agent will interact with. Do not rely on memory.
 
-Document each service in `docs/knowledge/environment/<topic>/<service>.md`. Group by concern: `source-control/`, `cloud/`, `identity/`, `developer-tools/`, etc.
+Document each service in `~/.lore/knowledge-base/environment/<topic>/<service>.md`. Group by concern: `source-control/`, `cloud/`, `identity/`, `developer-tools/`, etc.
 
 ### Discovery Techniques
 
@@ -183,21 +183,11 @@ On corporate networks, containers may need the org CA cert mounted. The embeddin
 
 ---
 
-## Phase 7: Repo Linking
-
-```bash
-/lore-link
-```
-
-Link each active application repo. Creates `.lore/links/` entries the agent uses to navigate between repos without losing KB context.
-
----
-
-## Phase 8: Knowledge Defrag
+## Phase 7: Knowledge Defrag
 
 **Run after the environment is substantially documented — not before.**
 
-Once Phases 1–5 are complete and the KB has accumulated organically, run the knowledge defrag runbook to restructure `docs/knowledge/` by content rather than creation order.
+Once Phases 1–5 are complete and the KB has accumulated organically, run the knowledge defrag runbook to restructure the global knowledge base by content rather than creation order.
 
 ```bash
 git checkout -b knowledge-defrag-$(date +%Y%m%d)
@@ -215,7 +205,7 @@ See `.lore/runbooks/system/knowledge-defrag.md`.
 - [ ] Keystore accessible — agent can retrieve a test item
 - [ ] VCS CLI authenticated and verified
 - [ ] Cloud CLI authenticated (if applicable)
-- [ ] All active services documented in `docs/knowledge/environment/`
+- [ ] All active services documented in `~/.lore/knowledge-base/environment/`
 - [ ] Semantic search returning results
 - [ ] Active initiatives and epics created for current goals
 

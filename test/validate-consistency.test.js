@@ -20,9 +20,7 @@ function setup() {
     path.join(dir, '.lore', 'harness', 'scripts', 'lib', 'common.sh'),
   );
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.claude', 'agents'), { recursive: true });
   // Canonical instructions + generated copies
   const instructions = '# Lore\n\nTest instructions.\n';
   fs.writeFileSync(path.join(dir, '.lore', 'instructions.md'), instructions);
@@ -59,30 +57,6 @@ test('passes with empty repo', (t) => {
   assert.ok(stdout.includes('PASSED'));
 });
 
-test('fails: agent references non-existent skill', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(
-    path.join(dir, '.lore', 'agents', 'test-agent.md'),
-    [
-      '---',
-      'name: test-agent',
-      'description: A test agent',
-      'model: sonnet',
-      'skills:',
-      '  - nonexistent-skill',
-      '---',
-    ].join('\n'),
-  );
-  fs.copyFileSync(
-    path.join(dir, '.lore', 'agents', 'test-agent.md'),
-    path.join(dir, '.claude', 'agents', 'test-agent.md'),
-  );
-  const { code, stdout } = runScript(dir);
-  assert.equal(code, 1);
-  assert.ok(stdout.includes("references missing skill/fieldnote 'nonexistent-skill'"));
-});
-
 test('passes: fully consistent setup', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -105,25 +79,6 @@ test('passes: fully consistent setup', (t) => {
   const copyDir = path.join(dir, '.claude', 'skills', 'test-skill');
   fs.mkdirSync(copyDir, { recursive: true });
   fs.copyFileSync(path.join(skillDir, 'SKILL.md'), path.join(copyDir, 'SKILL.md'));
-
-  // Create agent that references the skill
-  fs.writeFileSync(
-    path.join(dir, '.lore', 'agents', 'test-agent.md'),
-    [
-      '---',
-      'name: test-agent',
-      'description: A complete test agent',
-      'model: sonnet',
-      'skills:',
-      '  - test-skill',
-      '---',
-      '# Test Agent',
-    ].join('\n'),
-  );
-  fs.copyFileSync(
-    path.join(dir, '.lore', 'agents', 'test-agent.md'),
-    path.join(dir, '.claude', 'agents', 'test-agent.md'),
-  );
 
   const { code, stdout } = runScript(dir);
   assert.equal(code, 0);

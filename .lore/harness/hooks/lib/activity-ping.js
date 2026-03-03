@@ -3,10 +3,10 @@ const { getLoreToken } = require('../../lib/security');
 
 function pingActivity(filePath, directory) {
   if (!filePath) return;
-  const { isKnowledgePath } = require('../lib/tracker');
+  const { isKnowledgePath } = require('../../lib/tracker');
   if (!isKnowledgePath(filePath, directory)) return;
 
-  const { getConfig } = require('../lib/config');
+  const { getConfig } = require('../../lib/config');
   const cfg = getConfig(directory);
   if (!cfg.docker || !cfg.docker.search) return;
 

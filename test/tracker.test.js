@@ -56,9 +56,7 @@ test('isKnowledgePath: matches docs/ under rootDir', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.ok(isKnowledgePath(path.join(dir, 'docs', 'env.md'), dir));
   assert.ok(isKnowledgePath(path.join(dir, '.lore', 'skills', 'foo', 'SKILL.md'), dir));
-  assert.ok(isKnowledgePath(path.join(dir, '.lore', 'fieldnotes', 'foo', 'FIELDNOTE.md'), dir));
   assert.ok(isKnowledgePath(path.join(dir, '.claude', 'skills', 'bar', 'SKILL.md'), dir));
-  assert.ok(isKnowledgePath(path.join(dir, '.claude', 'skills', 'fn-bar', 'SKILL.md'), dir));
 });
 
 test('isKnowledgePath: rejects paths outside rootDir', (t) => {
@@ -166,7 +164,7 @@ test('processToolUse: bash increments counter', (t) => {
   });
   assert.equal(result.bashCount, 1);
   assert.ok(!result.silent); // first bash emits capture reminder
-  assert.ok(result.message.includes('Cultivator'));
+  assert.ok(result.message.includes('LORE-CAPTURE'));
 });
 
 test('processToolUse: nudge at threshold', (t) => {
@@ -181,8 +179,8 @@ test('processToolUse: nudge at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 3);
-  assert.ok(result.message.includes('[Lore] Capture checkpoint'));
-  assert.ok(result.message.includes('REQUIRED'));
+  assert.ok(result.message.includes('LORE-CHECKPOINT'));
+  assert.ok(result.message.includes('Pause point'));
 });
 
 test('processToolUse: warn at threshold', (t) => {
@@ -197,7 +195,8 @@ test('processToolUse: warn at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 5);
-  assert.ok(result.message.includes('[Lore] REQUIRED capture review (5 commands)'));
+  assert.ok(result.message.includes('LORE-CHECKPOINT'));
+  assert.ok(result.message.includes('consecutive commands'));
   assert.equal(result.level, 'warn');
 });
 
@@ -212,8 +211,8 @@ test('processToolUse: failure on first bash shows required capture review', (t) 
     thresholds: defaultThresholds,
     rootDir: dir,
   });
-  assert.ok(result.message.includes('Execution-phase failure is high-signal'));
-  assert.ok(result.message.includes('REQUIRED'));
+  assert.ok(result.message.includes('LORE-FAILURE'));
+  assert.ok(result.message.includes('Execution failure'));
 });
 
 test('processToolUse: failure takes priority over threshold', (t) => {
@@ -227,8 +226,8 @@ test('processToolUse: failure takes priority over threshold', (t) => {
     thresholds: defaultThresholds,
     rootDir: dir,
   });
-  assert.ok(result.message.includes('Execution-phase failure is high-signal'));
-  assert.ok(result.message.includes('REQUIRED'));
+  assert.ok(result.message.includes('LORE-FAILURE'));
+  assert.ok(result.message.includes('Execution failure'));
 });
 
 test('processToolUse: non-bash write resets counter', (t) => {
@@ -257,5 +256,5 @@ test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {
     thresholds: defaultThresholds,
     rootDir: dir,
   });
-  assert.ok(result.message.includes('scratch notes'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
 });

@@ -19,20 +19,22 @@ test('getConfig: reads valid .lore-config', (t) => {
   assert.equal(cfg.treeDepth, 4);
 });
 
-test('getConfig: returns empty object when file missing', (t) => {
+test('getConfig: returns object when local file missing (falls back to global directory)', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const cfg = getConfig(dir);
-  assert.deepStrictEqual(cfg, {});
+  assert.equal(typeof cfg, 'object');
+  assert.ok(cfg !== null);
 });
 
-test('getConfig: returns empty object on malformed JSON', (t) => {
+test('getConfig: returns global directory config on malformed local JSON', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.lore', 'config.json'), '{not valid json');
   const cfg = getConfig(dir);
-  assert.deepStrictEqual(cfg, {});
+  assert.equal(typeof cfg, 'object');
+  assert.ok(cfg !== null);
 });
 
 test('getConfig: preserves all fields', (t) => {

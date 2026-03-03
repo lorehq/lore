@@ -6,11 +6,12 @@ const path = require('path');
 const os = require('os');
 
 // Integration tests for MCP server profile-conditional tool registration.
-// Spawns lore-server.js as a child process, sends JSON-RPC over stdin,
-// and asserts on tool listing and tool call responses.
+// NOTE: The Cursor-specific MCP server (.cursor/mcp/lore-server.js) has been removed.
+// These tests are skipped until a replacement MCP server is available.
 
 const serverSrc = path.join(__dirname, '..', '.cursor', 'mcp', 'lore-server.js');
 const libSrc = path.join(__dirname, '..', '.lore', 'harness', 'lib');
+const serverExists = fs.existsSync(serverSrc);
 
 function setup(opts = {}) {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-mcp-')));
@@ -94,7 +95,7 @@ function stopServer(proc) {
 
 // ── tools/list ──
 
-test('mcp: minimal profile only exposes lore_context', async () => {
+test('mcp: minimal profile only exposes lore_context', { skip: !serverExists && 'MCP server removed' }, async () => {
   const dir = setup({ config: { profile: 'minimal' } });
   let proc;
   try {
@@ -108,7 +109,7 @@ test('mcp: minimal profile only exposes lore_context', async () => {
   }
 });
 
-test('mcp: standard profile exposes all 3 tools', async () => {
+test('mcp: standard profile exposes all 3 tools', { skip: !serverExists && 'MCP server removed' }, async () => {
   const dir = setup({ config: { profile: 'standard' } });
   let proc;
   try {
@@ -124,7 +125,7 @@ test('mcp: standard profile exposes all 3 tools', async () => {
 
 // ── tools/call edge case: cached tool list calls hidden tool ──
 
-test('mcp: lore_check_in returns graceful response in minimal', async () => {
+test('mcp: lore_check_in returns graceful response in minimal', { skip: !serverExists && 'MCP server removed' }, async () => {
   const dir = setup({ config: { profile: 'minimal' } });
   let proc;
   try {
@@ -145,7 +146,7 @@ test('mcp: lore_check_in returns graceful response in minimal', async () => {
   }
 });
 
-test('mcp: lore_context works in minimal profile', async () => {
+test('mcp: lore_context works in minimal profile', { skip: !serverExists && 'MCP server removed' }, async () => {
   const dir = setup({ config: { profile: 'minimal', version: '0.9.0' } });
   let proc;
   try {

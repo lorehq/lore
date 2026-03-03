@@ -53,14 +53,11 @@ Run these checks and present a formatted summary to the operator:
 
 3. **Counts** — count and report:
    - Skills: number of directories in `.lore/skills/`
-   - Fieldnotes: number of directories in `.lore/fieldnotes/`
-   - Agents: number of `.md` files in `.lore/agents/` (0 if dir missing)
-   - Knowledge docs: number of `.md` files under `docs/knowledge/`
-   - Runbooks: number of `.md` files under `.lore/runbooks/`
+   - Fieldnotes: number of directories in `~/.lore/knowledge-base/fieldnotes/`
+   - Runbooks: number of `.md` files under `~/.lore/knowledge-base/runbooks/`
+   - Knowledge docs: number of `.md` files under `~/.lore/knowledge-base/`
 
-4. **Linked repos** — use Glob to check whether `.lore/links` exists before reading it (it is optional and gitignored — never use Read on it without confirming it exists first). If present, parse it (JSON array) and report count. Flag any entries where the path no longer exists as stale. If absent, report "none".
-
-5. **Active work** — scan `docs/workflow/in-flight/initiatives/`, `docs/workflow/in-flight/epics/`, and `docs/workflow/in-flight/items/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
+4. **Active work** — scan `docs/workflow/in-flight/initiatives/`, `docs/workflow/in-flight/epics/`, and `docs/workflow/in-flight/items/` for items with `status: active` or `status: on-hold` in frontmatter. List titles.
 
 5. **Format** — present as a clean block the operator can read at a glance:
    ```
@@ -72,9 +69,7 @@ Run these checks and present a formatted summary to the operator:
      Cursor MCP    OK
      OpenCode      OK
 
-   Skills: 12 | Fieldnotes: 19 | Agents: 2 | Knowledge docs: 5 | Runbooks: 1
-
-   Linked repos: 2 (1 stale)
+   Skills: 9 | Fieldnotes: 19 | Knowledge docs: 5 | Runbooks: 1
 
    Active initiatives: V1 Go-Live
    Active epics: (none)

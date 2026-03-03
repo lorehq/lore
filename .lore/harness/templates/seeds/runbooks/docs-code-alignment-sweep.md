@@ -87,7 +87,7 @@ Worker return format:
 | File | Lines | Issue | Action |
 ```
 
-Orchestrator reviews the consolidation report and executes edits before proceeding.
+Review the consolidation report and execute edits before proceeding.
 
 **After edits complete:** trigger a full reindex on the docs container:
 
@@ -192,7 +192,7 @@ For each item: query **docs search (port 9190)**, check returned pages, classify
 - **MISSING** — not in docs at all
 - **WRONG** — doc exists but conflicts with Phase 2 findings
 
-## Fix Sequence (sequential — orchestrator)
+## Fix Sequence (sequential)
 
 Apply fixes in order. Phase 2 fixes first establishes an accurate baseline; Phase 3 additions build on top.
 
@@ -227,7 +227,7 @@ Each worker scans its assigned pages for:
 - Stale TODOs or placeholders
 - Prose that should be a table or link
 
-Worker return format: punch list with exact current text and replacement text. Orchestrator executes edits.
+Worker return format: punch list with exact current text and replacement text. The caller executes edits.
 
 ## Phase 5: Teardown (sequential)
 
@@ -245,7 +245,7 @@ docker rm sweep-docs sweep-source
 | Phase 2b Verify | Sonnet | 4 | none | Code comprehension; no doc rules needed |
 | Phase 3a Source Scan | Sonnet | 1/repo | coding | Commit-scoped; flags violations too |
 | Phase 3b Doc Coverage | Sonnet | 3 | documentation | Understands what a good doc entry covers |
-| Fix Sequence | Orchestrator | 1 | — | Human-in-the-loop triage |
+| Fix Sequence | Caller | 1 | — | Human-in-the-loop triage |
 | Phase 4 Polish | Sonnet | 2-3 | documentation | Rule judgment; Haiku misses nuance |
 
 Rule isolation: workers get `documentation`, `coding`, or nothing — never both.

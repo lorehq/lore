@@ -6,8 +6,8 @@
 #
 # Harness-owned (synced):
 #   .lore/harness/hooks/, .lore/harness/lib/, .lore/harness/mcp/, .lore/harness/scripts/, .lore/harness/templates/,
-#   .lore/fieldnotes/, .opencode/, .cursor/, .gemini/, opencode.json, .mcp.json,
-#   .claude/settings.json, .lore/skills/lore-*/, .lore/agents/lore-*,
+#   .opencode/, .cursor/, .gemini/, opencode.json, .mcp.json,
+#   .claude/settings.json, .lore/skills/lore-*/,
 #   .lore/instructions.md, .gitignore, .windsurfrules
 #
 # Operator-owned (never touched):
@@ -32,7 +32,7 @@ if [ "$(realpath "$SOURCE")" = "$(realpath "$TARGET")" ]; then
   exit 1
 fi
 
-if [ -f "$TARGET/test/lore-link.test.js" ] || [ -f "$TARGET/package.json" ]; then
+if [ -f "$TARGET/package.json" ]; then
   echo "Error: target (cwd) looks like the harness repo, not an instance." >&2
   echo "Direction: run FROM the instance, pass the harness repo as the argument." >&2
   echo "  cd /path/to/my-instance && bash .lore/harness/scripts/sync-harness.sh /path/to/lore" >&2
@@ -60,11 +60,10 @@ for d in hooks lib scripts mcp templates; do
 done
 
 # Harness directories — overwrite contents, don't delete operator extras
-mkdir -p "$TARGET/.lore/harness/hooks" "$TARGET/.lore/harness/lib" "$TARGET/.lore/harness/scripts" "$TARGET/.lore/harness/mcp" "$TARGET/.lore/harness/templates" "$TARGET/.lore/harness/fragments"
+mkdir -p "$TARGET/.lore/harness/hooks" "$TARGET/.lore/harness/lib" "$TARGET/.lore/harness/scripts" "$TARGET/.lore/harness/mcp" "$TARGET/.lore/harness/templates"
 cp -Rf "$SOURCE/.lore/harness/hooks/." "$TARGET/.lore/harness/hooks/"
 cp -Rf "$SOURCE/.lore/harness/lib/." "$TARGET/.lore/harness/lib/"
 cp -Rf "$SOURCE/.lore/harness/scripts/." "$TARGET/.lore/harness/scripts/"
-cp -Rf "$SOURCE/.lore/harness/fragments/." "$TARGET/.lore/harness/fragments/"
 mkdir -p "$TARGET/.opencode" "$TARGET/.cursor/hooks" "$TARGET/.claude"
 [ -d "$SOURCE/.opencode" ] && cp -Rf "$SOURCE/.opencode/." "$TARGET/.opencode/"
 # Selective .cursor/ sync — hooks and hooks.json are harness-owned,
@@ -100,44 +99,13 @@ if [ -d "$SOURCE/.lore/skills" ]; then
   done
 fi
 
-# Harness fieldnotes — overwrite existing, skip operator fieldnotes
-if [ -d "$SOURCE/.lore/fieldnotes" ]; then
-  mkdir -p "$TARGET/.lore/fieldnotes"
-  for note_dir in "$SOURCE/.lore/fieldnotes"/*/; do
-    [ -d "$note_dir" ] || continue
-    note_name="$(basename "$note_dir")"
-    mkdir -p "$TARGET/.lore/fieldnotes/$note_name"
-    cp -Rf "$note_dir"* "$TARGET/.lore/fieldnotes/$note_name/"
-  done
-fi
 
-# Harness agent templates — lore-worker.md lives in templates/, tiers generated at session start
+# Harness templates
 if [ -d "$SOURCE/.lore/harness/templates" ]; then
   mkdir -p "$TARGET/.lore/harness/templates"
   cp -Rf "$SOURCE/.lore/harness/templates/." "$TARGET/.lore/harness/templates/"
 fi
 
-# Harness agents (lore-* only, non-worker) — overwrite existing, skip operator agents
-# Worker tiers are generated from template by generate-agents.js at session start
-if [ -d "$SOURCE/.lore/agents" ]; then
-  mkdir -p "$TARGET/.lore/agents"
-  for agent_file in "$SOURCE/.lore/agents"/lore-*.md; do
-    [ -f "$agent_file" ] || continue
-    cp "$agent_file" "$TARGET/.lore/agents/$(basename "$agent_file")"
-  done
-fi
-
-# Harness-owned system rules — always overwrite
-if [ -d "$SOURCE/.lore/rules/system" ]; then
-  mkdir -p "$TARGET/.lore/rules/system"
-  cp -Rf "$SOURCE/.lore/rules/system/." "$TARGET/.lore/rules/system/"
-fi
-
-# Harness-owned system runbooks — always overwrite
-if [ -d "$SOURCE/.lore/runbooks/system" ]; then
-  mkdir -p "$TARGET/.lore/runbooks/system"
-  cp -Rf "$SOURCE/.lore/runbooks/system/." "$TARGET/.lore/runbooks/system/"
-fi
 
 # Single files
 [ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
@@ -159,7 +127,3 @@ cp "$SOURCE/.mcp.json" "$TARGET/.mcp.json"
 bash "$TARGET/.lore/harness/scripts/sync-platform-skills.sh"
 
 echo "Harness synced from $SOURCE"
-
-if [ -f "$TARGET/.lore/links" ]; then
-  echo "Note: Run 'bash .lore/harness/scripts/lore-link.sh --refresh' to update linked repos."
-fi
