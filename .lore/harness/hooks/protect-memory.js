@@ -1,6 +1,6 @@
 // Hook: PreToolUse (matcher: Edit|Write|Read)
 // Blocks all access to MEMORY.md and redirects to the correct location.
-// Knowledge has three routes: skills, docs/context, or MEMORY.local.md.
+// Knowledge has three routes: fieldnotes, global KB, or memory.local.md.
 
 const fs = require('fs');
 const { checkMemoryAccess } = require('../lib/memory-guard');
