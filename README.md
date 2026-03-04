@@ -86,7 +86,7 @@ All hooks are plain JavaScript you can read in minutes. They don't execute shell
 | **Roo Code** | `.clinerules` + MCP | Experimental |
 | **OpenCode** | ESM plugins + `opencode.json` | Experimental |
 
-All platforms share the same knowledge base. Skills, fieldnotes, agents, and rules written once sync to platform-specific formats automatically. Set `"platforms"` in `.lore/config.json` to control which platforms are active — the projector only generates files for active platforms and cleans up files for disabled ones. Omitting the field activates all platforms (backwards compatible).
+All platforms share the same knowledge base. Skills, fieldnotes, agents, and rules written once sync to platform-specific formats automatically. Set `"platforms"` in `.lore/config.json` to control which platforms are active — the projector only generates files for active platforms and cleans up files for disabled ones. Omitting the field activates all platforms.
 
 ## Documentation
 

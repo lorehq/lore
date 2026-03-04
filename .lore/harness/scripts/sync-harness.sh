@@ -49,16 +49,6 @@ if [ ! -d "$SOURCE/.lore/harness/hooks" ]; then
   exit 1
 fi
 
-# Migrate pre-v0.16 flat layout → .lore/harness/ (safe to re-run)
-for d in hooks lib scripts mcp templates; do
-  if [ -d "$TARGET/.lore/$d" ] && [ ! -d "$TARGET/.lore/harness/$d" ]; then
-    mkdir -p "$TARGET/.lore/harness"
-    mv "$TARGET/.lore/$d" "$TARGET/.lore/harness/$d"
-  elif [ -d "$TARGET/.lore/$d" ] && [ -d "$TARGET/.lore/harness/$d" ]; then
-    rm -rf "$TARGET/.lore/$d"
-  fi
-done
-
 # Harness directories — overwrite contents, don't delete operator extras
 mkdir -p "$TARGET/.lore/harness/hooks" "$TARGET/.lore/harness/lib" "$TARGET/.lore/harness/scripts" "$TARGET/.lore/harness/mcp" "$TARGET/.lore/harness/templates"
 cp -Rf "$SOURCE/.lore/harness/hooks/." "$TARGET/.lore/harness/hooks/"
@@ -81,36 +71,11 @@ mkdir -p "$TARGET/.cursor/mcp"
 # Knowledge base search MCP — platform-agnostic semantic search tool.
 mkdir -p "$TARGET/.lore/harness/mcp"
 cp "$SOURCE/.lore/harness/mcp/lore-server.js" "$TARGET/.lore/harness/mcp/lore-server.js"
-# Clean up old MCP server name
-rm -f "$TARGET/.lore/harness/mcp/search-server.js"
-# Clean up renamed/removed skills
-rm -rf "$TARGET/.lore/harness/skills/lore-memprint"
-rm -rf "$TARGET/.lore/harness/skills/lore-docker"
-rm -rf "$TARGET/.lore/harness/skills/lore-memory"
-rm -rf "$TARGET/.lore/harness/skills/lore-burn"
-rm -rf "$TARGET/.lore/harness/skills/lore-status"
-rm -rf "$TARGET/.lore/harness/skills/lore-update"
-rm -rf "$TARGET/.lore/harness/skills/lore-field-repair"
-
-# Harness-owned rules (content derived from instructions.md, same across instances)
+# Harness-owned rules
 mkdir -p "$TARGET/.cursor/rules"
 for rule in lore-core lore-work-tracking lore-knowledge-routing lore-skill-creation lore-docs-formatting; do
   [ -f "$SOURCE/.cursor/rules/$rule.mdc" ] && cp "$SOURCE/.cursor/rules/$rule.mdc" "$TARGET/.cursor/rules/$rule.mdc"
 done
-
-# Migrate pre-v0.16 harness skills: .lore/skills/lore-* → .lore/harness/skills/lore-*
-if [ -d "$TARGET/.lore/skills" ]; then
-  for old_skill in "$TARGET/.lore/skills"/lore-*/; do
-    [ -d "$old_skill" ] || continue
-    skill_name="$(basename "$old_skill")"
-    mkdir -p "$TARGET/.lore/harness/skills"
-    if [ -d "$TARGET/.lore/harness/skills/$skill_name" ]; then
-      rm -rf "$old_skill"
-    else
-      mv "$old_skill" "$TARGET/.lore/harness/skills/$skill_name"
-    fi
-  done
-fi
 
 # Harness skills (lore and lore-* only) — overwrite existing, skip operator skills
 if [ -d "$SOURCE/.lore/harness/skills" ]; then

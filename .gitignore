@@ -14,5 +14,5 @@ mkdocs.yml
 docs/skills/
 docs/fieldnotes/
 
-# Prevent embedded repo from /lore-update temp clone landing in project root
+# Prevent embedded repo clone landing in project root
 lore/
