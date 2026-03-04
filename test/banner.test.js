@@ -30,6 +30,13 @@ function setup(opts = {}) {
   if (opts.config) {
     fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
+  if (opts.harnessSkills) {
+    for (const [name, content] of Object.entries(opts.harnessSkills)) {
+      const skillDir = path.join(dir, '.lore', 'harness', 'skills', name);
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
+    }
+  }
   if (opts.skills) {
     for (const [name, content] of Object.entries(opts.skills)) {
       const skillDir = path.join(dir, '.lore', 'skills', name);
@@ -86,6 +93,36 @@ test('getBannerLoadedSkills: returns skills with banner-loaded: true', (t) => {
   assert.ok(skill.body.includes('Skill body here.'));
 });
 
+test('getBannerLoadedSkills: discovers harness skills from .lore/harness/skills/', (t) => {
+  const dir = setup({
+    harnessSkills: {
+      'lore-test': '---\nname: lore-test\nbanner-loaded: "true"\n---\nHarness skill body.',
+    },
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const loaded = getBannerLoadedSkills(dir);
+  const names = loaded.map(s => s.name);
+  assert.ok(names.includes('lore-test'), 'should discover harness skills');
+  const skill = loaded.find(s => s.name === 'lore-test');
+  assert.ok(skill.body.includes('Harness skill body.'));
+});
+
+test('getBannerLoadedSkills: project skills override harness skills with same name', (t) => {
+  const dir = setup({
+    harnessSkills: {
+      'my-skill': '---\nname: my-skill\nbanner-loaded: "true"\n---\nHarness version.',
+    },
+    skills: {
+      'my-skill': '---\nname: my-skill\nbanner-loaded: "true"\n---\nProject version.',
+    },
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const loaded = getBannerLoadedSkills(dir);
+  const matches = loaded.filter(s => s.name === 'my-skill');
+  assert.equal(matches.length, 1, 'should deduplicate by name');
+  assert.ok(matches[0].body.includes('Project version.'), 'project skill should win');
+});
+
 // ---------------------------------------------------------------------------
 // buildStaticBanner (async)
 // ---------------------------------------------------------------------------
@@ -97,13 +134,13 @@ test('buildStaticBanner: includes version from config', async (t) => {
   assert.ok(out.includes('v2.0.0'));
 });
 
-test('buildStaticBanner: includes semantic search line when configured', async (t) => {
-  const dir = setup({ config: { docker: { search: { address: 'localhost', port: 8080 } } } });
+test('buildStaticBanner: includes HOT MEMORY status line', async (t) => {
+  const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = await buildStaticBanner(dir);
-  assert.ok(out.includes('SEMANTIC SEARCH'));
-  assert.ok(out.includes('localhost'));
-  assert.ok(out.includes('8080'));
+  // Sidecar is not running in tests — should show offline status
+  assert.ok(out.includes('HOT MEMORY:'), 'should include hot memory status');
+  assert.ok(out.includes('offline') || out.includes('active'), 'should show online or offline');
 });
 
 test('buildStaticBanner: includes FIELDNOTES section when global fieldnotes exist', async (t) => {
@@ -222,12 +259,12 @@ test('buildDynamicBanner: returns string', (t) => {
   assert.equal(typeof out, 'string');
 });
 
-test('buildDynamicBanner: suppresses SESSION MEMORY when docker.search configured', (t) => {
+test('buildDynamicBanner: includes SESSION MEMORY regardless of config', (t) => {
   const dir = setup({
-    config: { docker: { search: { address: 'localhost', port: 8080 } } },
     memory: '# Local Memory\n\nRemember this important thing.',
   });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = buildDynamicBanner(dir);
-  assert.ok(!out.includes('SESSION MEMORY:'), 'should not show SESSION MEMORY when sidecar configured');
+  assert.ok(out.includes('SESSION MEMORY:'), 'session memory always shown when present');
+  assert.ok(out.includes('Remember this important thing'), 'memory content included');
 });

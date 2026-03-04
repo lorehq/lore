@@ -20,8 +20,6 @@
       {
         "matcher": "write_file|replace",
         "hooks": [
-          { "type": "command", "command": "node .lore/harness/hooks/context-path-guide.js" },
-          { "type": "command", "command": "node .lore/harness/hooks/rule-guard.js" },
           { "type": "command", "command": "node .lore/harness/hooks/harness-guard.js" }
         ]
       },
@@ -39,13 +37,9 @@
   },
   "mcp": {
     "mcpServers": {
-      "lore-mcp": {
+      "lore": {
         "command": "node",
-        "args": [".cursor/mcp/lore-server.js"]
-      },
-      "lore-search": {
-        "command": "node",
-        "args": [".lore/harness/mcp/search-server.js"]
+        "args": [".lore/harness/mcp/lore-server.js"]
       }
     }
   }

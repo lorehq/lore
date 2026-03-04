@@ -1,7 +1,7 @@
 name: ${COMPOSE_PROJECT_NAME:-lore}
 services:
   lore-runtime:
-    image: lorehq/lore-docker:latest
+    image: lorehq/lore-memory:latest
     ports:
       - '${LORE_DOCS_PORT:-9184}:8000'
       - '${LORE_SEMANTIC_PORT:-9185}:8080'

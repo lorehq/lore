@@ -3,20 +3,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getConfig, getProfile } = require('../lib/config');
+const { getProfile } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
 const hubDir = path.join(__dirname, '..', '..', '..');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
-const cfg = getConfig(hubDir);
-const docker = cfg.docker || {};
-const hasSemanticSearch = !!(docker.search && docker.search.address);
 
 // -- Static preamble --
-const search = hasSemanticSearch
-  ? 'SEARCH: Semantic search \u2192 Knowledge base \u2192 Filesystem.'
-  : 'SEARCH: Knowledge base \u2192 Filesystem.';
-const preamble = `\x1b[93m[\u25A0 LORE-PROTOCOL]\x1b[0m ${search} CAPTURE: Non-obvious fixes \u2192 fieldnotes. SECURITY: Reference secrets by name, never embed values.`;
+// Always reference semantic search — MCP tools handle errors if sidecar is down.
+const search = 'SEARCH: Semantic search \u2192 Knowledge base \u2192 Filesystem.';
+const preamble = `\x1b[93m[\u25A0 LORE-PROTOCOL]\x1b[0m ${search} CAPTURE: Snags \u2192 fieldnotes. Decisions/context \u2192 session notes. SECURITY: Reference secrets by name, never embed values.`;
 
 // -- Dynamic ambiguity scan --
 // Patterns that signal ambiguous inputs to resolve or clarify

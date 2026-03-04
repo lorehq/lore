@@ -1,11 +1,11 @@
 // Shared: knowledge tracker logic — tool classification and message selection.
-// Used by hooks/knowledge-tracker.js (CJS) and .opencode/plugins/knowledge-tracker.js (ESM).
+// Used by hooks/knowledge-tracker.js.
 
 const path = require('path');
 
 function isKnowledgePath(filePath, rootDir) {
   const resolved = path.resolve(filePath);
-  const prefixes = ['docs', '.lore/skills', '.claude/skills'].map(
+  const prefixes = ['docs', '.lore/harness/skills', '.lore/skills'].map(
     (p) => path.resolve(rootDir || process.cwd(), ...p.split('/')) + path.sep,
   );
   return prefixes.some((pre) => resolved.startsWith(pre));
@@ -47,7 +47,7 @@ function getThresholds(directory) {
 // with escalation at nudge/warn thresholds. Failures always emit.
 function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, rootDir }) {
   const capture =
-    '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m If you encountered a non-obvious fix or workaround, consider capturing it as a fieldnote.';
+    '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m Non-obvious snag? \u2192 fieldnote. Key decision or context? \u2192 session note (lore_hot_session_note).';
   const failureReview =
     '\x1b[91m[\u25A0 LORE-FAILURE]\x1b[0m Execution failure. If the fix was non-obvious, capture it as a fieldnote.';
 
@@ -103,7 +103,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // First bash in a sequence — capture reminder; subsequent silent until thresholds
   if (newCount === 1) {
     return {
-      message: '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m Non-obvious snag or gotcha? Record it as a fieldnote for future sessions.',
+      message: '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m Non-obvious snag? \u2192 fieldnote. Key decision or context? \u2192 session note.',
       level: 'info',
       bashCount: newCount,
       silent: false,

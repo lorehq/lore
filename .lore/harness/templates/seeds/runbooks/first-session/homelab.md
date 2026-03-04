@@ -7,7 +7,7 @@ Grounds the agent in operator identity, network topology, infrastructure, and se
 **How to invoke:** Ask the agent: *"Walk me through first-session setup."*
 
 !!! tip "Recommended: start the docs sidecar first"
-    Run `/lore-docker` before Phase 1. The Docker sidecar provides semantic search and a live docs UI — every skill, environment doc, and runbook created in later phases becomes instantly searchable. Skip if Docker isn't available; everything works without it.
+    Run `/lore memory` before Phase 1. The Docker sidecar provides semantic search and a live docs UI — every skill, environment doc, and runbook created in later phases becomes instantly searchable. Skip if Docker isn't available; everything works without it.
 
 ---
 
@@ -27,16 +27,15 @@ Minimum fields:
 
 Without it, the agent has no operator context — it knows the KB but not who it's working for.
 
-### Agent Rules
+### Project Rules
 
-Edit `docs/context/agent-rules.md`.
+Add project-specific rules to `.lore/rules/`.
 
-Minimum fields:
-- Deployment assignment: instance name, operator
+Minimum:
 - Scope: what domains this instance covers (infrastructure management, service deployment, etc.)
 - **Critical rule:** Never auto-apply destructive changes — reboots, VM destruction, firewall modifications, storage pool changes, VLAN reassignments — without explicit operator confirmation. The agent has SSH and API access to production infrastructure.
 
-This file is injected as PROJECT context every session.
+Rules in `.lore/rules/` are loaded into the session banner and projected into platform mandate files.
 
 ### Machine Inventory
 
@@ -211,13 +210,13 @@ This phase is optional. Many productive homelabs run on manual configuration —
 ### Semantic Search
 
 ```bash
-/lore-docker
+/lore memory
 ```
 
 Ports are auto-computed per project (hash-based). After starting:
 
 ```bash
-/lore-docker status
+/lore memory status
 ```
 
 ### Knowledge Defrag

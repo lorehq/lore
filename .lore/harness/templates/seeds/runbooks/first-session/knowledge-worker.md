@@ -7,7 +7,7 @@ Grounds the agent in operator identity, tooling, and environment before any proj
 **How to invoke:** Ask the agent: *"Walk me through first-session setup."*
 
 !!! tip "Recommended: start the docs sidecar first"
-    Run `/lore-docker` before Phase 1. The Docker sidecar provides semantic search and a live docs UI — every skill, environment doc, and runbook created in later phases becomes instantly searchable. Skip if Docker isn't available; everything works without it.
+    Run `/lore memory` before Phase 1. The Docker sidecar provides semantic search and a live docs UI — every skill, environment doc, and runbook created in later phases becomes instantly searchable. Skip if Docker isn't available; everything works without it.
 
 ---
 
@@ -27,16 +27,15 @@ Minimum fields:
 
 Without it, the agent has no operator context — it knows the KB but not who it's working for.
 
-### Agent Rules
+### Project Rules
 
-Edit `docs/context/agent-rules.md`.
+Add project-specific rules to `.lore/rules/`.
 
-Minimum fields:
-- Deployment assignment: instance name, operator, org
+Minimum:
 - Scope: what domains this instance covers
 - Behavioral rules specific to this deployment (default accounts, constraints, known snags)
 
-This file is injected as PROJECT context every session.
+Rules in `.lore/rules/` are loaded into the session banner and projected into platform mandate files.
 
 ### Machine Inventory
 
@@ -163,21 +162,20 @@ gh repo list <org> --limit 200 --json name,description,updatedAt
 
 - Ask about current initiatives, goals, and roadmaps
 - If the org uses a goal-tracking system (Workday, Lattice, Notion OKRs, Linear cycles, etc.), export current goals and pass them to the agent as input — goals map to initiatives, milestones map to epics
-- Create `docs/workflow/in-flight/initiatives/` for strategic goals (months)
-- Create `docs/workflow/in-flight/epics/` for tactical work in flight
+- Create work items in `~/.lore/knowledge-base/work-items/` for strategic goals and tactical work in flight
 
 ---
 
 ## Phase 6: Semantic Search
 
 ```bash
-/lore-docker
+/lore memory
 ```
 
 Ports are auto-computed per project (hash-based). After starting, check the assigned port:
 
 ```bash
-/lore-docker status
+/lore memory status
 ```
 
 On corporate networks, containers may need the org CA cert mounted. The embedding model (`BAAI/bge-small-en-v1.5`) is bundled in recent releases.
@@ -194,8 +192,6 @@ Once Phases 1–5 are complete and the KB has accumulated organically, run the k
 git checkout -b knowledge-defrag-$(date +%Y%m%d)
 # Then: "Run the knowledge defrag runbook"
 ```
-
-See `.lore/runbooks/system/knowledge-defrag.md`.
 
 ---
 

@@ -3,16 +3,7 @@
   "version": "{{version}}",
   "created": "{{created}}",
   "profile": "standard",
-  "docker": {
-    "semantic": {
-      "defaultK": 8,
-      "maxK": 20,
-      "maxChunkChars": 1000,
-      "snippetChars": 200,
-      "resultMode": "paths_min",
-      "model": "BAAI/bge-small-en-v1.5"
-    }
-  }
+  "platforms": {{platforms}}
 
   // Hook verbosity: "minimal" | "standard" | "discovery"
   //   minimal   — safety hooks only, no per-tool nudges

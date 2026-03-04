@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getConfig, getProfile } = require('../.lore/harness/lib/config');
+const { getConfig, getProfile, getActivePlatforms } = require('../.lore/harness/lib/config');
 
 function setup() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lore-test-config-'));
@@ -86,4 +86,57 @@ test('getProfile: returns standard when config file missing', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.equal(getProfile(dir), 'standard');
+});
+
+// -- getActivePlatforms tests --
+
+test('getActivePlatforms: missing field returns all 6', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ version: '1.0.0' }));
+  const result = getActivePlatforms(dir);
+  assert.equal(result.length, 6);
+  assert.ok(result.includes('claude'));
+  assert.ok(result.includes('gemini'));
+  assert.ok(result.includes('windsurf'));
+  assert.ok(result.includes('cursor'));
+  assert.ok(result.includes('opencode'));
+  assert.ok(result.includes('roocode'));
+});
+
+test('getActivePlatforms: empty array returns all 6', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ platforms: [] }));
+  const result = getActivePlatforms(dir);
+  assert.equal(result.length, 6);
+});
+
+test('getActivePlatforms: specific platforms returns those two', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ platforms: ['claude', 'cursor'] }));
+  const result = getActivePlatforms(dir);
+  assert.deepEqual(result, ['claude', 'cursor']);
+});
+
+test('getActivePlatforms: unknown names silently filtered', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ platforms: ['claude', 'nonexistent'] }));
+  const result = getActivePlatforms(dir);
+  assert.deepEqual(result, ['claude']);
+});
+
+test('getActivePlatforms: non-array value returns all 6', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ platforms: 'claude' }));
+  const result = getActivePlatforms(dir);
+  assert.equal(result.length, 6);
 });

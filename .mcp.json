@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "lore-search": {
+    "lore": {
       "command": "node",
-      "args": [".lore/harness/mcp/search-server.js"]
+      "args": [".lore/harness/mcp/lore-server.js"]
     }
   }
 }

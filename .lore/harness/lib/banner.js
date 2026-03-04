@@ -6,32 +6,34 @@ const { buildTree } = require('./tree');
 const { getConfig, getProfile, getGlobalPath } = require('./config');
 const { ensureStickyFiles } = require('./sticky');
 const { parseFrontmatter, stripFrontmatter } = require('./frontmatter');
-const { getLoreToken } = require('./security');
+const { getSidecarPort, getGlobalToken } = require('./global');
 
-async function getHotMemory(directory, limit = 5) {
-  const cfg = getConfig(directory);
-  if (!cfg.docker || !cfg.docker.search) return [];
-  const token = getLoreToken(directory);
+/**
+ * Fast sidecar health probe. Returns true if the sidecar responds within timeout.
+ */
+function probeSidecar(timeoutMs = 200) {
   return new Promise((resolve) => {
-    const req = http.request({
-      hostname: cfg.docker.search.address,
-      port: cfg.docker.search.port,
-      path: `/memory/hot?limit=${limit}`,
-      method: 'GET',
-      timeout: 100,
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-      }
+    const req = http.get({
+      hostname: 'localhost',
+      port: getSidecarPort(),
+      path: '/health',
+      timeout: timeoutMs,
+      headers: (() => {
+        const token = getGlobalToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      })(),
     }, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch { resolve([]); }
+        try {
+          const health = JSON.parse(data);
+          resolve(health.ok ? health : false);
+        } catch { resolve(false); }
       });
     });
-    req.on('error', () => resolve([]));
-    req.on('timeout', () => { req.destroy(); resolve([]); });
-    req.end();
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
   });
 }
 
@@ -87,72 +89,56 @@ function getRunbookEntries(directory) {
   return runbooks;
 }
 
-function scanWork(dir) {
-  const active = [];
-  try {
-    if (!fs.existsSync(dir)) return [];
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name === 'archive') continue;
-      const indexPath = path.join(dir, entry.name, 'index.md');
-      if (!fs.existsSync(indexPath)) continue;
-      const content = fs.readFileSync(indexPath, 'utf8');
-      const { attrs } = parseFrontmatter(content);
-      if (attrs.status === 'active' || attrs.status === 'on-hold') {
-        let label = attrs.title || entry.name;
-        if (attrs.summary) label += ` (${attrs.summary})`;
-        if (attrs.status === 'on-hold') label += ' [ON HOLD]';
-        active.push(label);
-      }
-    }
-  } catch (e) { debug('scanWork: %s', e.message); }
-  return active;
-}
-
 function getBannerLoadedSkills(directory) {
-  const loaded = [];
-  const names = new Set();
+  const byName = new Map();
   const baseDirs = [
-    path.join(directory, '.lore', 'skills'),
-    path.join(getGlobalPath(), 'skills')
+    path.join(directory, '.lore', 'harness', 'skills'),   // harness (lowest priority)
+    path.join(getGlobalPath(), 'skills'),                  // global user
+    path.join(directory, '.lore', 'skills'),               // project user (wins)
   ];
   for (const skillsDir of baseDirs) {
     try {
       if (!fs.existsSync(skillsDir)) continue;
       for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
         if (!d.isDirectory()) continue;
-        const isFn = skillsDir.includes('fieldnotes');
-        const manifest = path.join(skillsDir, d.name, isFn ? 'FIELDNOTE.md' : 'SKILL.md');
+        const manifest = path.join(skillsDir, d.name, 'SKILL.md');
         if (!fs.existsSync(manifest)) continue;
         const content = fs.readFileSync(manifest, 'utf8');
         const { attrs } = parseFrontmatter(content);
         const name = attrs.name || d.name;
-        if (attrs['banner-loaded'] === 'true' && !names.has(name)) {
-          loaded.push({ name, body: stripFrontmatter(content).trim() });
-          names.add(name);
+        if (attrs['banner-loaded'] === 'true') {
+          byName.set(name, { name, body: stripFrontmatter(content).trim() });
         }
       }
     } catch (e) { debug('getBannerLoadedSkills: %s', e.message); }
   }
-  return loaded;
+  return [...byName.values()];
 }
 
 async function buildStaticBanner(directory) {
   const fieldnotes = getFieldnotes(directory);
   const runbooks = getRunbookEntries(directory);
-  const hotMem = await getHotMemory(directory);
+  const sidecarHealth = await probeSidecar();
   const cfg = getConfig(directory);
   const version = cfg.version ? ` v${cfg.version}` : '';
   const profile = getProfile(directory);
   const profileTag = profile !== 'standard' ? ` [${profile.toUpperCase()}]` : '';
-  const docker = cfg.docker || {};
-  const semanticSearchUrl = docker.search && docker.search.address ? `http://${docker.search.address}:${docker.search.port}/search` : '';
   const fieldnoteLine = fieldnotes.length > 0 ? fieldnotes.map((s) => s.name).join(', ') : '';
   const runbookLine = runbooks.length > 0 ? runbooks.map((r) => r.name).join(', ') : '';
   let output = `\x1b[93m▆▆▆ [LORE-HARNESS-PROTOCOL] ▆▆▆\x1b[0m\nVERSION: ${version}${profileTag}`;
-  if (semanticSearchUrl) output += `\nSEMANTIC SEARCH: ${semanticSearchUrl}`;
+  if (sidecarHealth) {
+    output += `\nSEMANTIC SEARCH: http://localhost:${getSidecarPort()}/search`;
+  }
   const globalKBPath = path.join(getGlobalPath(), 'knowledge-base');
   if (fs.existsSync(globalKBPath)) output += `\nKNOWLEDGE BASE: ${globalKBPath}`;
+
+  // Hot memory status — green when active, red when offline
+  if (sidecarHealth) {
+    output += `\n\n\x1b[92m▆ HOT MEMORY: active\x1b[0m \u2014 capture context (lore_hot_session_note), recall before research (lore_hot_recall).`;
+  } else {
+    output += `\n\n\x1b[91m▆ HOT MEMORY: offline\x1b[0m \u2014 start with /lore memory. Using ${globalKBPath} (Glob/Grep).`;
+  }
+
   if (profile === 'minimal') {
     output += `\nPROFILE: minimal \u2014 per-tool nudges off. Capture fieldnotes manually after substantive work.`;
   } else if (profile === 'discovery') {
@@ -160,11 +146,6 @@ async function buildStaticBanner(directory) {
   }
   if (fieldnoteLine) output += `\n\nFIELDNOTES: ${fieldnoteLine}`;
   if (runbookLine) output += `\n\nAVAILABLE RUNBOOKS: ${runbookLine}`;
-  if (hotMem.length > 0) {
-    const fading = hotMem.filter(m => m.current_score < 1.5);
-    if (fading.length > 0) output += `\n\nWARNING: ${fading.length} memory facts are fading. Persist them before they decay.`;
-    output += `\n\nACTIVE MEMORY (Hot): ` + hotMem.map(m => m.path.split('/').pop().replace(/\.md$/, '')).join(', ');
-  }
   const bannerSkills = getBannerLoadedSkills(directory);
   if (bannerSkills.length > 0) output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
   try {
@@ -196,20 +177,17 @@ function buildDynamicBanner(directory) {
       if (stripped && !stripped.includes('- **Name:**')) output += 'OPERATOR PROFILE:\n' + stripped;
     }
   } catch (e) { debug('operator-profile: %s', e.message); }
-  const cfg = getConfig(directory);
-  const hasSidecar = cfg.docker && cfg.docker.search;
-  if (!hasSidecar) {
-    const memPath = path.join(directory, '.lore', 'memory.local.md');
-    try {
-      const raw = fs.readFileSync(memPath, 'utf8');
-      const stripped = stripFrontmatter(raw).trim();
-      if (stripped && !stripped.includes('Transient memory')) {
-        if (output) output += '\n\n';
-        output += 'SESSION MEMORY:\n' + stripped;
-      }
-    } catch (e) { debug('memory: %s', e.message); }
-  }
+  // Session memory — always show when present (sidecar handles hot memory separately)
+  const memPath = path.join(directory, '.lore', 'memory.local.md');
+  try {
+    const raw = fs.readFileSync(memPath, 'utf8');
+    const stripped = stripFrontmatter(raw).trim();
+    if (stripped && !stripped.includes('Transient memory')) {
+      if (output) output += '\n\n';
+      output += 'SESSION MEMORY:\n' + stripped;
+    }
+  } catch (e) { debug('memory: %s', e.message); }
   return output;
 }
 
-module.exports = { buildStaticBanner, buildDynamicBanner, getFieldnotes, getBannerLoadedSkills, getConfig, getProfile, parseFrontmatter, stripFrontmatter, ensureStickyFiles };
+module.exports = { buildStaticBanner, buildDynamicBanner, probeSidecar, getFieldnotes, getBannerLoadedSkills, getConfig, getProfile, parseFrontmatter, stripFrontmatter, ensureStickyFiles };

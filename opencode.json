@@ -2,9 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["CLAUDE.md"],
   "mcp": {
-    "lore-search": {
+    "lore": {
       "type": "local",
-      "command": ["node", ".lore/harness/mcp/search-server.js"],
+      "command": ["node", ".lore/harness/mcp/lore-server.js"],
       "enabled": true
     }
   }

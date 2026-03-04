@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Coordinated release: tags lore, create-lore, and lore-docker.
+# Coordinated release: tags lore, create-lore, and lore-memory.
 # All repos' release.yml workflows fire automatically on tag push.
 #
 # Usage: bash .lore/harness/scripts/release.sh [version]
 #
 # If version is omitted, reads from package.json.
 # Expects create-lore repo at ../create-lore (sibling directory).
-# Expects lore-docker repo at ../lore-docker (optional — warns if missing).
+# Expects lore-memory repo at ../lore-memory (optional — warns if missing).
 
 set -euo pipefail
 
 LORE_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 CREATE_LORE_ROOT="$(cd "$LORE_ROOT/../create-lore" 2>/dev/null && pwd)" || true
-LORE_DOCKER_ROOT="$(cd "$LORE_ROOT/../lore-docker" 2>/dev/null && pwd)" || true
+LORE_MEMORY_ROOT="$(cd "$LORE_ROOT/../lore-memory" 2>/dev/null && pwd)" || true
 
 # -- Resolve version --
 if [[ -n "${1:-}" ]]; then
@@ -35,18 +35,18 @@ if [[ -z "$CREATE_LORE_ROOT" || ! -d "$CREATE_LORE_ROOT" ]]; then
   exit 1
 fi
 
-# 1b. Check lore-docker repo (optional — warn and skip if missing)
-HAS_LORE_DOCKER=false
-if [[ -n "$LORE_DOCKER_ROOT" && -d "$LORE_DOCKER_ROOT" ]]; then
-  HAS_LORE_DOCKER=true
+# 1b. Check lore-memory repo (optional — warn and skip if missing)
+HAS_LORE_MEMORY=false
+if [[ -n "$LORE_MEMORY_ROOT" && -d "$LORE_MEMORY_ROOT" ]]; then
+  HAS_LORE_MEMORY=true
 else
-  echo "WARN: lore-docker repo not found at $LORE_ROOT/../lore-docker — skipping"
+  echo "WARN: lore-memory repo not found at $LORE_ROOT/../lore-memory — skipping"
 fi
 
 # 2. Verify all repos are on main and clean
 REPOS=("$LORE_ROOT" "$CREATE_LORE_ROOT")
-if [[ "$HAS_LORE_DOCKER" == true ]]; then
-  REPOS+=("$LORE_DOCKER_ROOT")
+if [[ "$HAS_LORE_MEMORY" == true ]]; then
+  REPOS+=("$LORE_MEMORY_ROOT")
 fi
 for repo in "${REPOS[@]}"; do
   name="$(basename "$repo")"
@@ -61,7 +61,7 @@ for repo in "${REPOS[@]}"; do
   fi
 done
 
-# 3. Verify versions match across repos (lore + create-lore only — lore-docker is tag-driven)
+# 3. Verify versions match across repos (lore + create-lore only — lore-memory is tag-driven)
 lore_ver="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/package.json','utf8')).version")"
 lore_cfg="$(node -p "JSON.parse(require('fs').readFileSync('$LORE_ROOT/.lore/config.json','utf8')).version")"
 create_ver="$(node -p "JSON.parse(require('fs').readFileSync('$CREATE_LORE_ROOT/package.json','utf8')).version")"
@@ -104,7 +104,7 @@ for repo in "${REPOS[@]}"; do
   fi
 done
 
-if [[ "$HAS_LORE_DOCKER" == true ]]; then
+if [[ "$HAS_LORE_MEMORY" == true ]]; then
   echo "OK: All three repos at $VERSION, clean, on main, up to date"
 else
   echo "OK: lore + create-lore at $VERSION, clean, on main, up to date"
@@ -125,12 +125,12 @@ git -C "$CREATE_LORE_ROOT" push origin "$TAG"
 echo "OK: create-lore tagged and pushed"
 echo ""
 
-# -- Tag lore-docker third (if present) --
-if [[ "$HAS_LORE_DOCKER" == true ]]; then
-  echo "--- Tagging lore-docker $TAG ---"
-  git -C "$LORE_DOCKER_ROOT" tag -a "$TAG" -m "Release $TAG"
-  git -C "$LORE_DOCKER_ROOT" push origin "$TAG"
-  echo "OK: lore-docker tagged and pushed"
+# -- Tag lore-memory third (if present) --
+if [[ "$HAS_LORE_MEMORY" == true ]]; then
+  echo "--- Tagging lore-memory $TAG ---"
+  git -C "$LORE_MEMORY_ROOT" tag -a "$TAG" -m "Release $TAG"
+  git -C "$LORE_MEMORY_ROOT" push origin "$TAG"
+  echo "OK: lore-memory tagged and pushed"
   echo ""
 fi
 
@@ -140,12 +140,12 @@ echo ""
 echo "Release workflows are now running:"
 echo "  https://github.com/lorehq/lore/actions"
 echo "  https://github.com/lorehq/create-lore/actions"
-if [[ "$HAS_LORE_DOCKER" == true ]]; then
-  echo "  https://github.com/lorehq/lore-docker/actions"
+if [[ "$HAS_LORE_MEMORY" == true ]]; then
+  echo "  https://github.com/lorehq/lore-memory/actions"
 fi
 echo ""
 echo "create-lore will verify the lore tag exists before publishing to npm."
-if [[ "$HAS_LORE_DOCKER" == true ]]; then
-  echo "lore-docker will build and push the versioned Docker image."
+if [[ "$HAS_LORE_MEMORY" == true ]]; then
+  echo "lore-memory will build and push the versioned Docker image."
 fi
 echo "Monitor all workflows to confirm success."

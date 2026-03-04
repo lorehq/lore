@@ -56,7 +56,7 @@ test('isKnowledgePath: matches docs/ under rootDir', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.ok(isKnowledgePath(path.join(dir, 'docs', 'env.md'), dir));
   assert.ok(isKnowledgePath(path.join(dir, '.lore', 'skills', 'foo', 'SKILL.md'), dir));
-  assert.ok(isKnowledgePath(path.join(dir, '.claude', 'skills', 'bar', 'SKILL.md'), dir));
+  assert.ok(isKnowledgePath(path.join(dir, '.lore', 'harness', 'skills', 'lore-test', 'SKILL.md'), dir));
 });
 
 test('isKnowledgePath: rejects paths outside rootDir', (t) => {
@@ -243,6 +243,20 @@ test('processToolUse: non-bash write resets counter', (t) => {
   });
   assert.equal(result.bashCount, 0);
   assert.ok(result.silent); // non-knowledge write outside knowledge paths — silent
+});
+
+test('processToolUse: first bash capture mentions session note', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const result = processToolUse({
+    tool: 'Bash',
+    filePath: '',
+    isFailure: false,
+    bashCount: 0,
+    thresholds: defaultThresholds,
+    rootDir: dir,
+  });
+  assert.ok(result.message.includes('session note'));
 });
 
 test('processToolUse: MEMORY.local.md write shows scratch warning', (t) => {

@@ -51,8 +51,6 @@ function setup(opts = {}) {
   }
 
   // Minimal project structure
-  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
-  fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.git'));
 
@@ -126,7 +124,6 @@ test('session-init: creates sticky files', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runHook(dir, 'session-init.js');
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
@@ -302,62 +299,6 @@ test('protect-memory: allows nested MEMORY.md', (t) => {
       assert.notEqual(out.permissionDecision, 'deny', 'nested MEMORY.md should not be denied');
     }
   } catch (e) {
-    assert.ok(true);
-  }
-});
-
-// ── Context Path Guide ──
-
-test('context-path-guide: logs tree for docs/context/ writes', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'docs', 'context', 'agent-rules.md'), '# Rules');
-  const raw = runHook(dir, 'context-path-guide.js', {
-    tool_name: 'Write',
-    tool_input: { file_path: path.join(dir, 'docs', 'context', 'new-rule.md') },
-  });
-  const out = JSON.parse(raw).hookSpecificOutput;
-  assert.equal(out.permissionDecision, 'allow');
-  assert.ok(out.additionalContext.includes('docs/context/'));
-});
-
-test('context-path-guide: silent for non-docs writes', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Non-docs writes cause the hook to exit(0) with no stdout
-  try {
-    const raw = runHook(dir, 'context-path-guide.js', {
-      tool_name: 'Write',
-      tool_input: { file_path: path.join(dir, 'src', 'main.js') },
-    });
-    // If output, should not contain path guide
-    if (raw.trim()) {
-      assert.ok(!raw.includes('LORE-PATH'));
-    }
-  } catch (e) {
-    assert.ok(true);
-  }
-});
-
-test('context-path-guide: silent for read tools', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // context-path-guide only fires for writes; read tools are silent
-  // The hook checks tool_name but only reacts to writes targeting docs/ paths.
-  // For a Read tool targeting a docs/ path, the hook still exits because it
-  // only parses tool_input (no tool_name filter in the hook itself — the
-  // Claude hook matcher restricts which tools invoke it). Since we pass
-  // tool_name: Read here, the hook's stdin parse sees a docs/ path but the
-  // hook logic only checks file_path, not tool_name. The result depends on
-  // hook implementation. Let's just verify it doesn't crash.
-  try {
-    runHook(dir, 'context-path-guide.js', {
-      tool_name: 'Read',
-      tool_input: { file_path: path.join(dir, 'docs', 'knowledge', 'test.md') },
-    });
-  } catch (e) {
-    // exit(0) is fine
     assert.ok(true);
   }
 });

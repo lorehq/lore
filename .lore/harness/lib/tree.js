@@ -1,5 +1,4 @@
 // Shared: ASCII tree builder for directory structures.
-// Used by banner (knowledge map) and context-path-guide (directory preview).
 
 const fs = require('fs');
 const path = require('path');
@@ -9,8 +8,7 @@ const SKIP_DIRS = new Set(['archive', 'assets', 'stylesheets', 'node_modules', '
 
 // Build ASCII tree of a directory.
 // Default: directories only (files are on-demand, not loaded into context).
-// Set dirsOnly=false for a full listing (used by context-path-guide for
-// focused previews of a single directory being written to).
+// Set dirsOnly=false for a full listing.
 function buildTree(dir, prefix = '', options = {}) {
   const { depth = 0, maxDepth = 5, skipDirs = SKIP_DIRS, dirsOnly = true } = options;
   if (depth >= maxDepth) return [];

@@ -24,16 +24,15 @@ Minimum fields:
 
 Without it, the agent has no operator context — it knows the KB but not who it's working for.
 
-### Agent Rules
+### Project Rules
 
-Edit `docs/context/agent-rules.md`.
+Add project-specific rules to `.lore/rules/`.
 
-Minimum fields:
-- Deployment assignment: instance name, operator, org
+Minimum:
 - Scope: what domains this instance covers
 - Behavioral rules specific to this deployment (default accounts, constraints, known snags)
 
-This file is injected as PROJECT context every session.
+Rules in `.lore/rules/` are loaded into the session banner and projected into platform mandate files.
 
 ### Machine Inventory
 
@@ -160,26 +159,25 @@ gh repo list <org> --limit 200 --json name,description,updatedAt
 
 - Ask about current initiatives, goals, and roadmaps
 - If the org uses a goal-tracking system (Workday, Lattice, Notion OKRs, Linear cycles, etc.), export current goals and pass them to the agent as input — goals map to initiatives, milestones map to epics
-- Create `docs/workflow/in-flight/initiatives/` for strategic goals (months)
-- Create `docs/workflow/in-flight/epics/` for tactical work in flight
+- Create work items in `~/.lore/knowledge-base/work-items/` for strategic goals and tactical work in flight
 
 ---
 
-## Phase 6: Semantic Search
+## Phase 6: Semantic Search & Hot Memory
 
 ```bash
-/lore-docker
+/lore memory
 ```
 
 Or manually:
 
 ```bash
-docker compose -f .lore/docker-compose.yml up -d
+docker compose -f ~/.lore/docker-compose.yml up -d
 curl http://localhost:9185/health
 curl "http://localhost:9185/search?q=test&k=3"
 ```
 
-On corporate networks, containers may need the org CA cert mounted. The embedding model (`BAAI/bge-small-en-v1.5`) is bundled in recent releases.
+The sidecar runs from `~/.lore/docker-compose.yml` — one per machine, shared across all projects. On corporate networks, containers may need the org CA cert mounted.
 
 ---
 

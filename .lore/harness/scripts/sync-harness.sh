@@ -6,9 +6,9 @@
 #
 # Harness-owned (synced):
 #   .lore/harness/hooks/, .lore/harness/lib/, .lore/harness/mcp/, .lore/harness/scripts/, .lore/harness/templates/,
+#   .lore/harness/skills/lore*/,
 #   .opencode/, .cursor/, .gemini/, opencode.json, .mcp.json,
-#   .claude/settings.json, .lore/skills/lore-*/,
-#   .lore/instructions.md, .gitignore, .windsurfrules
+#   .claude/settings.json, .lore/instructions.md, .gitignore, .windsurfrules
 #
 # Operator-owned (never touched):
 #   non-lore-* skills/agents, .lore/config.json,
@@ -80,7 +80,17 @@ mkdir -p "$TARGET/.cursor/mcp"
 [ -f "$SOURCE/.cursor/mcp.json" ] && cp "$SOURCE/.cursor/mcp.json" "$TARGET/.cursor/mcp.json"
 # Knowledge base search MCP — platform-agnostic semantic search tool.
 mkdir -p "$TARGET/.lore/harness/mcp"
-cp "$SOURCE/.lore/harness/mcp/search-server.js" "$TARGET/.lore/harness/mcp/search-server.js"
+cp "$SOURCE/.lore/harness/mcp/lore-server.js" "$TARGET/.lore/harness/mcp/lore-server.js"
+# Clean up old MCP server name
+rm -f "$TARGET/.lore/harness/mcp/search-server.js"
+# Clean up renamed/removed skills
+rm -rf "$TARGET/.lore/harness/skills/lore-memprint"
+rm -rf "$TARGET/.lore/harness/skills/lore-docker"
+rm -rf "$TARGET/.lore/harness/skills/lore-memory"
+rm -rf "$TARGET/.lore/harness/skills/lore-burn"
+rm -rf "$TARGET/.lore/harness/skills/lore-status"
+rm -rf "$TARGET/.lore/harness/skills/lore-update"
+rm -rf "$TARGET/.lore/harness/skills/lore-field-repair"
 
 # Harness-owned rules (content derived from instructions.md, same across instances)
 mkdir -p "$TARGET/.cursor/rules"
@@ -88,14 +98,28 @@ for rule in lore-core lore-work-tracking lore-knowledge-routing lore-skill-creat
   [ -f "$SOURCE/.cursor/rules/$rule.mdc" ] && cp "$SOURCE/.cursor/rules/$rule.mdc" "$TARGET/.cursor/rules/$rule.mdc"
 done
 
-# Harness skills (lore-* only) — overwrite existing, skip operator skills
-if [ -d "$SOURCE/.lore/skills" ]; then
-  mkdir -p "$TARGET/.lore/skills"
-  for skill_dir in "$SOURCE/.lore/skills"/lore-*/; do
+# Migrate pre-v0.16 harness skills: .lore/skills/lore-* → .lore/harness/skills/lore-*
+if [ -d "$TARGET/.lore/skills" ]; then
+  for old_skill in "$TARGET/.lore/skills"/lore-*/; do
+    [ -d "$old_skill" ] || continue
+    skill_name="$(basename "$old_skill")"
+    mkdir -p "$TARGET/.lore/harness/skills"
+    if [ -d "$TARGET/.lore/harness/skills/$skill_name" ]; then
+      rm -rf "$old_skill"
+    else
+      mv "$old_skill" "$TARGET/.lore/harness/skills/$skill_name"
+    fi
+  done
+fi
+
+# Harness skills (lore and lore-* only) — overwrite existing, skip operator skills
+if [ -d "$SOURCE/.lore/harness/skills" ]; then
+  mkdir -p "$TARGET/.lore/harness/skills"
+  for skill_dir in "$SOURCE/.lore/harness/skills"/lore*/; do
     [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
-    mkdir -p "$TARGET/.lore/skills/$skill_name"
-    cp -Rf "$skill_dir"* "$TARGET/.lore/skills/$skill_name/"
+    mkdir -p "$TARGET/.lore/harness/skills/$skill_name"
+    cp -Rf "$skill_dir"* "$TARGET/.lore/harness/skills/$skill_name/"
   done
 fi
 
@@ -106,9 +130,15 @@ if [ -d "$SOURCE/.lore/harness/templates" ]; then
   cp -Rf "$SOURCE/.lore/harness/templates/." "$TARGET/.lore/harness/templates/"
 fi
 
+# Harness migrations
+if [ -d "$SOURCE/.lore/harness/migrations" ]; then
+  mkdir -p "$TARGET/.lore/harness/migrations"
+  cp -Rf "$SOURCE/.lore/harness/migrations/." "$TARGET/.lore/harness/migrations/"
+fi
+
 
 # Single files
-[ -f "$SOURCE/.lore/docker-compose.yml" ] && cp "$SOURCE/.lore/docker-compose.yml" "$TARGET/.lore/docker-compose.yml"
+# docker-compose.yml now lives in ~/.lore/ (global), not per-instance
 cp "$SOURCE/.lore/instructions.md" "$TARGET/.lore/instructions.md"
 [ -f "$SOURCE/.claude/settings.json" ] && cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/settings.json"
 # Bootstrap operator.gitignore on first sync — never overwrite if it exists

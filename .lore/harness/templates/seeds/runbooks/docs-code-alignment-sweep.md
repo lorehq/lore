@@ -45,7 +45,7 @@ docker run -d --name sweep-docs \
   -p 9190:8080 \
   -e MAX_K=10 \
   -v /path/to/docs:/data/docs \
-  lore-docker:latest
+  lore-memory:latest
 
 # Source search — used by Phase 2b, Phase 3a
 # Mount source repos as sections under /data/docs
@@ -53,7 +53,7 @@ docker run -d --name sweep-source \
   -p 9191:8080 \
   -e MAX_K=10 \
   -v /path/to/source-repo:/data/docs/source \
-  lore-docker:latest
+  lore-memory:latest
 
 # Wait for both — model loading takes 30-60s on first start
 curl -s http://localhost:9190/health && curl -s http://localhost:9191/health

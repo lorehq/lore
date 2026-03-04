@@ -101,11 +101,9 @@ console.log('--- Missing hooks (expected but never fired) ---');
 const seen = new Set(lines.map(e => e.platform + '/' + e.hook));
 const expected = [
   'claude/session-init', 'claude/prompt-preamble', 'claude/knowledge-tracker',
-  'claude/protect-memory', 'claude/context-path-guide',
-  'cursor/session-init', 'cursor/capture-nudge', 'cursor/knowledge-tracker',
-  'cursor/protect-memory', 'cursor/failure-tracker', 'cursor/compaction-flag',
-  'opencode/session-init', 'opencode/knowledge-tracker',
-  'opencode/protect-memory', 'opencode/context-path-guide',
+  'claude/protect-memory', 'claude/harness-guard', 'claude/search-guard',
+  'gemini/session-init', 'gemini/prompt-preamble', 'gemini/knowledge-tracker',
+  'gemini/protect-memory', 'gemini/harness-guard', 'gemini/search-guard',
 ];
 const missing = expected.filter(e => !seen.has(e));
 if (missing.length === 0) console.log('  All hooks fired at least once.');

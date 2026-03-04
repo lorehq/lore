@@ -18,16 +18,6 @@
         "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/protect-memory.js" }]
       },
       {
-        "matcher": "Write",
-        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/context-path-guide.js" }],
-        "description": "Guide writes to docs/context/"
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/rule-guard.js" }],
-        "description": "Reinforce rules based on target file path"
-      },
-      {
         "matcher": "Write|Edit",
         "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/harness-guard.js" }],
         "description": "Warn when writing to harness-owned files"

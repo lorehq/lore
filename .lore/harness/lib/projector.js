@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildStaticBanner } = require('./banner');
 const { stripFrontmatter, parseFrontmatter } = require('./frontmatter');
-const { getConfig, getGlobalPath } = require('./config');
+const { getConfig, getGlobalPath, getActivePlatforms } = require('./config');
 const { getLoreToken } = require('./security');
 
 const baseManifest = require('./manifest.json');
@@ -17,6 +17,54 @@ const MANIFEST = { ...baseManifest, platforms: { ...baseManifest.platforms, ...(
 
 function readOr(filePath, fallback = '') { try { return fs.readFileSync(filePath, 'utf8'); } catch (_) { return fallback; } }
 function writeIfChanged(dest, content) { if (readOr(dest) === content) return; fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, content); }
+
+function getProjectedPaths(absRoot, platform) {
+  const paths = [];
+  const caps = platform.capabilities || [];
+  if (caps.includes('mandates') && platform.mandateFile) {
+    paths.push(path.join(absRoot, platform.mandateFile));
+  }
+  if (caps.includes('mdc') && platform.rulesDir) {
+    paths.push(path.join(absRoot, platform.rulesDir, 'lore-core.mdc'));
+  }
+  if (caps.includes('hooks') && platform.hookFile) {
+    paths.push(path.join(absRoot, platform.hookFile));
+  }
+  if (caps.includes('skills') && platform.agentsDir) {
+    const skillsDir = path.join(absRoot, platform.agentsDir.replace('agents', 'skills'));
+    paths.push(skillsDir);
+  }
+  if (caps.includes('agents') && platform.agentsDir) {
+    paths.push(path.join(absRoot, platform.agentsDir));
+  }
+  return paths;
+}
+
+function cleanupPlatform(absRoot, platform) {
+  for (const p of getProjectedPaths(absRoot, platform)) {
+    try {
+      const stat = fs.statSync(p);
+      if (stat.isDirectory()) {
+        fs.rmSync(p, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(p);
+      }
+    } catch (_) { continue; }
+    // Remove empty parent dirs up to absRoot
+    let dir = path.dirname(p);
+    while (dir.length > absRoot.length && dir.startsWith(absRoot)) {
+      try {
+        const entries = fs.readdirSync(dir);
+        if (entries.length === 0) {
+          fs.rmdirSync(dir);
+          dir = path.dirname(dir);
+        } else {
+          break;
+        }
+      } catch (_) { break; }
+    }
+  }
+}
 
 async function project() {
   const instructions = readOr(path.join(absRoot, '.lore', 'instructions.md')).trim();
@@ -37,7 +85,13 @@ async function project() {
   scanAssets(path.join(globalPath, 'rules'), 'rules');
   scanAssets(path.join(absRoot, '.lore', 'rules'), 'rules');
 
+  const activePlatforms = getActivePlatforms(absRoot);
+
   for (const [name, platform] of Object.entries(MANIFEST.platforms)) {
+    if (!activePlatforms.includes(name)) {
+      cleanupPlatform(absRoot, platform);
+      continue;
+    }
     const caps = platform.capabilities || [];
     if (caps.includes('mandates') && platform.mandateFile) {
       writeIfChanged(path.join(absRoot, platform.mandateFile), [instructions, staticBanner].join('\n\n') + '\n');
@@ -57,7 +111,11 @@ async function project() {
     }
     if (caps.includes('skills') && platform.agentsDir) {
       const platformSkillsDir = path.join(absRoot, platform.agentsDir.replace('agents', 'skills'));
-      const skillDirs = [path.join(globalPath, 'skills'), path.join(absRoot, '.lore', 'skills')];
+      const skillDirs = [
+        path.join(absRoot, '.lore', 'harness', 'skills'),  // harness (lowest priority)
+        path.join(globalPath, 'skills'),                     // global user
+        path.join(absRoot, '.lore', 'skills'),               // project user (wins)
+      ];
 
       for (const sDir of skillDirs) {
         if (!fs.existsSync(sDir)) continue;
@@ -77,7 +135,10 @@ async function project() {
           finalBody += `## USAGE\n${stripFrontmatter(skillSrc).trim()}`;
 
           const target = path.join(platformSkillsDir, d.name, 'SKILL.md');
-          writeIfChanged(target, `---\nname: ${attrs.name || d.name}\ndescription: ${attrs.description || ''}\n---\n\n${finalBody}`);
+          let frontmatter = `---\nname: ${attrs.name || d.name}\ndescription: ${attrs.description || ''}`;
+          if (String(attrs['user-invocable']) === 'false') frontmatter += '\nuser-invocable: false';
+          frontmatter += '\n---';
+          writeIfChanged(target, `${frontmatter}\n\n${finalBody}`);
         }
       }
     }

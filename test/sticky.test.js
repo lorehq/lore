@@ -14,60 +14,36 @@ function setup() {
   return dir;
 }
 
-test('ensureStickyFiles: creates all sticky files from scratch', (t) => {
+test('ensureStickyFiles: creates MEMORY.local.md from scratch', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   ensureStickyFiles(dir);
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'context', 'agent-rules.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'index.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.lore', 'rules', 'security.md')));
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'workflow', 'notes', 'index.md')));
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
-});
-
-test('ensureStickyFiles: idempotent — does not overwrite existing files', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  ensureStickyFiles(dir);
-  // Write custom content to agent-rules
-  const rulesPath = path.join(dir, 'docs', 'context', 'agent-rules.md');
-  fs.writeFileSync(rulesPath, '# Custom Rules');
-  // Run again
-  ensureStickyFiles(dir);
-  assert.equal(fs.readFileSync(rulesPath, 'utf8'), '# Custom Rules');
-});
-
-test('ensureStickyFiles: skips rules dir when rules.md flat file exists', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Create flat rules.md before sticky runs
-  fs.mkdirSync(path.join(dir, 'docs', 'context'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.lore', 'rules.md'), '# My Rules');
-  ensureStickyFiles(dir);
-  // Should not create rules/ dir
-  assert.ok(!fs.existsSync(path.join(dir, '.lore', 'rules')));
-  // Flat file should be untouched
-  assert.equal(fs.readFileSync(path.join(dir, '.lore', 'rules.md'), 'utf8'), '# My Rules');
-});
-
-test('ensureStickyFiles: creates seed files in existing rules dir', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  // Create rules dir with custom content but no seed files
-  const convDir = path.join(dir, '.lore', 'rules');
-  fs.mkdirSync(convDir, { recursive: true });
-  fs.writeFileSync(path.join(convDir, 'custom.md'), '# Custom');
-  ensureStickyFiles(dir);
-  // Custom file should still exist
-  assert.ok(fs.existsSync(path.join(convDir, 'custom.md')));
-  // Seed files should have been created
-  assert.ok(fs.existsSync(path.join(convDir, 'security.md')));
-});
-
-test('ensureStickyFiles: MEMORY.local.md has header', (t) => {
-  const dir = setup();
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  ensureStickyFiles(dir);
   const content = fs.readFileSync(path.join(dir, '.lore', 'memory.local.md'), 'utf8');
   assert.ok(content.startsWith('# Local Memory'));
+});
+
+test('ensureStickyFiles: does not overwrite existing MEMORY.local.md', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'memory.local.md'), '# My Notes');
+  ensureStickyFiles(dir);
+  assert.equal(fs.readFileSync(path.join(dir, '.lore', 'memory.local.md'), 'utf8'), '# My Notes');
+});
+
+test('ensureStickyFiles: seeds runbooks when directory exists', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, '.lore', 'runbooks'), { recursive: true });
+  ensureStickyFiles(dir);
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'runbooks', 'docs-code-alignment-sweep.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.lore', 'runbooks', 'first-session', 'knowledge-worker.md')));
+});
+
+test('ensureStickyFiles: does not create rules directory', (t) => {
+  const dir = setup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  ensureStickyFiles(dir);
+  assert.ok(!fs.existsSync(path.join(dir, '.lore', 'rules')), 'rules dir should not be created by sticky files');
 });

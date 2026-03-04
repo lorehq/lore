@@ -22,40 +22,50 @@ source "$(dirname "$0")/lib/common.sh"
 
 fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
 
+# Determine active platforms from config (defaults to all if missing)
+ACTIVE=$(cd "$REPO_ROOT" && node -e "
+  const { getActivePlatforms } = require('./.lore/harness/lib/config');
+  process.stdout.write(getActivePlatforms('.').join(','));
+" 2>/dev/null || echo "claude,gemini,windsurf,cursor,opencode,roocode")
+
+platform_active() { echo ",$ACTIVE," | grep -q ",$1,"; }
+
 echo "=== Lore Consistency Validation ==="
 echo ""
 
 # -- 1. Skill frontmatter: required fields --
 echo "--- Skill Frontmatter ---"
-for dir in "$REPO_ROOT"/.lore/skills/*/; do
-  sf="$dir/SKILL.md"
-  [[ -f "$sf" ]] || continue
-  name=$(basename "$dir")
-  for field in name description user-invocable; do
-    val=$(extract_field "$field" "$sf")
-    [[ -z "$val" ]] && fail "Skill '$name' missing '$field'"
+for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/skills"; do
+  [[ -d "$skill_root" ]] || continue
+  for dir in "$skill_root"/*/; do
+    sf="$dir/SKILL.md"
+    [[ -f "$sf" ]] || continue
+    name=$(basename "$dir")
+    for field in name description user-invocable; do
+      val=$(extract_field "$field" "$sf")
+      [[ -z "$val" ]] && fail "Skill '$name' missing '$field'"
+    done
   done
 done
 
 # -- 2. Platform copies match canonical source --
 echo "--- Platform Sync ---"
-if [[ -d "$REPO_ROOT/.lore/skills" ]]; then
-  # Check .claude/skills/ contains all skills from .lore/skills/ (existence check —
-  # the projector transforms frontmatter during sync, so content won't match exactly)
+if platform_active claude; then
   if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
     sync_ok=true
-    for dir in "$REPO_ROOT"/.lore/skills/*/; do
-      name=$(basename "$dir")
-      sf="$dir/SKILL.md"
-      [[ -f "$sf" ]] || continue
-      if [[ ! -d "$REPO_ROOT/.claude/skills/$name" ]]; then
-        sync_ok=false; break
-      fi
-      if [[ ! -f "$REPO_ROOT/.claude/skills/$name/SKILL.md" ]]; then
-        sync_ok=false; break
-      fi
+    # Check .claude/skills/ contains all skills from both harness and user dirs
+    for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/skills"; do
+      [[ -d "$skill_root" ]] || continue
+      for dir in "$skill_root"/*/; do
+        name=$(basename "$dir")
+        sf="$dir/SKILL.md"
+        [[ -f "$sf" ]] || continue
+        if [[ ! -d "$REPO_ROOT/.claude/skills/$name" ]] || [[ ! -f "$REPO_ROOT/.claude/skills/$name/SKILL.md" ]]; then
+          sync_ok=false; break 2
+        fi
+      done
     done
-    $sync_ok || fail ".claude/skills/ out of sync with .lore/skills/ — run: bash .lore/harness/scripts/sync-platform-skills.sh"
+    $sync_ok || fail ".claude/skills/ out of sync — run: bash .lore/harness/scripts/sync-platform-skills.sh"
   else
     fail ".claude/skills/ missing — run: bash .lore/harness/scripts/sync-platform-skills.sh"
   fi
@@ -65,33 +75,37 @@ fi
 echo "--- Instructions Sync ---"
 if [[ -f "$REPO_ROOT/.lore/instructions.md" ]]; then
   # CLAUDE.md = instructions.md + static banner. Verify instructions prefix matches.
-  if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
-    node -e "
-      const fs = require('fs');
-      const norm = c => c.replace(/\r\n/g, '\n').trimEnd();
-      const inst = norm(fs.readFileSync(process.argv[1], 'utf8'));
-      const claude = norm(fs.readFileSync(process.argv[2], 'utf8'));
-      if (!claude.startsWith(inst)) { process.exit(1); }
-    " "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1 \
-      || fail "CLAUDE.md out of sync with .lore/instructions.md — run: node .lore/harness/scripts/generate-claude-md.js ."
-  else
-    fail "CLAUDE.md missing — run: bash .lore/harness/scripts/sync-platform-skills.sh"
+  if platform_active claude; then
+    if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
+      node -e "
+        const fs = require('fs');
+        const norm = c => c.replace(/\r\n/g, '\n').trimEnd();
+        const inst = norm(fs.readFileSync(process.argv[1], 'utf8'));
+        const claude = norm(fs.readFileSync(process.argv[2], 'utf8'));
+        if (!claude.startsWith(inst)) { process.exit(1); }
+      " "$REPO_ROOT/.lore/instructions.md" "$REPO_ROOT/CLAUDE.md" >/dev/null 2>&1 \
+        || fail "CLAUDE.md out of sync with .lore/instructions.md — run: node .lore/harness/scripts/generate-claude-md.js ."
+    else
+      fail "CLAUDE.md missing — run: bash .lore/harness/scripts/sync-platform-skills.sh"
+    fi
   fi
 
   # lore-core.mdc has frontmatter + instructions body — compare body only.
-  core_mdc="$REPO_ROOT/.cursor/rules/lore-core.mdc"
-  if [[ -f "$core_mdc" ]]; then
-    node -e "
-      const fs = require('fs');
-      const norm = c => c.replace(/\r\n/g, '\n');
-      const strip = c => norm(c).replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
-      const mdc = strip(fs.readFileSync(process.argv[1], 'utf8'));
-      const inst = norm(fs.readFileSync(process.argv[2], 'utf8')).trim();
-      if (!mdc.startsWith(inst)) { console.log('MISMATCH'); process.exit(1); }
-    " "$core_mdc" "$REPO_ROOT/.lore/instructions.md" >/dev/null 2>&1 \
-      || fail "lore-core.mdc body out of sync with .lore/instructions.md — run: bash .lore/harness/scripts/generate-cursor-rules.sh"
-  else
-    fail "lore-core.mdc missing — run: bash .lore/harness/scripts/generate-cursor-rules.sh"
+  if platform_active cursor; then
+    core_mdc="$REPO_ROOT/.cursor/rules/lore-core.mdc"
+    if [[ -f "$core_mdc" ]]; then
+      node -e "
+        const fs = require('fs');
+        const norm = c => c.replace(/\r\n/g, '\n');
+        const strip = c => norm(c).replace(/^---\n[\s\S]*?\n---\n*/, '').trim();
+        const mdc = strip(fs.readFileSync(process.argv[1], 'utf8'));
+        const inst = norm(fs.readFileSync(process.argv[2], 'utf8')).trim();
+        if (!mdc.startsWith(inst)) { console.log('MISMATCH'); process.exit(1); }
+      " "$core_mdc" "$REPO_ROOT/.lore/instructions.md" >/dev/null 2>&1 \
+        || fail "lore-core.mdc body out of sync with .lore/instructions.md — run: bash .lore/harness/scripts/generate-cursor-rules.sh"
+    else
+      fail "lore-core.mdc missing — run: bash .lore/harness/scripts/generate-cursor-rules.sh"
+    fi
   fi
 fi
 

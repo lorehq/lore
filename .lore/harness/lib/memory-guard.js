@@ -1,5 +1,5 @@
 // Shared: MEMORY.md access guard.
-// Used by hooks/protect-memory.js (CJS) and .opencode/plugins/protect-memory.js (ESM).
+// Used by hooks/protect-memory.js.
 
 const path = require('path');
 

@@ -73,4 +73,13 @@ function getProfile(directory) {
   return VALID_PROFILES.includes(cfg.profile) ? cfg.profile : 'standard';
 }
 
-module.exports = { getConfig, getProfile, getGlobalPath, VALID_PROFILES };
+function getActivePlatforms(directory) {
+  const cfg = getConfig(directory);
+  const allPlatforms = Object.keys(require('./manifest.json').platforms);
+  if (!Array.isArray(cfg.platforms) || cfg.platforms.length === 0) {
+    return allPlatforms;
+  }
+  return cfg.platforms.filter(p => allPlatforms.includes(p));
+}
+
+module.exports = { getConfig, getProfile, getGlobalPath, getActivePlatforms, VALID_PROFILES };

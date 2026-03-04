@@ -22,8 +22,6 @@ function setup(opts = {}) {
     'knowledge-tracker.js',
     'protect-memory.js',
     'harness-guard.js',
-    'rule-guard.js',
-    'context-path-guide.js',
   ];
   for (const hook of hooks) {
     fs.copyFileSync(path.join(__dirname, '..', '.lore', 'harness', 'hooks', hook), path.join(dir, '.lore', 'harness', 'hooks', hook));

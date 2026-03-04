@@ -5,7 +5,7 @@ Validate that all 15 hooks across Claude Code, Cursor, and OpenCode fire correct
 ## Prerequisites
 
 - Lore source repo at latest (hook-logger.js must be present in lib/)
-- Instance synced via `/lore-update` or `sync-harness.sh`
+- Instance synced via `/lore update` or `sync-harness.sh`
 
 ## Enable Logging
 
@@ -48,9 +48,8 @@ bash scripts/analyze-hook-logs.sh /path/to/other-repo/.git/lore-hook-events.json
 
 | Platform | Hooks |
 |----------|-----------------|
-| Claude Code (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, context-path-guide, rule-guard |
-| Cursor (6) | session-init, capture-nudge, knowledge-tracker, protect-memory, failure-tracker, compaction-flag |
-| OpenCode (5) | session-init, knowledge-tracker, protect-memory, context-path-guide, rule-guard |
+| Claude Code (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, harness-guard, search-guard |
+| Gemini CLI (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, harness-guard, search-guard |
 
 ## Reset
 

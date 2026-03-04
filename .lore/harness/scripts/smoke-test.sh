@@ -27,16 +27,15 @@ cd "$WORK"
 # 1. Sticky file bootstrap
 echo "--- Sticky files ---"
 node -e "require('./.lore/harness/lib/banner').ensureStickyFiles('.')"
-[[ -f docs/context/agent-rules.md ]] || { echo "FAIL: docs/context/agent-rules.md not created"; exit 1; }
 [[ -d .lore/rules ]] || { echo "FAIL: .lore/rules/ not created"; exit 1; }
 [[ -f .lore/memory.local.md ]] || { echo "FAIL: .lore/memory.local.md not created"; exit 1; }
 echo "OK"
 
 # 2. Banner builds without error
 echo "--- Banner build ---"
-banner=$(node -e "const { buildBanner } = require('./.lore/harness/lib/banner'); console.log(buildBanner('.'))")
+banner=$(node -e "const { buildStaticBanner } = require('./.lore/harness/lib/banner'); buildStaticBanner('.').then(b => console.log(b))")
 [[ -n "$banner" ]] || { echo "FAIL: empty banner"; exit 1; }
-echo "$banner" | grep -q "=== LORE" || { echo "FAIL: banner missing header"; exit 1; }
+echo "$banner" | grep -q "LORE-HARNESS-PROTOCOL" || { echo "FAIL: banner missing header"; exit 1; }
 echo "OK"
 
 # 3. Ensure structure

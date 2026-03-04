@@ -4,15 +4,15 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getConfig, getProfile } = require('../lib/config');
+const { getProfile } = require('../lib/config');
 const { logHookEvent } = require('../lib/hook-logger');
 
 const hubDir = path.join(__dirname, '..', '..', '..');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
 
-const cfg = getConfig(hubDir);
-const docker = cfg.docker || {};
-const hasSearch = !!(docker.search && docker.search.address);
+// Sidecar is always assumed available at the well-known port.
+// MCP tools handle errors gracefully if it's actually down.
+const hasSearch = true;
 
 let input = {};
 try {
@@ -28,8 +28,8 @@ const tool = input.toolName || '';
 const args = input.arguments || {};
 const targetPath = args.path || args.dir_path || args.include || '';
 
-// Indexed territory: docs/, .lore/skills/, .lore/rules/
-const isIndexed = /^(docs\/|\.lore\/skills\/|\.lore\/rules\/)/.test(targetPath);
+// Indexed territory: docs/, .lore/harness/skills/, .lore/skills/, .lore/rules/
+const isIndexed = /^(docs\/|\.lore\/harness\/skills\/|\.lore\/skills\/|\.lore\/rules\/)/.test(targetPath);
 
 let msg = '';
 if (hasSearch && isIndexed) {
