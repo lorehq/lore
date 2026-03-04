@@ -95,12 +95,6 @@ if [ -d "$SOURCE/.lore/harness/templates" ]; then
   cp -Rf "$SOURCE/.lore/harness/templates/." "$TARGET/.lore/harness/templates/"
 fi
 
-# Harness migrations
-if [ -d "$SOURCE/.lore/harness/migrations" ]; then
-  mkdir -p "$TARGET/.lore/harness/migrations"
-  cp -Rf "$SOURCE/.lore/harness/migrations/." "$TARGET/.lore/harness/migrations/"
-fi
-
 
 # Single files
 # docker-compose.yml now lives in ~/.lore/ (global), not per-instance

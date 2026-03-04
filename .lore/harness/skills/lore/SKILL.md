@@ -124,9 +124,9 @@ Pull the latest Lore harness files without touching operator content.
 6. Update the `version` field in `.lore/config.json` to match the source
 7. **Migrate global directory** — bring `~/.lore/` up to date:
    ```bash
-   node -e "const{ensureGlobalDir}=require('./.lore/harness/lib/global');const r=ensureGlobalDir('./.lore/harness/migrations');console.log(r.ran?'Migrated to v'+r.version:'Global dir up to date (v'+r.version+')');"
+   node -e "require('./.lore/harness/lib/global').ensureGlobalDir();console.log('Global dir ready');"
    ```
-   This creates `~/.lore/` if missing and applies pending structural migrations.
+   This creates `~/.lore/` if missing and ensures the expected structure exists.
 8. **Seed review** — compare `.lore/harness/templates/seeds/rules/` to operator rule files in `.lore/AGENTIC/rules/`. For each seed template where the operator file exists and differs:
    - Show the diff (seed template vs operator file)
    - Ask the operator whether to adopt the updated seed or keep their version
@@ -249,9 +249,14 @@ Retrieve active facts using the `lore_hot_recall` MCP tool:
 lore_hot_recall(limit: 20)
 ```
 
-If MCP is unavailable, fall back to curl:
+If MCP is unavailable, fall back to redis-cli via Docker:
 ```bash
-curl -s "http://localhost:9185/memory/hot?limit=20"
+docker exec lore-lore-memory-1 redis-cli SMEMBERS lore:hot:index
+```
+
+To read a specific fact:
+```bash
+docker exec lore-lore-memory-1 redis-cli HGETALL "lore:hot:<key>"
 ```
 
 If the sidecar is down, fall back to `.lore/memory.local.md`.

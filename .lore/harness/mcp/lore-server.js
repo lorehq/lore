@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 const http = require('http');
 const readline = require('readline');
 
@@ -25,7 +26,7 @@ const hubDir = path.join(__dirname, '..', '..', '..');
 // ── Shared lib imports ──────────────────────────────────────────────────────
 
 const { getConfig, getGlobalPath } = require(path.join(hubDir, '.lore', 'harness', 'lib', 'config'));
-const { getSidecarPort, getGlobalToken } = require(path.join(hubDir, '.lore', 'harness', 'lib', 'global'));
+const { getSidecarPort, getRedisPort, getGlobalToken } = require(path.join(hubDir, '.lore', 'harness', 'lib', 'global'));
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -125,6 +126,167 @@ function readFileContent(filePath) {
   }
 }
 
+// ── Minimal Redis client (RESP over TCP, zero dependencies) ─────────────────
+
+const REDIS_CONNECT_TIMEOUT_MS = 5000;
+const HALF_LIFE_SECS = 7 * 24 * 60 * 60; // 7 days
+const LAMBDA = Math.LN2 / HALF_LIFE_SECS;
+
+let redisSocket = null;
+let redisReady = false;
+let redisConnecting = false;
+let redisBuffer = '';
+let redisQueue = []; // { resolve, reject } callbacks for pipelined commands
+
+/**
+ * Encode a RESP array command: *N\r\n$len\r\narg\r\n...
+ */
+function respEncode(args) {
+  let out = `*${args.length}\r\n`;
+  for (const arg of args) {
+    const s = String(arg);
+    out += `$${Buffer.byteLength(s)}\r\n${s}\r\n`;
+  }
+  return out;
+}
+
+/**
+ * Parse one complete RESP value from buf starting at offset.
+ * Returns { value, offset } or null if incomplete.
+ */
+function respParseOne(buf, off) {
+  if (off >= buf.length) return null;
+  const type = buf[off];
+  const nl = buf.indexOf('\r\n', off);
+  if (nl === -1) return null;
+
+  if (type === '+' || type === '-') {
+    // Simple string / error
+    const val = buf.slice(off + 1, nl);
+    return { value: type === '-' ? new Error(val) : val, offset: nl + 2 };
+  }
+
+  if (type === ':') {
+    // Integer
+    return { value: parseInt(buf.slice(off + 1, nl), 10), offset: nl + 2 };
+  }
+
+  if (type === '$') {
+    // Bulk string
+    const len = parseInt(buf.slice(off + 1, nl), 10);
+    if (len === -1) return { value: null, offset: nl + 2 };
+    const start = nl + 2;
+    const end = start + len;
+    if (buf.length < end + 2) return null; // incomplete
+    return { value: buf.slice(start, end), offset: end + 2 };
+  }
+
+  if (type === '*') {
+    // Array
+    const count = parseInt(buf.slice(off + 1, nl), 10);
+    if (count === -1) return { value: null, offset: nl + 2 };
+    const arr = [];
+    let cursor = nl + 2;
+    for (let i = 0; i < count; i++) {
+      const item = respParseOne(buf, cursor);
+      if (!item) return null; // incomplete
+      arr.push(item.value);
+      cursor = item.offset;
+    }
+    return { value: arr, offset: cursor };
+  }
+
+  return null;
+}
+
+function drainRedisBuffer() {
+  while (redisQueue.length > 0 && redisBuffer.length > 0) {
+    const parsed = respParseOne(redisBuffer, 0);
+    if (!parsed) break;
+    redisBuffer = redisBuffer.slice(parsed.offset);
+    const { resolve, reject } = redisQueue.shift();
+    if (parsed.value instanceof Error) {
+      reject(parsed.value);
+    } else {
+      resolve(parsed.value);
+    }
+  }
+}
+
+function getRedisConnection() {
+  if (redisSocket && redisReady) return Promise.resolve(redisSocket);
+  if (redisConnecting) {
+    return new Promise((resolve, reject) => {
+      const check = setInterval(() => {
+        if (redisReady && redisSocket) { clearInterval(check); resolve(redisSocket); }
+      }, 50);
+      setTimeout(() => { clearInterval(check); reject(new Error('Redis connect timeout')); }, REDIS_CONNECT_TIMEOUT_MS);
+    });
+  }
+
+  redisConnecting = true;
+  return new Promise((resolve, reject) => {
+    const port = getRedisPort();
+    const sock = net.createConnection({ host: '127.0.0.1', port }, () => {
+      redisSocket = sock;
+      redisReady = true;
+      redisConnecting = false;
+      resolve(sock);
+    });
+    sock.setEncoding('utf8');
+    sock.on('data', (chunk) => {
+      redisBuffer += chunk;
+      drainRedisBuffer();
+    });
+    sock.on('error', (err) => {
+      redisReady = false;
+      redisConnecting = false;
+      redisSocket = null;
+      // Reject all pending commands
+      while (redisQueue.length) redisQueue.shift().reject(err);
+      reject(err);
+    });
+    sock.on('close', () => {
+      redisReady = false;
+      redisSocket = null;
+    });
+    sock.setTimeout(REDIS_CONNECT_TIMEOUT_MS, () => {
+      sock.destroy(new Error('Redis connect timeout'));
+    });
+  });
+}
+
+/**
+ * Send a Redis command and return the parsed response.
+ */
+async function redis(...args) {
+  const sock = await getRedisConnection();
+  return new Promise((resolve, reject) => {
+    redisQueue.push({ resolve, reject });
+    sock.write(respEncode(args));
+  });
+}
+
+/**
+ * Compute heat score: hits × exp(-λ × age)
+ */
+function heatScore(hits, lastAccessed) {
+  const age = Math.max(0, Math.floor(Date.now() / 1000) - lastAccessed);
+  return hits * Math.exp(-LAMBDA * age);
+}
+
+/**
+ * Parse HGETALL flat array [k1, v1, k2, v2, ...] into an object.
+ */
+function hashToObject(arr) {
+  if (!Array.isArray(arr)) return {};
+  const obj = {};
+  for (let i = 0; i < arr.length; i += 2) {
+    obj[arr[i]] = arr[i + 1];
+  }
+  return obj;
+}
+
 // ── Tool implementations ────────────────────────────────────────────────────
 
 async function loreSearch(query, k) {
@@ -189,20 +351,41 @@ async function loreHealth() {
 async function loreHotRecall(limit) {
   const n = Math.max(1, Math.min(limit || 10, 50));
   try {
-    const raw = await httpGet(sidecarUrl(`/memory/hot?limit=${n}`));
-    const facts = JSON.parse(raw);
-    if (!Array.isArray(facts) || facts.length === 0) {
+    const keys = await redis('SMEMBERS', 'lore:hot:index');
+    if (!Array.isArray(keys) || keys.length === 0) {
       return 'No hot memory facts.';
     }
-    const parts = facts.map((f) => {
-      const score = f.current_score != null ? f.current_score.toFixed(2) : '?';
-      const label = f.key || f.path || f.id || 'unknown';
-      const content = f.content || f.value || '';
-      return `[${score}] ${label}${content ? '\n' + content : ''}`;
-    });
-    return `${facts.length} hot facts:\n\n${parts.join('\n\n')}`;
+
+    const facts = [];
+    for (const key of keys) {
+      const data = hashToObject(await redis('HGETALL', `lore:hot:${key}`));
+      if (!data.created_at) continue; // skip malformed
+      const hits = parseInt(data.hits, 10) || 1;
+      const lastAccessed = parseInt(data.last_accessed, 10) || parseInt(data.created_at, 10);
+      const score = heatScore(hits, lastAccessed);
+
+      // Boost: increment hits and update last_accessed on recall
+      const now = Math.floor(Date.now() / 1000);
+      await redis('HINCRBY', `lore:hot:${key}`, 'hits', 1);
+      await redis('HSET', `lore:hot:${key}`, 'last_accessed', String(now));
+
+      const display = data.type === 'fieldnote'
+        ? `${data.description || ''}\n${data.body || ''}`
+        : data.content || '';
+      facts.push({ key, score, display, type: data.type || 'fact' });
+    }
+
+    facts.sort((a, b) => b.score - a.score);
+    const top = facts.slice(0, n);
+
+    if (top.length === 0) return 'No hot memory facts.';
+
+    const parts = top.map((f) =>
+      `[${f.score.toFixed(2)}] ${f.key} (${f.type})${f.display ? '\n' + f.display : ''}`,
+    );
+    return `${top.length} hot facts:\n\n${parts.join('\n\n')}`;
   } catch (err) {
-    return `Sidecar unavailable: ${err.message}`;
+    return `Redis unavailable: ${err.message}`;
   }
 }
 
@@ -213,9 +396,18 @@ async function loreHotWrite(key, content) {
   if (!content || !content.trim()) {
     return 'Error: content parameter is required.';
   }
+  const k = key.trim();
+  const now = String(Math.floor(Date.now() / 1000));
   try {
-    await httpPost(sidecarUrl('/memory/write'), { key: key.trim(), content: content.trim() });
-    return `Recorded to hot memory: ${key}`;
+    await redis('HSET', `lore:hot:${k}`,
+      'content', content.trim(),
+      'type', 'fact',
+      'created_at', now,
+      'last_accessed', now,
+      'hits', '1',
+    );
+    await redis('SADD', 'lore:hot:index', k);
+    return `Recorded to hot memory: ${k}`;
   } catch (err) {
     return `Failed to write to hot memory: ${err.message}`;
   }
@@ -228,16 +420,22 @@ async function loreHotFieldnote(name, description, body) {
   if (!body || !body.trim()) {
     return 'Error: body parameter is required.';
   }
-  const fieldnote = {
-    type: 'fieldnote',
-    key: `fieldnote:${name.trim()}`,
-    name: name.trim(),
-    description: (description || '').trim(),
-    body: body.trim(),
-  };
+  const n = name.trim();
+  const k = `fieldnote:${n}`;
+  const now = String(Math.floor(Date.now() / 1000));
   try {
-    await httpPost(sidecarUrl('/memory/write'), fieldnote);
-    return `Fieldnote drafted in hot memory: ${name}\nUse /lore memory burn to review and graduate to the knowledge base.`;
+    await redis('HSET', `lore:hot:${k}`,
+      'content', (description || '').trim(),
+      'type', 'fieldnote',
+      'name', n,
+      'description', (description || '').trim(),
+      'body', body.trim(),
+      'created_at', now,
+      'last_accessed', now,
+      'hits', '1',
+    );
+    await redis('SADD', 'lore:hot:index', k);
+    return `Fieldnote drafted in hot memory: ${n}\nUse /lore memory burn to review and graduate to the knowledge base.`;
   } catch (err) {
     return `Failed to draft fieldnote: ${err.message}`;
   }
@@ -246,10 +444,18 @@ async function loreHotFieldnote(name, description, body) {
 async function loreHotSessionNote(key, content) {
   if (!key || !key.trim()) return 'Error: key parameter is required.';
   if (!content || !content.trim()) return 'Error: content parameter is required.';
-  const note = { type: 'session-note', key: `note:${key.trim()}`, content: content.trim() };
+  const k = `note:${key.trim()}`;
+  const now = String(Math.floor(Date.now() / 1000));
   try {
-    await httpPost(sidecarUrl('/memory/write'), note);
-    return `Session note recorded: ${key}`;
+    await redis('HSET', `lore:hot:${k}`,
+      'content', content.trim(),
+      'type', 'session-note',
+      'created_at', now,
+      'last_accessed', now,
+      'hits', '1',
+    );
+    await redis('SADD', 'lore:hot:index', k);
+    return `Session note recorded: ${key.trim()}`;
   } catch (err) {
     return `Failed to record session note: ${err.message}`;
   }
