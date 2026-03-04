@@ -164,7 +164,7 @@ test('processToolUse: bash increments counter', (t) => {
   });
   assert.equal(result.bashCount, 1);
   assert.ok(!result.silent); // first bash emits capture reminder
-  assert.ok(result.message.includes('LORE-CAPTURE'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
 });
 
 test('processToolUse: nudge at threshold', (t) => {
@@ -179,8 +179,8 @@ test('processToolUse: nudge at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 3);
-  assert.ok(result.message.includes('LORE-CHECKPOINT'));
-  assert.ok(result.message.includes('Pause point'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
+  assert.ok(result.message.includes('worth a note'));
 });
 
 test('processToolUse: warn at threshold', (t) => {
@@ -195,7 +195,7 @@ test('processToolUse: warn at threshold', (t) => {
     rootDir: dir,
   });
   assert.equal(result.bashCount, 5);
-  assert.ok(result.message.includes('LORE-CHECKPOINT'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
   assert.ok(result.message.includes('consecutive commands'));
   assert.equal(result.level, 'warn');
 });
@@ -211,8 +211,8 @@ test('processToolUse: failure on first bash shows required capture review', (t) 
     thresholds: defaultThresholds,
     rootDir: dir,
   });
-  assert.ok(result.message.includes('LORE-FAILURE'));
-  assert.ok(result.message.includes('Execution failure'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
+  assert.ok(result.message.includes('Execution failed'));
 });
 
 test('processToolUse: failure takes priority over threshold', (t) => {
@@ -226,8 +226,8 @@ test('processToolUse: failure takes priority over threshold', (t) => {
     thresholds: defaultThresholds,
     rootDir: dir,
   });
-  assert.ok(result.message.includes('LORE-FAILURE'));
-  assert.ok(result.message.includes('Execution failure'));
+  assert.ok(result.message.includes('LORE-MEMORY'));
+  assert.ok(result.message.includes('Execution failed'));
 });
 
 test('processToolUse: non-bash write resets counter', (t) => {

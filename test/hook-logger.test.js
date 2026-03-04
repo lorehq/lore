@@ -76,7 +76,7 @@ test('logHookEvent: appends multiple events', (t) => {
   });
   process.env.LORE_HOOK_LOG = '1';
   logHookEvent({ platform: 'claude', hook: 'session-init', event: 'SessionStart', outputSize: 500, directory: dir });
-  logHookEvent({ platform: 'claude', hook: 'knowledge-tracker', event: 'PostToolUse', outputSize: 80, directory: dir });
+  logHookEvent({ platform: 'claude', hook: 'memory-nudge', event: 'PostToolUse', outputSize: 80, directory: dir });
   logHookEvent({
     platform: 'claude',
     hook: 'prompt-preamble',

@@ -81,7 +81,7 @@ function runHook(dir, hookName, stdinInput) {
 }
 
 function runTrackerHook(dir, input) {
-  const raw = runHook(dir, 'knowledge-tracker.js', input);
+  const raw = runHook(dir, 'memory-nudge.js', input);
   return JSON.parse(raw).hookSpecificOutput;
 }
 
@@ -127,9 +127,9 @@ test('session-init: creates sticky files', (t) => {
   assert.ok(fs.existsSync(path.join(dir, '.lore', 'memory.local.md')));
 });
 
-// ── Knowledge Tracker ──
+// ── Memory Nudge ──
 
-test('knowledge-tracker: silent on read-only tools', (t) => {
+test('memory-nudge: silent on read-only tools', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   for (const tool of ['Read', 'Grep', 'Glob']) {
@@ -138,27 +138,27 @@ test('knowledge-tracker: silent on read-only tools', (t) => {
   }
 });
 
-test('knowledge-tracker: first bash emits capture reminder', (t) => {
+test('memory-nudge: first bash emits memory nudge', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'first bash should emit LORE-CAPTURE reminder');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'first bash should emit LORE-MEMORY nudge');
   assert.ok(out.additionalContext.includes('fieldnote'), 'first bash should mention fieldnote');
 });
 
-test('knowledge-tracker: escalates at 3 consecutive bash', (t) => {
+test('memory-nudge: escalates at 3 consecutive bash', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
   runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
   assert.ok(out.additionalContext.includes('3 commands'), 'should include command count');
-  assert.ok(out.additionalContext.includes('Pause point'), 'should include pause point message');
+  assert.ok(out.additionalContext.includes('worth a note'), 'should include worth a note message');
 });
 
-test('knowledge-tracker: strong warning at 5 consecutive bash', (t) => {
+test('memory-nudge: strong warning at 5 consecutive bash', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify({ nudgeThreshold: 3, warnThreshold: 5 }));
@@ -166,12 +166,12 @@ test('knowledge-tracker: strong warning at 5 consecutive bash', (t) => {
     runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
   const out = runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
   assert.ok(out.additionalContext.includes('5 consecutive commands'), 'should include consecutive command count');
-  assert.ok(out.additionalContext.includes('Consider stopping'), 'should include stop suggestion');
+  assert.ok(out.additionalContext.includes('pause and capture'), 'should include pause and capture message');
 });
 
-test('knowledge-tracker: resets counter on knowledge capture', (t) => {
+test('memory-nudge: resets counter on knowledge capture', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
@@ -187,7 +187,7 @@ test('knowledge-tracker: resets counter on knowledge capture', (t) => {
   assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset after capture');
 });
 
-test('knowledge-tracker: MEMORY.local.md scratch notes warning', (t) => {
+test('memory-nudge: MEMORY.local.md scratch notes warning', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runTrackerHook(dir, {
@@ -196,25 +196,25 @@ test('knowledge-tracker: MEMORY.local.md scratch notes warning', (t) => {
     hook_event_name: 'PostToolUse',
   });
   assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
-  assert.ok(out.additionalContext.includes('Session memory updated'), 'should include session memory updated message');
+  assert.ok(out.additionalContext.includes('Local memory updated'), 'should include local memory updated message');
 });
 
-test('knowledge-tracker: error pattern message on bash failure', (t) => {
+test('memory-nudge: error pattern message on bash failure', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
-  assert.ok(out.additionalContext.includes('LORE-FAILURE'), 'should include LORE-FAILURE');
-  assert.ok(out.additionalContext.includes('Execution failure'), 'should include execution failure message');
-  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'should include LORE-CAPTURE for fieldnote suggestion');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
+  assert.ok(out.additionalContext.includes('Execution failed'), 'should include execution failed message');
+  assert.ok(out.additionalContext.includes('fieldnote'), 'should include fieldnote suggestion');
 });
 
-test('knowledge-tracker: respects custom thresholds from .lore-config', (t) => {
+test('memory-nudge: respects custom thresholds from .lore-config', (t) => {
   const dir = setup({ config: { version: '1.0.0', nudgeThreshold: 2, warnThreshold: 4 } });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   // 2nd bash should now nudge (custom threshold)
   runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runTrackerHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT at custom threshold');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY at custom threshold');
   assert.ok(out.additionalContext.includes('2 commands'), 'should include command count');
 });
 

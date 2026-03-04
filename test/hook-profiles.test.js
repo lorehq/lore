@@ -19,7 +19,7 @@ function setup(opts = {}) {
   // Copy all hooks used across these tests
   const hooks = [
     'prompt-preamble.js',
-    'knowledge-tracker.js',
+    'memory-nudge.js',
     'protect-memory.js',
     'harness-guard.js',
   ];
@@ -44,7 +44,7 @@ function setup(opts = {}) {
   // Create .lore/agents/ (prompt-preamble scans it)
   fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
 
-  // Create .git/ for knowledge-tracker state file and hook-logger log path
+  // Create .git/ for memory-nudge state file and hook-logger log path
   fs.mkdirSync(path.join(dir, '.git'), { recursive: true });
 
   if (opts.config) {
@@ -80,12 +80,12 @@ test('prompt-preamble: produces output in standard profile', () => {
   }
 });
 
-// -- knowledge-tracker --
+// -- memory-nudge --
 
-test('knowledge-tracker: no output in minimal profile', () => {
+test('memory-nudge: no output in minimal profile', () => {
   const dir = setup({ config: { profile: 'minimal' } });
   try {
-    const out = execSync('node .lore/harness/hooks/knowledge-tracker.js', {
+    const out = execSync('node .lore/harness/hooks/memory-nudge.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({ tool_name: 'Bash', tool_input: {}, hook_event_name: 'PostToolUse' }),
@@ -96,10 +96,10 @@ test('knowledge-tracker: no output in minimal profile', () => {
   }
 });
 
-test('knowledge-tracker: produces output in standard profile', () => {
+test('memory-nudge: produces output in standard profile', () => {
   const dir = setup({ config: { profile: 'standard' } });
   try {
-    const out = execSync('node .lore/harness/hooks/knowledge-tracker.js', {
+    const out = execSync('node .lore/harness/hooks/memory-nudge.js', {
       cwd: dir,
       encoding: 'utf8',
       input: JSON.stringify({ tool_name: 'Bash', tool_input: {}, hook_event_name: 'PostToolUse' }),

@@ -100,9 +100,9 @@ console.log('');
 console.log('--- Missing hooks (expected but never fired) ---');
 const seen = new Set(lines.map(e => e.platform + '/' + e.hook));
 const expected = [
-  'claude/session-init', 'claude/prompt-preamble', 'claude/knowledge-tracker',
+  'claude/session-init', 'claude/prompt-preamble', 'claude/memory-nudge',
   'claude/protect-memory', 'claude/harness-guard', 'claude/search-guard',
-  'gemini/session-init', 'gemini/prompt-preamble', 'gemini/knowledge-tracker',
+  'gemini/session-init', 'gemini/prompt-preamble', 'gemini/memory-nudge',
   'gemini/protect-memory', 'gemini/harness-guard', 'gemini/search-guard',
 ];
 const missing = expected.filter(e => !seen.has(e));

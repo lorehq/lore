@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const hookPath = path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'knowledge-tracker.js');
+const hookPath = path.join(__dirname, '..', '.lore', 'harness', 'hooks', 'memory-nudge.js');
 
 function setup() {
   // realpathSync: macOS /var → /private/var symlink must match process.cwd() in children
@@ -45,11 +45,11 @@ test('resets bash counter after read-only tool', (t) => {
   assert.ok(!out.additionalContext?.includes('in a row'), 'counter should have reset');
 });
 
-test('first bash: emits capture reminder', (t) => {
+test('first bash: emits memory nudge', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'first bash should emit LORE-CAPTURE reminder');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'first bash should emit LORE-MEMORY nudge');
   assert.ok(out.additionalContext.includes('fieldnote'), 'first bash should mention fieldnote');
 });
 
@@ -61,9 +61,9 @@ test('3rd consecutive bash: nudge', (t) => {
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
   assert.ok(out.additionalContext.includes('3 commands'), 'should include command count');
-  assert.ok(out.additionalContext.includes('Pause point'), 'should include pause point message');
+  assert.ok(out.additionalContext.includes('worth a note'), 'should include worth a note message');
 });
 
 test('5th consecutive bash: strong warning', (t) => {
@@ -75,18 +75,18 @@ test('5th consecutive bash: strong warning', (t) => {
     runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
   }
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUse' });
-  assert.ok(out.additionalContext.includes('LORE-CHECKPOINT'), 'should include LORE-CHECKPOINT');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
   assert.ok(out.additionalContext.includes('5 consecutive commands'), 'should include consecutive command count');
-  assert.ok(out.additionalContext.includes('Consider stopping'), 'should include stop suggestion');
+  assert.ok(out.additionalContext.includes('pause and capture'), 'should include pause and capture message');
 });
 
 test('bash failure: error pattern message', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const out = runHook(dir, { tool_name: 'Bash', hook_event_name: 'PostToolUseFailure' });
-  assert.ok(out.additionalContext.includes('LORE-FAILURE'), 'should include LORE-FAILURE');
-  assert.ok(out.additionalContext.includes('Execution failure'), 'should include execution failure message');
-  assert.ok(out.additionalContext.includes('LORE-CAPTURE'), 'should include LORE-CAPTURE for fieldnote suggestion');
+  assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
+  assert.ok(out.additionalContext.includes('Execution failed'), 'should include execution failed message');
+  assert.ok(out.additionalContext.includes('fieldnote'), 'should include fieldnote suggestion');
 });
 
 test('knowledge capture resets counter', (t) => {
@@ -115,7 +115,7 @@ test('MEMORY.local.md write: session memory warning', (t) => {
     hook_event_name: 'PostToolUse',
   });
   assert.ok(out.additionalContext.includes('LORE-MEMORY'), 'should include LORE-MEMORY');
-  assert.ok(out.additionalContext.includes('Session memory updated'), 'should include session memory updated message');
+  assert.ok(out.additionalContext.includes('Local memory updated'), 'should include local memory updated message');
 });
 
 test('non-bash tool resets bash counter', (t) => {

@@ -136,7 +136,7 @@ async function buildStaticBanner(directory) {
   if (sidecarHealth) {
     output += `\n\n\x1b[92m▆ HOT MEMORY: active\x1b[0m \u2014 capture context (lore_hot_session_note), recall before research (lore_hot_recall).`;
   } else {
-    output += `\n\n\x1b[91m▆ HOT MEMORY: offline\x1b[0m \u2014 start with /lore memory. Using ${globalKBPath} (Glob/Grep).`;
+    output += `\n\n\x1b[93m▆ HOT MEMORY: offline\x1b[0m \u2014 sidecar offline; write to .lore/memory.local.md instead. Start sidecar: /lore memory.`;
   }
 
   if (profile === 'minimal') {

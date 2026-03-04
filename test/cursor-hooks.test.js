@@ -2,9 +2,9 @@
 // The .cursor/hooks/ directory was removed in the harness refactor.
 // Hook scripts now live at .lore/harness/hooks/ and are tested by:
 //   - session-init.test.js
-//   - knowledge-tracker.test.js
+//   - memory-nudge.test.js
 // Removed hooks (capture-nudge, compaction-flag, failure-tracker) were
-// consolidated into knowledge-tracker.js.
+// consolidated into memory-nudge.js.
 
 const { test } = require('node:test');
 
@@ -28,11 +28,11 @@ test('protect-memory: allows non-MEMORY files', { skip: 'Cursor hooks removed' }
 
 // ── Knowledge Tracker ──
 
-test('knowledge-tracker: silent on knowledge path writes', { skip: 'Cursor hooks removed' }, () => {});
+test('memory-nudge: silent on knowledge path writes', { skip: 'Cursor hooks removed' }, () => {});
 
-test('knowledge-tracker: silent on all writes (output moved to capture-nudge)', { skip: 'Cursor hooks removed' }, () => {});
+test('memory-nudge: silent on all writes (output moved to capture-nudge)', { skip: 'Cursor hooks removed' }, () => {});
 
-test('knowledge-tracker: file edit resets bash counter', { skip: 'Cursor hooks removed' }, () => {});
+test('memory-nudge: file edit resets bash counter', { skip: 'Cursor hooks removed' }, () => {});
 
 // ── Protect Memory (preToolUse Write) ──
 

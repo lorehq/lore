@@ -31,13 +31,13 @@
     "PostToolUse": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/knowledge-tracker.js || true" }]
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/memory-nudge.js || true" }]
       }
     ],
     "PostToolUseFailure": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/knowledge-tracker.js || true" }]
+        "hooks": [{ "type": "command", "command": "node .lore/harness/hooks/memory-nudge.js || true" }]
       }
     ]
   }

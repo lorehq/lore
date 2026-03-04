@@ -48,8 +48,8 @@ bash scripts/analyze-hook-logs.sh /path/to/other-repo/.git/lore-hook-events.json
 
 | Platform | Hooks |
 |----------|-----------------|
-| Claude Code (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, harness-guard, search-guard |
-| Gemini CLI (6) | session-init, prompt-preamble, knowledge-tracker, protect-memory, harness-guard, search-guard |
+| Claude Code (6) | session-init, prompt-preamble, memory-nudge, protect-memory, harness-guard, search-guard |
+| Gemini CLI (6) | session-init, prompt-preamble, memory-nudge, protect-memory, harness-guard, search-guard |
 
 ## Reset
 

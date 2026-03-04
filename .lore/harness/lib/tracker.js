@@ -1,5 +1,5 @@
-// Shared: knowledge tracker logic — tool classification and message selection.
-// Used by hooks/knowledge-tracker.js.
+// Shared: memory nudge logic — tool classification and message selection.
+// Used by hooks/memory-nudge.js.
 
 const path = require('path');
 
@@ -47,9 +47,9 @@ function getThresholds(directory) {
 // with escalation at nudge/warn thresholds. Failures always emit.
 function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, rootDir }) {
   const capture =
-    '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m Non-obvious snag? \u2192 fieldnote. Key decision or context? \u2192 session note (lore_hot_session_note).';
+    '\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m Snag? \u2192 fieldnote. Decision/context? \u2192 session note. Write freely.';
   const failureReview =
-    '\x1b[91m[\u25A0 LORE-FAILURE]\x1b[0m Execution failure. If the fix was non-obvious, capture it as a fieldnote.';
+    '\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m Execution failed \u2014 if the fix was non-obvious, capture a fieldnote or session note.';
 
   if (isReadOnly(tool)) {
     return { silent: true, bashCount: 0 };
@@ -70,7 +70,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // Memory scratch warning always emits
   if (isWriteTool(tool) && filePath && filePath.replace(/\\/g, '/').includes('.lore/memory.local.md')) {
     return {
-      message: '\x1b[93m[\u25A0 LORE-MEMORY]\x1b[0m Session memory updated. If this is a reusable fix, propose graduation to the knowledge base.',
+      message: '\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m Local memory updated. Reusable fix? Propose graduation to the knowledge base.',
       level: 'info',
       bashCount: newCount,
       silent: false,
@@ -85,7 +85,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // Bash: emit only at threshold crossings
   if (newCount === nudge) {
     return {
-      message: `\x1b[93m[\u25A0 LORE-CHECKPOINT]\x1b[0m (${newCount} commands). Pause point \u2014 any discoveries worth capturing?`,
+      message: `\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m (${newCount} commands) \u2014 any findings worth a note?`,
       level: 'warn',
       bashCount: newCount,
       silent: false,
@@ -93,7 +93,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   }
   if (newCount === warn || (newCount > warn && newCount % warn === 0)) {
     return {
-      message: `\x1b[93m[\u25A0 LORE-CHECKPOINT]\x1b[0m (${newCount} consecutive commands). Consider stopping to capture findings before continuing.`,
+      message: `\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m (${newCount} consecutive commands) \u2014 pause and capture findings before continuing.`,
       level: 'warn',
       bashCount: newCount,
       silent: false,
@@ -103,7 +103,7 @@ function processToolUse({ tool, filePath, isFailure, bashCount, thresholds, root
   // First bash in a sequence — capture reminder; subsequent silent until thresholds
   if (newCount === 1) {
     return {
-      message: '\x1b[93m[\u25A0 LORE-CAPTURE]\x1b[0m Non-obvious snag? \u2192 fieldnote. Key decision or context? \u2192 session note.',
+      message: '\x1b[92m[\u25A0 LORE-MEMORY]\x1b[0m Snag? \u2192 fieldnote. Decision/context? \u2192 session note. Write freely.',
       level: 'info',
       bashCount: newCount,
       silent: false,

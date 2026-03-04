@@ -50,7 +50,7 @@ const tool = (input.tool_name || '').toLowerCase();
 const filePath = (input.tool_input || {}).file_path || '';
 const isFailure = input.hook_event_name === 'PostToolUseFailure';
 const event = input.hook_event_name || 'PostToolUse';
-debug('knowledge-tracker: tool=%s file=%s event=%s', tool, filePath, event);
+debug('memory-nudge: tool=%s file=%s event=%s', tool, filePath, event);
 
 const { getProfile } = require('../lib/config');
 if (getProfile(hubDir) === 'minimal') process.exit(0);
@@ -73,7 +73,7 @@ if (result.silent) {
   fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'claude',
-    hook: 'knowledge-tracker',
+    hook: 'memory-nudge',
     event,
     outputSize: out.length,
     state: { bash: state.bash, silent: true },
@@ -86,7 +86,7 @@ if (result.silent) {
   fs.writeSync(1, out + '\n');
   logHookEvent({
     platform: 'claude',
-    hook: 'knowledge-tracker',
+    hook: 'memory-nudge',
     event,
     outputSize: out.length,
     state: { bash: state.bash, silent: false },
