@@ -82,8 +82,8 @@ async function project() {
     }
   };
 
-  scanAssets(path.join(globalPath, 'rules'), 'rules');
-  scanAssets(path.join(absRoot, '.lore', 'rules'), 'rules');
+  scanAssets(path.join(globalPath, 'AGENTIC', 'rules'), 'rules');
+  scanAssets(path.join(absRoot, '.lore', 'AGENTIC', 'rules'), 'rules');
 
   const activePlatforms = getActivePlatforms(absRoot);
 
@@ -113,8 +113,8 @@ async function project() {
       const platformSkillsDir = path.join(absRoot, platform.agentsDir.replace('agents', 'skills'));
       const skillDirs = [
         path.join(absRoot, '.lore', 'harness', 'skills'),  // harness (lowest priority)
-        path.join(globalPath, 'skills'),                     // global user
-        path.join(absRoot, '.lore', 'skills'),               // project user (wins)
+        path.join(globalPath, 'AGENTIC', 'skills'),              // global user
+        path.join(absRoot, '.lore', 'AGENTIC', 'skills'),    // project user (wins)
       ];
 
       for (const sDir of skillDirs) {
@@ -144,7 +144,7 @@ async function project() {
     }
     if (caps.includes('agents') && platform.agentsDir) {
       const platformAgentsDir = path.join(absRoot, platform.agentsDir);
-      const agentDirs = [path.join(globalPath, 'agents'), path.join(absRoot, '.lore', 'agents')];
+      const agentDirs = [path.join(globalPath, 'AGENTIC', 'agents'), path.join(absRoot, '.lore', 'AGENTIC', 'agents')];
       for (const aDir of agentDirs) {
         if (!fs.existsSync(aDir)) continue;
         for (const f of fs.readdirSync(aDir).filter(f => f.endsWith('.md'))) {

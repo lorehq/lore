@@ -30,8 +30,8 @@ if platform_active claude; then
     const globalPath = getGlobalPath();
     const srcDirs = [
       path.join(root, '.lore', 'harness', 'skills'),
-      path.join(globalPath, 'skills'),
-      path.join(root, '.lore', 'skills'),
+      path.join(globalPath, 'AGENTIC', 'skills'),
+      path.join(root, '.lore', 'AGENTIC', 'skills'),
     ];
     const outDir = path.join(root, '.claude', 'skills');
     const canonical = new Set();
@@ -60,9 +60,9 @@ if platform_active claude; then
 
   # -- Claude Code agents --
   # Copy agent definitions, then prune stale entries.
-  if [ -d "$REPO_ROOT/.lore/agents" ]; then
+  if [ -d "$REPO_ROOT/.lore/AGENTIC/agents" ]; then
     mkdir -p "$REPO_ROOT/.claude/agents"
-    for f in "$REPO_ROOT"/.lore/agents/*.md; do
+    for f in "$REPO_ROOT"/.lore/AGENTIC/agents/*.md; do
       [ -f "$f" ] || continue
       cp "$f" "$REPO_ROOT/.claude/agents/$(basename "$f")"
     done
@@ -70,7 +70,7 @@ if platform_active claude; then
     for f in "$REPO_ROOT"/.claude/agents/*.md; do
       [ -f "$f" ] || continue
       name="$(basename "$f")"
-      [ -f "$REPO_ROOT/.lore/agents/$name" ] || rm "$f"
+      [ -f "$REPO_ROOT/.lore/AGENTIC/agents/$name" ] || rm "$f"
     done
   fi
 fi

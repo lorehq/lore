@@ -19,7 +19,7 @@ function setup() {
     path.join(__dirname, '..', '.lore', 'harness', 'scripts', 'lib', 'common.sh'),
     path.join(dir, '.lore', 'harness', 'scripts', 'lib', 'common.sh'),
   );
-  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
   // Canonical instructions + generated copies
   const instructions = '# Lore\n\nTest instructions.\n';
@@ -32,8 +32,8 @@ function setup() {
     '---\nalwaysApply: true\n---\n\n' + instructions,
   );
   // Required rules
-  fs.mkdirSync(path.join(dir, '.lore', 'rules'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.lore', 'rules', 'security.md'), '# Security\n');
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'AGENTIC', 'rules', 'security.md'), '# Security\n');
   return dir;
 }
 
@@ -62,7 +62,7 @@ test('passes: fully consistent setup', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   // Create type: command skill in canonical location and mirror to platform copy
-  const skillDir = path.join(dir, '.lore', 'skills', 'test-skill');
+  const skillDir = path.join(dir, '.lore', 'AGENTIC', 'skills', 'test-skill');
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
@@ -149,7 +149,7 @@ test('fails: platform copy out of sync with canonical source', (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   // Create type: command skill in .lore/ only (no platform copy)
-  const skillDir = path.join(dir, '.lore', 'skills', 'sync-test');
+  const skillDir = path.join(dir, '.lore', 'AGENTIC', 'skills', 'sync-test');
   fs.mkdirSync(skillDir);
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),

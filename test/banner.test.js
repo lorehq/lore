@@ -25,7 +25,7 @@ function setup(opts = {}) {
   // Minimal required directories
   fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'initiatives'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'docs', 'workflow', 'in-flight', 'epics'), { recursive: true });
-  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'skills'), { recursive: true });
 
   if (opts.config) {
     fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
@@ -39,13 +39,13 @@ function setup(opts = {}) {
   }
   if (opts.skills) {
     for (const [name, content] of Object.entries(opts.skills)) {
-      const skillDir = path.join(dir, '.lore', 'skills', name);
+      const skillDir = path.join(dir, '.lore', 'AGENTIC', 'skills', name);
       fs.mkdirSync(skillDir, { recursive: true });
       fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
     }
   }
   if (opts.rulesDir) {
-    const _rulesDir = path.join(dir, '.lore', 'rules');
+    const _rulesDir = path.join(dir, '.lore', 'AGENTIC', 'rules');
     fs.mkdirSync(_rulesDir, { recursive: true });
     for (const [name, content] of Object.entries(opts.rulesDir)) {
       fs.writeFileSync(path.join(_rulesDir, name), content);

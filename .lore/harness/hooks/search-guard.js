@@ -28,8 +28,8 @@ const tool = input.toolName || '';
 const args = input.arguments || {};
 const targetPath = args.path || args.dir_path || args.include || '';
 
-// Indexed territory: docs/, .lore/harness/skills/, .lore/skills/, .lore/rules/
-const isIndexed = /^(docs\/|\.lore\/harness\/skills\/|\.lore\/skills\/|\.lore\/rules\/)/.test(targetPath);
+// Indexed territory: docs/, .lore/harness/skills/, .lore/AGENTIC/skills/, .lore/AGENTIC/rules/
+const isIndexed = /^(docs\/|\.lore\/harness\/skills\/|\.lore\/AGENTIC\/skills\/|\.lore\/AGENTIC\/rules\/)/.test(targetPath);
 
 let msg = '';
 if (hasSearch && isIndexed) {

@@ -51,17 +51,17 @@ function setup(opts = {}) {
   }
 
   // Minimal project structure
-  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(dir, '.git'));
 
   if (opts.config) {
     fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  // Create .lore/agents/ for agent scanning
-  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  // Create .lore/AGENTIC/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'agents'), { recursive: true });
   if (opts.agents) {
     for (const [filename, content] of Object.entries(opts.agents)) {
-      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+      fs.writeFileSync(path.join(dir, '.lore', 'AGENTIC', 'agents', filename), content);
     }
   }
   if (opts.agentRules) {

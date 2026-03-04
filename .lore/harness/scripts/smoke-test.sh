@@ -27,7 +27,7 @@ cd "$WORK"
 # 1. Sticky file bootstrap
 echo "--- Sticky files ---"
 node -e "require('./.lore/harness/lib/banner').ensureStickyFiles('.')"
-[[ -d .lore/rules ]] || { echo "FAIL: .lore/rules/ not created"; exit 1; }
+[[ -d .lore/AGENTIC/rules ]] || { echo "FAIL: .lore/AGENTIC/rules/ not created"; exit 1; }
 [[ -f .lore/memory.local.md ]] || { echo "FAIL: .lore/memory.local.md not created"; exit 1; }
 echo "OK"
 

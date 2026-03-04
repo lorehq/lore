@@ -16,7 +16,7 @@ Fieldnotes capture environmental knowledge from failures — auth quirks, encodi
 
 **Mandatory**: Auth quirks, encoding issues, parameter tricks, platform incompatibilities, anything that surprised you during execution.
 
-**Not fieldnotes**: Procedural commands, multi-step workflows, harness operations — those are skills (create in `.lore/skills/`).
+**Not fieldnotes**: Procedural commands, multi-step workflows, harness operations — those are skills (create in `.lore/AGENTIC/skills/`).
 
 ## Process
 

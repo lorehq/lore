@@ -5,7 +5,7 @@ const path = require('path');
 
 function isKnowledgePath(filePath, rootDir) {
   const resolved = path.resolve(filePath);
-  const prefixes = ['docs', '.lore/harness/skills', '.lore/skills'].map(
+  const prefixes = ['docs', '.lore/harness/skills', '.lore/AGENTIC/skills'].map(
     (p) => path.resolve(rootDir || process.cwd(), ...p.split('/')) + path.sep,
   );
   return prefixes.some((pre) => resolved.startsWith(pre));

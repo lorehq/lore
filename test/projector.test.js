@@ -13,7 +13,7 @@ function setup() {
   const lore = path.join(dir, '.lore');
   fs.mkdirSync(path.join(lore, 'harness', 'lib'), { recursive: true });
   fs.mkdirSync(path.join(lore, 'harness', 'templates'), { recursive: true });
-  fs.mkdirSync(path.join(lore, 'rules'), { recursive: true });
+  fs.mkdirSync(path.join(lore, 'AGENTIC', 'rules'), { recursive: true });
 
   // Copy harness lib files the projector needs
   const libSrc = path.resolve(__dirname, '../.lore/harness/lib');

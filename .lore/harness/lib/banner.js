@@ -93,8 +93,8 @@ function getBannerLoadedSkills(directory) {
   const byName = new Map();
   const baseDirs = [
     path.join(directory, '.lore', 'harness', 'skills'),   // harness (lowest priority)
-    path.join(getGlobalPath(), 'skills'),                  // global user
-    path.join(directory, '.lore', 'skills'),               // project user (wins)
+    path.join(getGlobalPath(), 'AGENTIC', 'skills'),         // global user
+    path.join(directory, '.lore', 'AGENTIC', 'skills'),    // project user (wins)
   ];
   for (const skillsDir of baseDirs) {
     try {
@@ -150,7 +150,7 @@ async function buildStaticBanner(directory) {
   if (bannerSkills.length > 0) output += '\n\n' + bannerSkills.map((s) => s.body).join('\n\n');
   try {
     const allRules = [];
-    const rulesDirs = [path.join(getGlobalPath(), 'rules'), path.join(directory, '.lore', 'rules')];
+    const rulesDirs = [path.join(getGlobalPath(), 'AGENTIC', 'rules'), path.join(directory, '.lore', 'AGENTIC', 'rules')];
     const seen = new Set();
     for (const rDir of rulesDirs) {
       if (!fs.existsSync(rDir)) continue;

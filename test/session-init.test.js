@@ -32,16 +32,16 @@ function setup(opts = {}) {
   fs.cpSync(tplSrc, tplDir, { recursive: true });
 
   // Minimal structure so the hook doesn't error
-  fs.mkdirSync(path.join(dir, '.lore', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'skills'), { recursive: true });
 
   if (opts.config) {
     fs.writeFileSync(path.join(dir, '.lore', 'config.json'), JSON.stringify(opts.config));
   }
-  // Create .lore/agents/ for agent scanning
-  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  // Create .lore/AGENTIC/agents/ for agent scanning
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'agents'), { recursive: true });
   if (opts.agents) {
     for (const [filename, content] of Object.entries(opts.agents)) {
-      fs.writeFileSync(path.join(dir, '.lore', 'agents', filename), content);
+      fs.writeFileSync(path.join(dir, '.lore', 'AGENTIC', 'agents', filename), content);
     }
   }
   if (opts.agentRules) {
@@ -53,7 +53,7 @@ function setup(opts = {}) {
     fs.writeFileSync(path.join(dir, '.lore', 'rules.md'), opts.rules);
   }
   if (opts.rulesDir) {
-    const rulesDir = path.join(dir, '.lore', 'rules');
+    const rulesDir = path.join(dir, '.lore', 'AGENTIC', 'rules');
     fs.mkdirSync(rulesDir, { recursive: true });
     for (const [name, content] of Object.entries(opts.rulesDir)) {
       fs.writeFileSync(path.join(rulesDir, name), content);
@@ -141,8 +141,8 @@ test('creates MEMORY.local.md if missing', (t) => {
 test('hook output excludes static knowledge map', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(dir, '.lore', 'skills', 'my-skill'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.lore', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'skills', 'my-skill'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.lore', 'AGENTIC', 'skills', 'my-skill', 'SKILL.md'), '# Skill');
   const out = runHook(dir);
   // Knowledge map is static content — baked into CLAUDE.md
   assert.ok(!out.includes('KNOWLEDGE MAP:'), 'knowledge map belongs in CLAUDE.md, not hook output');

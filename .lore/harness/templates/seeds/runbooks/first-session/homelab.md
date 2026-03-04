@@ -29,13 +29,13 @@ Without it, the agent has no operator context — it knows the KB but not who it
 
 ### Project Rules
 
-Add project-specific rules to `.lore/rules/`.
+Add project-specific rules to `.lore/AGENTIC/rules/`.
 
 Minimum:
 - Scope: what domains this instance covers (infrastructure management, service deployment, etc.)
 - **Critical rule:** Never auto-apply destructive changes — reboots, VM destruction, firewall modifications, storage pool changes, VLAN reassignments — without explicit operator confirmation. The agent has SSH and API access to production infrastructure.
 
-Rules in `.lore/rules/` are loaded into the session banner and projected into platform mandate files.
+Rules in `.lore/AGENTIC/rules/` are loaded into the session banner and projected into platform mandate files.
 
 ### Machine Inventory
 

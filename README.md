@@ -55,9 +55,9 @@ No configuration needed. Your first session gets a full context banner immediate
 Lore is a harness built from markdown files, hooks that shape agent behavior, and scripts that keep everything consistent.
 
 - **Fieldnotes** (`~/.lore/knowledge-base/fieldnotes/`) — Snags and patterns captured from real work. Available in every session.
-- **Skills** (`.lore/skills/`) — Procedural capabilities and reusable commands.
-- **Rules** (`.lore/rules/`) — Behavioral constraints injected at write-time.
-- **Agents** (`.lore/agents/`) — Worker agents for delegated tasks, loaded with relevant skills and fieldnotes per-task.
+- **Skills** (`.lore/AGENTIC/skills/`) — Procedural capabilities and reusable commands.
+- **Rules** (`.lore/AGENTIC/rules/`) — Behavioral constraints injected at write-time.
+- **Agents** (`.lore/AGENTIC/agents/`) — Worker agents for delegated tasks, loaded with relevant skills and fieldnotes per-task.
 - **Hooks** (`.lore/harness/hooks/`) — Inject context at session start, enforce rules before writes, nudge knowledge capture during work.
 - **Scripts** (`.lore/harness/scripts/`) — Platform sync, validation, projection.
 

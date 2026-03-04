@@ -2,11 +2,11 @@
 
 **WARNING: This runbook restructures `~/.lore/knowledge-base/` freely. It will move, rename, merge, and reorganize files. Review the proposed structure before approving execution.**
 
-Reorganizes the global knowledge base (`~/.lore/knowledge-base/`) based on actual file content rather than the original folder structure. Applies the knowledge base structure rule (`.lore/rules/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
+Reorganizes the global knowledge base (`~/.lore/knowledge-base/`) based on actual file content rather than the original folder structure. Applies the knowledge base structure rule (`.lore/AGENTIC/rules/knowledge-base-structure.md`) with a focus on consolidation, retrieval optimization, and LLM navigation. Produces a clean directory structure with atomic files, descriptive names, and repaired internal links.
 
 ## Prerequisites
 
-- Knowledge rule loaded: `.lore/rules/knowledge-base-structure.md`
+- Knowledge rule loaded: `.lore/AGENTIC/rules/knowledge-base-structure.md`
 - Back up the global directory before starting: `cp -r ~/.lore/knowledge-base/ ~/.lore/knowledge-base.bak/`
 
 ## Protected Paths
@@ -21,7 +21,7 @@ These paths are never moved or renamed. Workers must exclude them from all propo
 
 Split `~/.lore/knowledge-base/` files into ~3 groups by directory. Each worker loads:
 
-- `.lore/rules/knowledge-base-structure.md` **only**
+- `.lore/AGENTIC/rules/knowledge-base-structure.md` **only**
 
 For each file, extract:
 
@@ -37,7 +37,7 @@ Worker return format: structured inventory list per file.
 
 Pass the full inventory to one sonnet worker. Worker loads:
 
-- `.lore/rules/knowledge-base-structure.md` **only**
+- `.lore/AGENTIC/rules/knowledge-base-structure.md` **only**
 
 Worker proposes a new directory structure and full move map:
 

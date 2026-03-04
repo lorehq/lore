@@ -55,7 +55,7 @@ test('isKnowledgePath: matches docs/ under rootDir', (t) => {
   const dir = setup();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.ok(isKnowledgePath(path.join(dir, 'docs', 'env.md'), dir));
-  assert.ok(isKnowledgePath(path.join(dir, '.lore', 'skills', 'foo', 'SKILL.md'), dir));
+  assert.ok(isKnowledgePath(path.join(dir, '.lore', 'AGENTIC', 'skills', 'foo', 'SKILL.md'), dir));
   assert.ok(isKnowledgePath(path.join(dir, '.lore', 'harness', 'skills', 'lore-test', 'SKILL.md'), dir));
 });
 

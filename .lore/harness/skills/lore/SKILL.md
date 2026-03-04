@@ -76,8 +76,8 @@ Run these checks and present a formatted summary to the operator:
 
 3. **Counts** — count and report:
    - Harness skills: number of directories in `.lore/harness/skills/`
-   - Operator skills: number of directories in `.lore/skills/`
-   - Agents: number of `.md` files in `.lore/agents/`
+   - Operator skills: number of directories in `.lore/AGENTIC/skills/`
+   - Agents: number of `.md` files in `.lore/AGENTIC/agents/`
    - Fieldnotes: number of directories in `~/.lore/knowledge-base/fieldnotes/`
    - Runbooks: number of `.md` files under `~/.lore/knowledge-base/runbooks/`
 
@@ -127,7 +127,7 @@ Pull the latest Lore harness files without touching operator content.
    node -e "const{ensureGlobalDir}=require('./.lore/harness/lib/global');const r=ensureGlobalDir('./.lore/harness/migrations');console.log(r.ran?'Migrated to v'+r.version:'Global dir up to date (v'+r.version+')');"
    ```
    This creates `~/.lore/` if missing and applies pending structural migrations.
-8. **Seed review** — compare `.lore/harness/templates/seeds/rules/` to operator rule files in `.lore/rules/`. For each seed template where the operator file exists and differs:
+8. **Seed review** — compare `.lore/harness/templates/seeds/rules/` to operator rule files in `.lore/AGENTIC/rules/`. For each seed template where the operator file exists and differs:
    - Show the diff (seed template vs operator file)
    - Ask the operator whether to adopt the updated seed or keep their version
    - Only overwrite operator files the operator explicitly approves
@@ -139,7 +139,7 @@ Pull the latest Lore harness files without touching operator content.
 
 **Overwritten (harness-owned):**
 - `.lore/harness/hooks/`, `.lore/harness/lib/`, `.lore/harness/scripts/`, `.opencode/`
-- `.claude/settings.json`, `.lore/skills/<built-in>/`
+- `.claude/settings.json`, `.lore/harness/skills/<built-in>/`
 - `.lore/instructions.md`, `.gitignore`, `opencode.json`
 - Generated copies (`CLAUDE.md`, `.cursor/rules/lore-*.mdc`) are also regenerated via `sync-platform-skills.sh`
 
@@ -147,7 +147,7 @@ Pull the latest Lore harness files without touching operator content.
 - `.lore/harness/templates/seeds/rules/` — default rule content. Created on first install if missing. On update, diffs shown for operator review.
 
 **Never touched (operator-owned):**
-- `.lore/agents/`
+- `.lore/AGENTIC/agents/`
 - `.lore/config.json`, `.lore/memory.local.md`, `.lore/operator.gitignore`
 
 ### Snags
@@ -166,7 +166,7 @@ Diagnose and fix a harness bug using the field repair workflow.
 
 ### Process
 
-1. Load the field-repair rule: `.lore/rules/field-repair.md`
+1. Load the field-repair rule: `.lore/AGENTIC/rules/field-repair.md`
 2. Ask the operator:
    - **What's broken?** (hook error, skill failure, script crash, bad behavior)
    - **How to reproduce?** (exact trigger — slash command, tool call, event)

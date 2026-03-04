@@ -5,9 +5,9 @@ const fs = require('fs');
 const path = require('path');
 
 const DIRS = [
-  'skills',
-  'rules',
-  'agents',
+  'AGENTIC/skills',
+  'AGENTIC/rules',
+  'AGENTIC/agents',
   'knowledge-base/fieldnotes',
   'knowledge-base/runbooks',
   'knowledge-base/environment',

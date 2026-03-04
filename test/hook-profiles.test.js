@@ -41,8 +41,8 @@ function setup(opts = {}) {
     fs.copyFileSync(path.join(srcLib, f), path.join(libDir, f));
   }
 
-  // Create .lore/agents/ (prompt-preamble scans it)
-  fs.mkdirSync(path.join(dir, '.lore', 'agents'), { recursive: true });
+  // Create .lore/AGENTIC/agents/ (prompt-preamble scans it)
+  fs.mkdirSync(path.join(dir, '.lore', 'AGENTIC', 'agents'), { recursive: true });
 
   // Create .git/ for memory-nudge state file and hook-logger log path
   fs.mkdirSync(path.join(dir, '.git'), { recursive: true });

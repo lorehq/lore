@@ -102,9 +102,9 @@ test('runMigrations runs pending migrations in order', (t) => {
   assert.ok(fs.existsSync(path.join(home, '.lore', 'knowledge-base', 'fieldnotes')), 'fieldnotes dir created');
   assert.ok(fs.existsSync(path.join(home, '.lore', 'knowledge-base', 'runbooks')), 'runbooks dir created');
   assert.ok(fs.existsSync(path.join(home, '.lore', 'knowledge-base', 'environment')), 'environment dir created');
-  assert.ok(fs.existsSync(path.join(home, '.lore', 'skills')), 'skills dir created');
-  assert.ok(fs.existsSync(path.join(home, '.lore', 'rules')), 'rules dir created');
-  assert.ok(fs.existsSync(path.join(home, '.lore', 'agents')), 'agents dir created');
+  assert.ok(fs.existsSync(path.join(home, '.lore', 'AGENTIC', 'skills')), 'skills dir created');
+  assert.ok(fs.existsSync(path.join(home, '.lore', 'AGENTIC', 'rules')), 'rules dir created');
+  assert.ok(fs.existsSync(path.join(home, '.lore', 'AGENTIC', 'agents')), 'agents dir created');
 });
 
 test('runMigrations skips already-applied migrations', (t) => {
@@ -167,7 +167,7 @@ test('migration 001 creates full skeleton', (t) => {
   mod.runMigrations(MIGRATIONS);
 
   const expected = [
-    'skills', 'rules', 'agents',
+    'AGENTIC/skills', 'AGENTIC/rules', 'AGENTIC/agents',
     'knowledge-base/fieldnotes', 'knowledge-base/runbooks',
     'knowledge-base/environment', 'knowledge-base/work-items',
     'knowledge-base/drafts',

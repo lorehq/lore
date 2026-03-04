@@ -35,7 +35,7 @@ echo ""
 
 # -- 1. Skill frontmatter: required fields --
 echo "--- Skill Frontmatter ---"
-for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/skills"; do
+for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/AGENTIC/skills"; do
   [[ -d "$skill_root" ]] || continue
   for dir in "$skill_root"/*/; do
     sf="$dir/SKILL.md"
@@ -54,7 +54,7 @@ if platform_active claude; then
   if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
     sync_ok=true
     # Check .claude/skills/ contains all skills from both harness and user dirs
-    for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/skills"; do
+    for skill_root in "$REPO_ROOT/.lore/harness/skills" "$REPO_ROOT/.lore/AGENTIC/skills"; do
       [[ -d "$skill_root" ]] || continue
       for dir in "$skill_root"/*/; do
         name=$(basename "$dir")
@@ -126,7 +126,7 @@ fi
 # -- 5. Required rules exist --
 echo "--- Required Rules ---"
 seed="security.md"
-target="$REPO_ROOT/.lore/rules/$seed"
+target="$REPO_ROOT/.lore/AGENTIC/rules/$seed"
 [[ -f "$target" ]] || fail "Required rule missing: $seed — will regenerate on next session"
 
 # -- Results --
