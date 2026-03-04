@@ -59,11 +59,7 @@ Set model aliases in `~/.claude/settings.json` under `env`:
 
 On hosted inference (Foundry, Bedrock, Vertex), these point to deployment names. On the direct Anthropic API, they point to model IDs.
 
-After setting aliases, regenerate agent frontmatter:
-
-```bash
-node .lore/harness/lib/generate-agents.js
-```
+After setting aliases, verify by asking the agent to run a worker test: each tier (fast/default/powerful) should report the model it's running on.
 
 **Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the caller's tier with no error.
 

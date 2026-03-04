@@ -57,11 +57,7 @@ Set model aliases in `~/.claude/settings.json` under `env`:
 "ANTHROPIC_DEFAULT_OPUS_MODEL": "<powerful-model>"
 ```
 
-After setting aliases, regenerate agent frontmatter:
-
-```bash
-node .lore/harness/lib/generate-agents.js
-```
+After setting aliases, verify by asking the agent to run a worker test: each tier (fast/default/powerful) should report the model it's running on.
 
 **Do not skip.** Claude Code silently ignores full model IDs in agent frontmatter — all workers run at the caller's tier with no error.
 

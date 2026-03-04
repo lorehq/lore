@@ -166,7 +166,7 @@ Diagnose and fix a harness bug using the field repair workflow.
 
 ### Process
 
-1. Load the field-repair rule: `.lore/AGENTIC/rules/field-repair.md`
+1. Check for a field-repair rule in `.lore/AGENTIC/rules/` (if the operator has one)
 2. Ask the operator:
    - **What's broken?** (hook error, skill failure, script crash, bad behavior)
    - **How to reproduce?** (exact trigger — slash command, tool call, event)

@@ -24,13 +24,13 @@ Log location: `.git/lore-hook-events.jsonl` in each workspace where hooks fire.
 ## Analyze
 
 ```bash
-bash scripts/analyze-hook-logs.sh
+bash .lore/harness/scripts/analyze-hook-logs.sh
 ```
 
 Or specify a log file from another workspace:
 
 ```bash
-bash scripts/analyze-hook-logs.sh /path/to/other-repo/.git/lore-hook-events.jsonl
+bash .lore/harness/scripts/analyze-hook-logs.sh /path/to/other-repo/.git/lore-hook-events.jsonl
 ```
 
 ## Report Sections
