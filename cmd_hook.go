@@ -54,47 +54,31 @@ func hookPreToolUse(input map[string]interface{}) {
 
 	// 1. Memory guard: block MEMORY.md access at project root
 	if isMemoryAccess(tool, filePath) {
-		emitJSON(preToolUseOutput("deny",
-			"[MEMORY-GUARD] MEMORY.md is managed by the platform. "+
-				"Use fieldnotes for knowledge capture, or .lore/MEMORY.md for session notes."))
+		emitJSON(preToolUseOutput("deny", loadPrompt("beforeTool/memoryGuard.md")))
 		return
 	}
 
 	// 2. Auto-memory redirect: block writes, redirect reads
 	if isClaudeAutoMemory(filePath) {
 		if isWriteTool(tool) {
-			emitJSON(preToolUseOutput("deny",
-				"[LORE-MEMORY] BLOCKED: Do not write to Claude auto-memory (~/.claude/projects/*/memory/).\n"+
-					"Lore uses shared Redis hot memory so all platforms benefit.\n\n"+
-					"Instead use these MCP tools:\n"+
-					"  - lore_hot_write: save a fact or observation (key + content)\n"+
-					"  - lore_hot_session_note: record session context (decisions, scope)\n"+
-					"  - lore_hot_fieldnote: draft a fieldnote for a non-obvious snag\n\n"+
-					"These persist in Redis and are accessible from Claude, Cursor, Gemini, and all other platforms."))
+			emitJSON(preToolUseOutput("deny", loadPrompt("beforeTool/autoMemoryRedirect.write.md")))
 			return
 		}
 		if isReadTool(tool) {
-			emitJSON(preToolUseOutput("",
-				"[LORE-MEMORY] Skip auto-memory reads. Use Lore's shared memory instead:\n"+
-					"  - lore_hot_recall: recall recent facts and session context from Redis\n"+
-					"  - lore_search: semantic search across the DATABANK\n"+
-					"  - Grep/Glob on ~/.lore/MEMORY/DATABANK/ for direct file access\n\n"+
-					"These are shared across all platforms — not just Claude."))
+			emitJSON(preToolUseOutput("", loadPrompt("beforeTool/autoMemoryRedirect.read.md")))
 			return
 		}
 	}
 
 	// 3. Harness guard: operator-gate writes to ~/.lore/
 	if isWriteTool(tool) && isGlobalPath(filePath) {
-		emitJSON(preToolUseOutput("ask",
-			"[HARNESS-GUARD] Writing to ~/.lore/ (managed by harness). Operator approval required."))
+		emitJSON(preToolUseOutput("ask", loadPrompt("beforeTool/harnessGuard.md")))
 		return
 	}
 
 	// 4. Search nudge: suggest semantic search for indexed paths
 	if isReadTool(tool) && isIndexedPath(filePath) {
-		emitJSON(preToolUseOutput("",
-			"[LORE-MEMORY] This path is indexed. Consider semantic search (lore_search MCP tool) before manual file reads."))
+		emitJSON(preToolUseOutput("", loadPrompt("beforeTool/searchNudge.md")))
 		return
 	}
 
@@ -119,16 +103,16 @@ func hookPostToolUse(input map[string]interface{}) {
 
 		if count == 1 {
 			output := map[string]interface{}{
-				"additionalContext": "\x1b[92m[■ LORE-MEMORY]\x1b[0m Snag? → fieldnote. Decision/context? → session note. Write freely.",
+				"additionalContext": "\x1b[92m" + loadPrompt("afterTool/memoryNudge.first.md") + "\x1b[0m",
 			}
 			emitJSON(output)
 			return
 		}
 
 		if count%nudgeThreshold == 0 {
-			msg := "\x1b[92m[■ LORE-MEMORY]\x1b[0m Snag? → fieldnote. Decision/context? → session note. Write freely."
+			msg := "\x1b[92m" + loadPrompt("afterTool/memoryNudge.nudge.md") + "\x1b[0m"
 			if count >= warnThreshold {
-				msg = "\x1b[93m[■ LORE-MEMORY]\x1b[0m High bash activity without knowledge capture. Consider recording findings."
+				msg = "\x1b[93m" + loadPrompt("afterTool/memoryNudge.warn.md") + "\x1b[0m"
 			}
 			output := map[string]interface{}{
 				"additionalContext": msg,
@@ -150,9 +134,8 @@ func hookPromptSubmit(input map[string]interface{}) {
 
 	ambiguities := scanAmbiguity(userInput)
 	if len(ambiguities) > 0 {
-		msg := "\x1b[93m[AMBIGUITY]\x1b[0m Detected potentially ambiguous terms: " +
-			strings.Join(ambiguities, ", ") +
-			". Consider clarifying before proceeding."
+		tmpl := loadPrompt("onPrompt/ambiguityNudge.md")
+		msg := "\x1b[93m" + strings.ReplaceAll(tmpl, "{{TERMS}}", strings.Join(ambiguities, ", ")) + "\x1b[0m"
 		output := map[string]interface{}{
 			"additionalContext": msg,
 		}
