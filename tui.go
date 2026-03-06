@@ -1938,11 +1938,15 @@ func (m *tuiModel) View() string {
 
 	// Static tabs: Dashboard | Memory | Settings
 	// modeConsole is entered via session buttons in the header, not a static tab.
+	projectName := filepath.Base(m.cwd)
+	if projectName == "" || projectName == "." || projectName == "/" {
+		projectName = m.cwd
+	}
 	staticTabs := []struct {
 		label string
 		mode  sessionMode
 	}{
-		{" Dashboard ", modeDashboard},
+		{" " + projectName + " ", modeDashboard},
 		{" Memory ", modeMemory},
 		{" Settings ", modeSettings},
 	}
@@ -1973,10 +1977,10 @@ func (m *tuiModel) View() string {
 		color string
 	}
 	profDefs := []profDef{
-		{"off", string(m.theme.Subtext)},
-		{"minimal", "#a6e3a1"},
-		{"standard", "#f9e2af"},
-		{"discovery", "#f38ba8"},
+		{"off", ""},
+		{"minimal", ""},
+		{"standard", ""},
+		{"discovery", ""},
 	}
 	var profBtns []string
 	for i, pd := range profDefs {
@@ -2318,7 +2322,7 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 	rightW := w - leftW
 
 	// Left Pane Split (LazyDocker Style density)
-	p1 := 4 // Project
+	p1 := 3 // Project Path
 	p2 := 8 // Harness
 	p3 := 6 // Memory Engine
 	p4 := h - (p1 + p2 + p3) // Sessions
@@ -2328,7 +2332,7 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 	if projectName == "" || projectName == "." || projectName == "/" {
 		projectName = m.cwd
 	}
-	projectLines := []string{projectName, m.cwd}
+	projectLines := []string{m.cwd}
 
 	// [2]-Harness
 	harnessLines := []string{
@@ -2395,7 +2399,7 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 	p5 := h - (p1 + p2 + p3 + p4) // Sessions
 
 	left := lipgloss.JoinVertical(lipgloss.Left,
-		m.renderOpsPanel("Project", projectLines, leftW, p1, true),
+		m.renderOpsPanel("Project Path", projectLines, leftW, p1, true),
 		m.renderOpsPanel("Harness", harnessLines, leftW, p2, false),
 		m.renderOpsPanel("Memory Engine", memoryLines, leftW, p3, false),
 		m.renderOpsPanel("Operations", actionLines, leftW, p4, false),
