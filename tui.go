@@ -2076,7 +2076,7 @@ func (m *tuiModel) View() string {
 		themeButtons = append(themeButtons, m.zone.Mark(fmt.Sprintf("theme-%d", i), btn))
 	}
 
-	versionInfo := s.Dim.Render("v" + version)
+	versionInfo := s.Dim.Render("Lore ") + s.Active.Copy().UnsetBold().Render("vdev")
 	if m.debugMouse {
 		versionInfo = s.Active.Render(fmt.Sprintf("(%d,%d) ", m.lastMouse.X, m.lastMouse.Y)) + versionInfo
 	}
