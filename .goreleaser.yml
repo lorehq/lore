@@ -42,4 +42,4 @@ changelog:
 release:
   github:
     owner: lorehq
-    name: lore-tui
+    name: lore

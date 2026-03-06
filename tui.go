@@ -2381,8 +2381,8 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 		"  Copyright (c) 2026 LoreHQ",
 		"  License: Apache-2.0",
 		"",
-		"  GitHub:  https://github.com/lorehq/lore-tui",
-		"  Issues:  https://github.com/lorehq/lore-tui/issues",
+		"  GitHub:  https://github.com/lorehq/lore",
+		"  Issues:  https://github.com/lorehq/lore/issues",
 		"",
 		"  Harnessing AI agents for high-velocity engineering.",
 	)

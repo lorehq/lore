@@ -71,7 +71,7 @@ jobs:
       - name: Prepare npm packages
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          PROJECT_NAME="lore-tui"
+          PROJECT_NAME="lore"
 
           # Map goreleaser output names to npm package dirs
           declare -A PLATFORM_MAP=(

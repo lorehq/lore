@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lorehq/lore-tui"
+    "url": "https://github.com/lorehq/lore"
   },
   "engines": {
     "node": ">=18"
