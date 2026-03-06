@@ -1653,6 +1653,9 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.mode == modeMemory {
 					return m, tea.Batch(m.refreshHotMemory(), m.refreshDataBank())
 				}
+				if m.mode == modeSettings && !m.settingsLoaded {
+					m.loadSettings()
+				}
 				return m, nil
 			}
 		}
@@ -1770,6 +1773,9 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = fTabModes[msg.Type-tea.KeyF1]
 			if m.mode == modeMemory {
 				return m, tea.Batch(m.refreshHotMemory(), m.refreshDataBank())
+			}
+			if m.mode == modeSettings && !m.settingsLoaded {
+				m.loadSettings()
 			}
 			return m, nil
 		}
@@ -2512,7 +2518,100 @@ func (m *tuiModel) saveAndGenerate() {
 }
 
 func (m *tuiModel) viewSettings(h int, s StyleSheet) string {
-	return s.Background.Copy().Width(m.width).Height(h).Render("")
+	w := m.width
+	if w < 60 || h < 16 {
+		return m.windowStyle(w, h).Padding(1).Render("Resize window for Settings")
+	}
+
+	if !m.settingsLoaded {
+		m.loadSettings()
+	}
+
+	cursor := m.settingsCursor
+
+	// Profile description map
+	desc := map[string]string{
+		"off":       "All hooks disabled",
+		"minimal":   "Guards only",
+		"standard":  "Guards + nudges",
+		"discovery": "Everything on",
+	}
+
+	// Left panel: Profile
+	leftW := w / 2
+	profileLines := make([]string, 0, len(profileOptions)+2)
+	for i, opt := range profileOptions {
+		row := settingsProfileStart + i
+		mark := "○"
+		if opt == m.configProfile {
+			mark = "◉"
+		}
+		prefix := " "
+		if cursor == row {
+			prefix = ">"
+		}
+		d := ""
+		if dd, ok := desc[opt]; ok {
+			d = "  " + dd
+		}
+		profileLines = append(profileLines, fmt.Sprintf("%s %s %s%s", prefix, mark, opt, d))
+	}
+
+	// Right panel: Platforms
+	rightW := w - leftW
+	platLines := make([]string, 0, len(validPlatforms))
+	for i, p := range validPlatforms {
+		row := settingsPlatformStart + i
+		check := "[ ]"
+		if m.configPlatforms[p] {
+			check = "[x]"
+		}
+		prefix := " "
+		if cursor == row {
+			prefix = ">"
+		}
+		platLines = append(platLines, fmt.Sprintf("%s %s %s", prefix, check, p))
+	}
+
+	// Button lines
+	btnLines := make([]string, 0, 4)
+	for i, label := range []string{"[ SAVE ]", "[ SAVE & GENERATE ]"} {
+		row := settingsButtonStart + i
+		prefix := " "
+		if cursor == row {
+			prefix = ">"
+		}
+		btnLines = append(btnLines, fmt.Sprintf("%s %s", prefix, label))
+	}
+	if m.settingsMessage != "" {
+		btnLines = append(btnLines, " "+m.settingsMessage)
+	}
+	if m.configDirty {
+		btnLines = append(btnLines, " (unsaved changes)")
+	}
+
+	// Layout: two panels on top, buttons panel below
+	panelH := len(profileOptions) + 2
+	if pH := len(validPlatforms) + 2; pH > panelH {
+		panelH = pH
+	}
+	btnH := len(btnLines) + 2
+	remainH := h - panelH - btnH
+	if remainH < 0 {
+		remainH = 0
+	}
+
+	left := m.renderOpsPanel("Profile", profileLines, leftW, panelH, true)
+	right := m.renderOpsPanel("Platforms", platLines, rightW, panelH, false)
+	top := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+	bottom := m.renderOpsPanel("Actions", btnLines, w, btnH, false)
+
+	result := lipgloss.JoinVertical(lipgloss.Left, top, bottom)
+	if remainH > 0 {
+		filler := s.Background.Copy().Width(w).Height(remainH).Render("")
+		result = lipgloss.JoinVertical(lipgloss.Left, result, filler)
+	}
+	return result
 }
 
 // runTUI launches the interactive TUI.
