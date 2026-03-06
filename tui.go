@@ -2390,8 +2390,8 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 		"  Copyright (c) 2026 LoreHQ",
 		"  License: Apache-2.0",
 		"",
-		"  GitHub:  https://github.com/lorehq/lore",
-		"  Issues:  https://github.com/lorehq/lore/issues",
+		"  GitHub:  " + s.Active.Copy().UnsetBold().Render("https://github.com/lorehq/lore"),
+		"  Issues:  " + s.Active.Copy().UnsetBold().Render("https://github.com/lorehq/lore/issues"),
 		"",
 	)
 
