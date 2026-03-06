@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 )
 
 const defaultMemoryEngineUrl = "http://localhost:9184"
@@ -63,47 +62,77 @@ func readProjectConfig() (profile string, platforms map[string]bool, err error) 
 	return profile, platforms, nil
 }
 
-// readThresholds reads nudgeThreshold and warnThreshold from .lore/config.json,
-// applying profile-based defaults if not explicitly set.
-func readThresholds() (nudge int, warn int) {
-	nudge, warn = 15, 30
+// --- Hook configuration ---
 
-	data, err := os.ReadFile(filepath.Join(".lore", "config.json"))
-	if err != nil {
-		return
+// HookConfig holds all injection toggle states resolved from a profile.
+type HookConfig struct {
+	BeforeTool struct {
+		MemoryGuard        bool
+		AutoMemoryRedirect bool
+		HarnessGuard       bool
+		SearchNudge        bool
 	}
-
-	var cfg map[string]interface{}
-	if err := json.Unmarshal(stripJSONComments(data), &cfg); err != nil {
-		return
-	}
-
-	// Profile-based defaults
-	if p, ok := cfg["profile"].(string); ok && p == "discovery" {
-		nudge, warn = 5, 10
-	}
-
-	// Explicit overrides
-	if v, ok := cfg["nudgeThreshold"]; ok {
-		nudge = jsonToInt(v, nudge)
-	}
-	if v, ok := cfg["warnThreshold"]; ok {
-		warn = jsonToInt(v, warn)
-	}
-
-	return
-}
-
-func jsonToInt(v interface{}, fallback int) int {
-	switch n := v.(type) {
-	case float64:
-		return int(n)
-	case string:
-		if i, err := strconv.Atoi(n); err == nil {
-			return i
+	AfterTool struct {
+		MemoryNudge struct {
+			Enabled    bool
+			NudgeEvery int
+			WarnAt     int
 		}
 	}
-	return fallback
+	OnPrompt struct {
+		AmbiguityNudge bool
+	}
+}
+
+// validProfiles lists recognized profile names in display order.
+var validProfiles = []string{"off", "minimal", "standard", "discovery"}
+
+// hookProfiles maps profile names to their full hook configuration.
+var hookProfiles = map[string]HookConfig{
+	"off":       newHookConfig(false, false, false, false, false, 15, 30, false),
+	"minimal":   newHookConfig(true, true, true, false, false, 15, 30, false),
+	"standard":  newHookConfig(true, true, true, true, true, 15, 30, false),
+	"discovery": newHookConfig(true, true, true, true, true, 5, 10, true),
+}
+
+func newHookConfig(memGuard, autoMem, harnGuard, searchNudge, memNudge bool, nudgeEvery, warnAt int, ambiguity bool) HookConfig {
+	var hc HookConfig
+	hc.BeforeTool.MemoryGuard = memGuard
+	hc.BeforeTool.AutoMemoryRedirect = autoMem
+	hc.BeforeTool.HarnessGuard = harnGuard
+	hc.BeforeTool.SearchNudge = searchNudge
+	hc.AfterTool.MemoryNudge.Enabled = memNudge
+	hc.AfterTool.MemoryNudge.NudgeEvery = nudgeEvery
+	hc.AfterTool.MemoryNudge.WarnAt = warnAt
+	hc.OnPrompt.AmbiguityNudge = ambiguity
+	return hc
+}
+
+// readHookConfig reads the profile from .lore/config.json and returns the
+// corresponding hook configuration. Defaults to "standard" if missing.
+func readHookConfig() HookConfig {
+	data, err := os.ReadFile(filepath.Join(".lore", "config.json"))
+	if err != nil {
+		return hookProfiles["standard"]
+	}
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(stripJSONComments(data), &cfg); err != nil {
+		return hookProfiles["standard"]
+	}
+	profile, _ := cfg["profile"].(string)
+	if profile == "" {
+		profile = "standard"
+	}
+	if preset, ok := hookProfiles[profile]; ok {
+		return preset
+	}
+	return hookProfiles["standard"]
+}
+
+// isValidProfile checks if a profile name is recognized.
+func isValidProfile(p string) bool {
+	_, ok := hookProfiles[p]
+	return ok
 }
 
 // writeProjectConfig merges profile and platforms into .lore/config.json,

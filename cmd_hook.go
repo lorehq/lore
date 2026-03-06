@@ -51,15 +51,16 @@ func hookPreToolUse(input map[string]interface{}) {
 	tool, _ := input["tool_name"].(string)
 	inputData, _ := input["tool_input"].(map[string]interface{})
 	filePath := extractFilePath(tool, inputData)
+	hc := readHookConfig()
 
 	// 1. Memory guard: block MEMORY.md access at project root
-	if isMemoryAccess(tool, filePath) {
+	if hc.BeforeTool.MemoryGuard && isMemoryAccess(tool, filePath) {
 		emitJSON(preToolUseOutput("deny", loadPrompt("beforeTool/memoryGuard.md")))
 		return
 	}
 
 	// 2. Auto-memory redirect: block writes, redirect reads
-	if isClaudeAutoMemory(filePath) {
+	if hc.BeforeTool.AutoMemoryRedirect && isClaudeAutoMemory(filePath) {
 		if isWriteTool(tool) {
 			emitJSON(preToolUseOutput("deny", loadPrompt("beforeTool/autoMemoryRedirect.write.md")))
 			return
@@ -71,18 +72,16 @@ func hookPreToolUse(input map[string]interface{}) {
 	}
 
 	// 3. Harness guard: operator-gate writes to ~/.lore/
-	if isWriteTool(tool) && isGlobalPath(filePath) {
+	if hc.BeforeTool.HarnessGuard && isWriteTool(tool) && isGlobalPath(filePath) {
 		emitJSON(preToolUseOutput("ask", loadPrompt("beforeTool/harnessGuard.md")))
 		return
 	}
 
 	// 4. Search nudge: suggest semantic search for indexed paths
-	if isReadTool(tool) && isIndexedPath(filePath) {
+	if hc.BeforeTool.SearchNudge && isReadTool(tool) && isIndexedPath(filePath) {
 		emitJSON(preToolUseOutput("", loadPrompt("beforeTool/searchNudge.md")))
 		return
 	}
-
-	// No action needed
 }
 
 // --- Post-Tool-Use Hook ---
@@ -98,8 +97,13 @@ func hookPostToolUse(input map[string]interface{}) {
 
 	// Track bash command count for adaptive nudging
 	if isBashTool(tool) {
+		hc := readHookConfig()
+		mn := hc.AfterTool.MemoryNudge
+		if !mn.Enabled {
+			return
+		}
+
 		count := incrementBashCounter()
-		nudgeThreshold, warnThreshold := readThresholds()
 
 		if count == 1 {
 			output := map[string]interface{}{
@@ -109,9 +113,9 @@ func hookPostToolUse(input map[string]interface{}) {
 			return
 		}
 
-		if count%nudgeThreshold == 0 {
+		if count%mn.NudgeEvery == 0 {
 			msg := "\x1b[92m" + loadPrompt("afterTool/memoryNudge.nudge.md") + "\x1b[0m"
-			if count >= warnThreshold {
+			if count >= mn.WarnAt {
 				msg = "\x1b[93m" + loadPrompt("afterTool/memoryNudge.warn.md") + "\x1b[0m"
 			}
 			output := map[string]interface{}{
@@ -127,6 +131,11 @@ func hookPostToolUse(input map[string]interface{}) {
 // Ambiguity scan on user input.
 
 func hookPromptSubmit(input map[string]interface{}) {
+	hc := readHookConfig()
+	if !hc.OnPrompt.AmbiguityNudge {
+		return
+	}
+
 	userInput, _ := input["user_input"].(string)
 	if userInput == "" {
 		return

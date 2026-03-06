@@ -322,6 +322,7 @@ func (m *pickerModel) View() string {
 func writeConfig(targetDir, projectName string, platforms []string) {
 	platMap := platformsFromList(platforms)
 	cfg := map[string]interface{}{
+		"profile":   "standard",
 		"platforms": orderedPlatformJSON(platMap),
 	}
 	data, _ := json.MarshalIndent(cfg, "", "  ")

@@ -132,7 +132,6 @@ func (t Theme) ToStyleSheet() StyleSheet {
 	bg := lipgloss.Color(t.Base)
 	fg := lipgloss.Color(t.Text)
 	accent := lipgloss.Color(t.Accent)
-	special := lipgloss.Color(t.Special)
 	border := lipgloss.Color(t.Border)
 	subtext := lipgloss.Color(t.Subtext)
 
@@ -143,10 +142,10 @@ func (t Theme) ToStyleSheet() StyleSheet {
 		Base:       base,
 		Background: base.Copy(),
 		Panel:      base.Copy(),
-		Active:     base.Copy().Foreground(special).Bold(true),
+		Active:     base.Copy().Foreground(accent).Bold(true),
 		Header:     base.Copy().Foreground(accent).Bold(true),
 		Dim:        base.Copy().Foreground(subtext),
-		Title:      base.Copy().Foreground(special).Bold(true),
+		Title:      base.Copy().Foreground(accent).Bold(true),
 		Border:     base.Copy().Foreground(border),
 	}
 }
@@ -962,7 +961,7 @@ func (m *tuiModel) renderOpsPanelWithTheme(title string, lines []string, w, h in
 	styles := m.styles.Get(theme)
 	borderColor := lipgloss.Color(theme.Border)
 	if active {
-		borderColor = lipgloss.Color(theme.Special)
+		borderColor = lipgloss.Color(theme.Accent)
 	}
 	if m.debugMouse {
 		borderColor = lipgloss.Color("#FF00FF") // High-contrast Magenta for debugging
@@ -2391,11 +2390,11 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 	p5 := h - (p1 + p2 + p3 + p4) // Sessions
 
 	left := lipgloss.JoinVertical(lipgloss.Left,
-		m.renderOpsPanel("[1]-Project", projectLines, leftW, p1, true),
-		m.renderOpsPanel("[2]-Harness", harnessLines, leftW, p2, false),
-		m.renderOpsPanel("[3]-Memory Engine", memoryLines, leftW, p3, false),
-		m.renderOpsPanel("[4]-Operations", actionLines, leftW, p4, false),
-		m.renderOpsPanel("[5]-Current Sessions", sessionLines, leftW, p5, false),
+		m.renderOpsPanel("1-Project", projectLines, leftW, p1, true),
+		m.renderOpsPanel("2-Harness", harnessLines, leftW, p2, false),
+		m.renderOpsPanel("3-Memory Engine", memoryLines, leftW, p3, false),
+		m.renderOpsPanel("4-Operations", actionLines, leftW, p4, false),
+		m.renderOpsPanel("5-Current Sessions", sessionLines, leftW, p5, false),
 	)
 	right := m.renderOpsPanel("About", rightLines, rightW, h, false)
 
