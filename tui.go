@@ -2377,7 +2377,7 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 	var rightLines []string
 	rightLines = append(rightLines, "")
 	for _, line := range figRaw {
-		rightLines = append(rightLines, "  "+line)
+		rightLines = append(rightLines, "  "+s.Active.Render(line))
 	}
 	rightLines = append(rightLines,
 		"",
@@ -2389,18 +2389,17 @@ func (m *tuiModel) viewDashboard(h int, s StyleSheet) string {
 		"  GitHub:  https://github.com/lorehq/lore",
 		"  Issues:  https://github.com/lorehq/lore/issues",
 		"",
-		"  Harnessing AI agents for high-velocity engineering.",
 	)
 
 	p4 = 8 // Operations
 	p5 := h - (p1 + p2 + p3 + p4) // Sessions
 
 	left := lipgloss.JoinVertical(lipgloss.Left,
-		m.renderOpsPanel("1-Project", projectLines, leftW, p1, true),
-		m.renderOpsPanel("2-Harness", harnessLines, leftW, p2, false),
-		m.renderOpsPanel("3-Memory Engine", memoryLines, leftW, p3, false),
-		m.renderOpsPanel("4-Operations", actionLines, leftW, p4, false),
-		m.renderOpsPanel("5-Current Sessions", sessionLines, leftW, p5, false),
+		m.renderOpsPanel("Project", projectLines, leftW, p1, true),
+		m.renderOpsPanel("Harness", harnessLines, leftW, p2, false),
+		m.renderOpsPanel("Memory Engine", memoryLines, leftW, p3, false),
+		m.renderOpsPanel("Operations", actionLines, leftW, p4, false),
+		m.renderOpsPanel("Current Sessions", sessionLines, leftW, p5, false),
 	)
 	right := m.renderOpsPanel("About", rightLines, rightW, h, false)
 
