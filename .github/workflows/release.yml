@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/*.tar.gz
+          retention-days: 1
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-windows
+          path: dist/*.zip
+          retention-days: 1
+
+  npm-publish:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+
+      - name: Download Windows binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-windows
+          path: dist/
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare npm packages
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PROJECT_NAME="lore-tui"
+
+          # Map goreleaser output names to npm package dirs
+          declare -A PLATFORM_MAP=(
+            ["linux_amd64"]="cli-linux-x64"
+            ["linux_arm64"]="cli-linux-arm64"
+            ["darwin_amd64"]="cli-darwin-x64"
+            ["darwin_arm64"]="cli-darwin-arm64"
+            ["windows_amd64"]="cli-win32-x64"
+            ["windows_arm64"]="cli-win32-arm64"
+          )
+
+          for platform in "${!PLATFORM_MAP[@]}"; do
+            npm_dir="npm/${PLATFORM_MAP[$platform]}"
+            archive="${PROJECT_NAME}_${VERSION}_${platform}"
+
+            # Extract binary from archive
+            if [[ "$platform" == windows_* ]]; then
+              unzip -o "dist/${archive}.zip" -d "/tmp/${platform}"
+              cp "/tmp/${platform}/lore.exe" "${npm_dir}/lore.exe"
+            else
+              tar -xzf "dist/${archive}.tar.gz" -C "/tmp" --wildcards "*/lore" 2>/dev/null || \
+              tar -xzf "dist/${archive}.tar.gz" -C "/tmp/${platform}" 2>/dev/null
+              # goreleaser puts binary at archive root or in a subdir
+              find "/tmp" -name "lore" -type f | head -1 | xargs -I{} cp {} "${npm_dir}/lore"
+              chmod +x "${npm_dir}/lore"
+              rm -rf "/tmp/${platform}"
+            fi
+
+            # Stamp version
+            jq --arg v "$VERSION" '.version = $v' "${npm_dir}/package.json" > "${npm_dir}/package.json.tmp"
+            mv "${npm_dir}/package.json.tmp" "${npm_dir}/package.json"
+
+            echo "Prepared ${npm_dir} with binary for ${platform}"
+          done
+
+          # Stamp version in main CLI package + update optionalDependencies versions
+          jq --arg v "$VERSION" '
+            .version = $v |
+            .optionalDependencies = (.optionalDependencies | to_entries | map(.value = $v) | from_entries)
+          ' npm/cli/package.json > npm/cli/package.json.tmp
+          mv npm/cli/package.json.tmp npm/cli/package.json
+
+          echo "All packages prepared at version ${VERSION}"
+
+      - name: Publish platform packages
+        run: |
+          for dir in npm/cli-*/; do
+            echo "Publishing $(basename $dir)..."
+            npm publish "$dir" --access public
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish main CLI package
+        run: npm publish npm/cli/ --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

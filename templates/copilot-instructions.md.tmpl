@@ -1,0 +1,13 @@
+# Lore — Copilot Instructions
+{{- if .LoreMD}}
+
+{{.LoreMD}}
+{{- end}}
+{{- if .Rules}}
+{{range .Rules}}
+
+## {{.Name}}
+
+{{.Body}}
+{{end}}
+{{- end}}

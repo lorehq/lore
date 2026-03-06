@@ -1,0 +1,13 @@
+# Compiled binaries
+lore
+lore-tui
+inputspy
+mousetest
+viewertest
+dist/
+
+# Debug utilities
+cmd/
+
+# OS
+.DS_Store

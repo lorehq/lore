@@ -1,0 +1,14 @@
+# Lore — Gemini Configuration
+{{- if .LoreMD}}
+
+{{.LoreMD}}
+{{- end}}
+{{- if .Rules}}
+
+## Rules
+{{range .Rules}}
+### {{.Name}}
+
+{{.Body}}
+{{end}}
+{{- end}}

@@ -1,0 +1,25 @@
+{
+  "name": "@lorehq/cli",
+  "version": "0.0.0",
+  "description": "Lore CLI — agentic coding tool harness",
+  "bin": {
+    "lore": "bin/lore.js"
+  },
+  "optionalDependencies": {
+    "@lorehq/cli-linux-x64": "0.0.0",
+    "@lorehq/cli-linux-arm64": "0.0.0",
+    "@lorehq/cli-darwin-x64": "0.0.0",
+    "@lorehq/cli-darwin-arm64": "0.0.0",
+    "@lorehq/cli-win32-x64": "0.0.0",
+    "@lorehq/cli-win32-arm64": "0.0.0"
+  },
+  "keywords": ["lore", "cli", "agent", "ai", "harness", "coding-agent"],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lorehq/lore-tui"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

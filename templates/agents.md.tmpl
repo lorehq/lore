@@ -1,0 +1,11 @@
+# Agents
+{{- if .LoreMD}}
+
+{{.LoreMD}}
+{{- end}}
+{{- range .Agents}}
+
+## {{.Name}}
+
+{{.Description}}
+{{end}}
