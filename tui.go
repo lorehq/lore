@@ -2417,15 +2417,15 @@ func (m *tuiModel) viewConsole(h int, s StyleSheet) string {
 }
 
 // settingsRowCount returns the total number of navigable rows in settings.
-// Layout: 3 profile radios (row 0-2), 6 platform checkboxes (row 3-8), 2 buttons (row 9-10).
+// Layout: 4 profile radios (row 0-3), 6 platform checkboxes (row 4-9), 2 buttons (row 10-11).
 const (
 	settingsProfileStart  = 0
-	settingsPlatformStart = 3
-	settingsButtonStart   = 9
-	settingsRowCount      = 11
+	settingsPlatformStart = 4
+	settingsButtonStart   = 10
+	settingsRowCount      = 12
 )
 
-var profileOptions = []string{"minimal", "standard", "discovery"}
+var profileOptions = []string{"off", "minimal", "standard", "discovery"}
 
 func (m *tuiModel) loadSettings() {
 	profile, platforms, err := readProjectConfig()
