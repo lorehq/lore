@@ -1,0 +1,22 @@
+{{- if .LoreMD}}
+
+{{.LoreMD}}
+{{- end}}
+{{- if .Rules}}
+
+# Rules
+{{range .Rules}}
+## {{.Name}}
+
+{{.Body}}
+{{end}}
+{{- end}}
+{{- if .ProjectRules}}
+
+# Project Rules
+{{range .ProjectRules}}
+## {{.Name}}
+
+{{.Body}}
+{{end}}
+{{- end}}

@@ -1,0 +1,10 @@
+# Compiled binaries
+lore
+*.exe
+dist/
+
+# Build artifacts
+*.tgz
+
+# OS
+.DS_Store

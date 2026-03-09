@@ -1,0 +1,14 @@
+{
+  "agentic": true,
+  "harness": "global",
+  "platforms": {
+    "claude": false,
+    "copilot": false,
+    "cursor": false,
+    "gemini": false,
+    "windsurf": false,
+    "opencode": false
+  },
+  "profile": "standard",
+  "version": "dev"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@lorehq/cli",
+  "version": "0.1.5",
+  "description": "Lore CLI — agentic coding, unified",
+  "bin": {
+    "lore": "bin/lore.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "optionalDependencies": {
+    "@lorehq/cli-linux-x64": "0.1.5",
+    "@lorehq/cli-linux-arm64": "0.1.5",
+    "@lorehq/cli-darwin-x64": "0.1.5",
+    "@lorehq/cli-darwin-arm64": "0.1.5",
+    "@lorehq/cli-win32-x64": "0.1.5",
+    "@lorehq/cli-win32-arm64": "0.1.5"
+  },
+  "keywords": ["lore", "cli", "agent", "ai", "harness", "coding-agent"],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lorehq/lore"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
