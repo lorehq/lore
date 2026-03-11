@@ -397,7 +397,7 @@ func backupPlatformFiles(targetDir string, platforms []string) []string {
 
 // ensureGitignore creates or appends Lore entries to .gitignore.
 func ensureGitignore(targetDir string) {
-	entries := []string{".lore/MEMORY.md", ".lore/.session-nonce", ".lore/.last-generated", "*.pre-lore"}
+	entries := []string{".lore/MEMORY.md", ".lore/.session-nonce", ".lore/.last-generated", ".lore/.sessions/", "*.pre-lore"}
 	gitignorePath := filepath.Join(targetDir, ".gitignore")
 
 	existing := ""

@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -32,10 +35,15 @@ func cmdHook(args []string) {
 		}
 	}
 
+	// Session normalization: extract session info from payload, write state file,
+	// and augment payload with lore.session block.
+	stdinData = augmentWithSession(stdinData)
+
 	// Session freshness: regenerate projections if stale.
 	// Only on prompt-submit — pre/post-tool-use fire too frequently.
 	if hookName == "prompt-submit" {
 		ensureFreshProjection()
+		cleanStaleSessions()
 	}
 
 	// Look up hook file path from config (project first, then global)
@@ -80,17 +88,181 @@ func cmdHook(args []string) {
 	}
 }
 
+// --- Session normalization ---
+
+// augmentWithSession parses the stdin payload, extracts session info,
+// writes a session state file, and flat-merges a lore.session block
+// into the payload. Returns the augmented payload bytes.
+func augmentWithSession(stdinData []byte) []byte {
+	if len(bytes.TrimSpace(stdinData)) == 0 {
+		// No payload — still write a session state file with generated ID
+		sess := sessionInfo{
+			ID:       generateSessionID(),
+			Platform: "unknown",
+			Project:  projectSlug(),
+		}
+		writeSessionState(sess)
+		return stdinData
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(stdinData, &payload); err != nil {
+		// Not valid JSON — write state with generated ID, don't modify payload
+		sess := sessionInfo{
+			ID:       generateSessionID(),
+			Platform: "unknown",
+			Project:  projectSlug(),
+		}
+		writeSessionState(sess)
+		return stdinData
+	}
+
+	sess := extractSession(payload)
+	writeSessionState(sess)
+
+	// Flat-merge lore.session block into payload
+	payload["lore"] = map[string]interface{}{
+		"session": map[string]interface{}{
+			"id":       sess.ID,
+			"platform": sess.Platform,
+			"project":  sess.Project,
+		},
+	}
+
+	augmented, err := json.Marshal(payload)
+	if err != nil {
+		return stdinData
+	}
+	return augmented
+}
+
+type sessionInfo struct {
+	ID       string `json:"id"`
+	Platform string `json:"platform"`
+	Project  string `json:"project"`
+}
+
+// extractSession pulls session ID and platform from a hook payload.
+func extractSession(payload map[string]interface{}) sessionInfo {
+	sess := sessionInfo{
+		Project: projectSlug(),
+	}
+
+	// Extract session ID: session_id → conversation_id → trajectory_id → generate
+	if v, ok := payload["session_id"].(string); ok && v != "" {
+		sess.ID = v
+	} else if v, ok := payload["conversation_id"].(string); ok && v != "" {
+		sess.ID = v
+	} else if v, ok := payload["trajectory_id"].(string); ok && v != "" {
+		sess.ID = v
+	} else {
+		sess.ID = generateSessionID()
+	}
+
+	// Detect platform from payload shape + env vars
+	sess.Platform = detectPlatform(payload)
+
+	return sess
+}
+
+// detectPlatform identifies which AI coding platform dispatched the hook.
+func detectPlatform(payload map[string]interface{}) string {
+	_, hasSessionID := payload["session_id"].(string)
+	_, hasConversationID := payload["conversation_id"].(string)
+	_, hasTrajectoryID := payload["trajectory_id"].(string)
+
+	if hasSessionID && os.Getenv("CLAUDECODE") == "1" {
+		return "claude"
+	}
+	if hasConversationID {
+		return "cursor"
+	}
+	if hasSessionID && os.Getenv("GEMINI_CLI") == "1" {
+		return "gemini"
+	}
+	if hasTrajectoryID {
+		return "windsurf"
+	}
+	return "unknown"
+}
+
+// projectSlug returns a dashed path slug for the current working directory.
+// e.g. /home/andrew/Github/lore → "home-andrew-Github-lore"
+func projectSlug() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "unknown"
+	}
+	// Strip leading slash and replace separators with dashes
+	slug := strings.TrimPrefix(cwd, "/")
+	return strings.ReplaceAll(slug, string(filepath.Separator), "-")
+}
+
+// generateSessionID returns an 8-char hex string for platforms that don't provide one.
+func generateSessionID() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// writeSessionState creates or updates .lore/.sessions/{id}.json.
+func writeSessionState(sess sessionInfo) {
+	sessDir := filepath.Join(".lore", ".sessions")
+	if err := os.MkdirAll(sessDir, 0755); err != nil {
+		return
+	}
+
+	filePath := filepath.Join(sessDir, sess.ID+".json")
+
+	// If file exists, just touch mod time (started_at stays)
+	if _, err := os.Stat(filePath); err == nil {
+		now := time.Now()
+		os.Chtimes(filePath, now, now)
+		return
+	}
+
+	// New session — write with started_at
+	state := map[string]string{
+		"id":         sess.ID,
+		"platform":   sess.Platform,
+		"project":    sess.Project,
+		"started_at": time.Now().UTC().Format(time.RFC3339),
+	}
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return
+	}
+	os.WriteFile(filePath, append(data, '\n'), 0644)
+}
+
+// cleanStaleSessions removes session files older than 24 hours.
+func cleanStaleSessions() {
+	sessDir := filepath.Join(".lore", ".sessions")
+	entries, err := os.ReadDir(sessDir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-24 * time.Hour)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			os.Remove(filepath.Join(sessDir, e.Name()))
+		}
+	}
+}
+
 // readerFromBytes returns an io.Reader for a byte slice (nil-safe).
 func readerFromBytes(data []byte) io.Reader {
 	if len(data) == 0 {
 		return nil
 	}
 	return bytes.NewReader(data)
-}
-
-func emitJSON(v interface{}) {
-	data, _ := json.Marshal(v)
-	fmt.Println(string(data))
 }
 
 // --- Hook logging ---
