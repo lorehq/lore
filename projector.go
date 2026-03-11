@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
 
-// Projector generates platform-specific output from a merged AGENTIC set.
+// Projector generates platform-specific output from a merged content set.
 type Projector interface {
 	Name() string
 	Project(root string, ms *MergedSet) error
@@ -176,12 +177,46 @@ func projectSkills(baseDir string, ms *MergedSet) error {
 			fm["agent"] = skill.Agent
 		}
 		content := renderFrontmatter(fm) + "\n" + skill.Body + "\n"
-		path := filepath.Join(baseDir, "skills", name, "SKILL.md")
+		skillDir := filepath.Join(baseDir, "skills", name)
+		path := filepath.Join(skillDir, "SKILL.md")
 		if err := writeFile(path, []byte(content)); err != nil {
 			return fmt.Errorf("write skill %s: %w", name, err)
 		}
+		// Copy supporting files from source directory (standard layout only).
+		// Per the Agent Skills open standard, skills can contain scripts/,
+		// references/, assets/, and other supporting files alongside SKILL.md.
+		if skill.SourceDir != "" {
+			if err := copySkillResources(skill.SourceDir, skillDir); err != nil {
+				return fmt.Errorf("copy skill resources %s: %w", name, err)
+			}
+		}
 	}
 	return nil
+}
+
+// copySkillResources copies all files from a skill source directory to the
+// projected skill directory, EXCEPT SKILL.md (which is handled by projectSkills).
+// This enables deep skills per the Agent Skills open standard — scripts/,
+// references/, assets/, and other supporting files are projected alongside SKILL.md.
+func copySkillResources(srcDir, dstDir string) error {
+	return filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil // skip unreadable entries
+		}
+		rel, _ := filepath.Rel(srcDir, path)
+		if rel == "." || rel == "SKILL.md" {
+			return nil // skip root and SKILL.md (handled separately)
+		}
+		dst := filepath.Join(dstDir, rel)
+		if d.IsDir() {
+			return os.MkdirAll(dst, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil // skip unreadable files
+		}
+		return writeFile(dst, data)
+	})
 }
 
 // projectAgents writes agents to <baseDir>/agents/<name>.md.
@@ -223,8 +258,8 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 		if rule.Description != "" {
 			fm["description"] = rule.Description
 		}
-		if len(rule.Paths) > 0 {
-			fm["paths"] = rule.Paths
+		if len(rule.Globs) > 0 {
+			fm["paths"] = rule.Globs
 		}
 		content := renderFrontmatter(fm) + "\n" + rule.Body + "\n"
 		path := filepath.Join(claudeDir, "rules", name+".md")

@@ -11,15 +11,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// AgenticFile represents a parsed AGENTIC file (rule, skill, or agent).
+// AgenticFile represents a parsed agentic content file (rule, skill, or agent).
 type AgenticFile struct {
-	Kind string // "rule", "skill", "agent"
-	Name string // derived from filename/dirname
-	Path string // source path on disk
+	Kind      string // "rule", "skill", "agent"
+	Name      string // derived from filename/dirname
+	Path      string // source path on disk
+	SourceDir string // for standard-layout skills: directory containing SKILL.md and supporting files
 
 	// Frontmatter fields (passthrough — each projector uses what it needs)
 	Description   string   `yaml:"description"`
-	Paths         []string `yaml:"paths"`          // rules: path/glob scoping
+	Globs         []string `yaml:"globs"`          // rules: path/glob scoping
 	Model         string   `yaml:"model"`          // agents: model preference
 	Tools         []string `yaml:"tools"`          // agents: tool allowlist
 	Skills        []string `yaml:"skills"`         // agents: declared skill dependencies
@@ -40,7 +41,7 @@ type MCPServer struct {
 	Env     map[string]string
 }
 
-// MergedSet holds the result of merging bundle + global + project AGENTIC content.
+// MergedSet holds the result of merging bundle + global + project content.
 // Rules, skills, and agents are independent peers — no ownership hierarchy.
 type MergedSet struct {
 	Rules  map[string]*AgenticFile
@@ -352,36 +353,27 @@ func scanAgenticDir(baseDir string) (rules, skills, agents map[string]*AgenticFi
 		}
 	}
 
-	// Skills: baseDir/SKILLS/<name>/SKILL.md (standard layout)
-	// Also check: baseDir/SKILLS/<name>.md (flat layout)
+	// Skills: baseDir/SKILLS/<name>/SKILL.md (directory layout only)
 	skillsDir := filepath.Join(baseDir, "SKILLS")
 	if entries, e := os.ReadDir(skillsDir); e == nil {
 		for _, entry := range entries {
-			if entry.IsDir() {
-				// Standard: SKILLS/<name>/SKILL.md
-				skillFile := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
-				if _, e := os.Stat(skillFile); e != nil {
-					continue
-				}
-				name := entry.Name()
-				af, e := parseAgenticFile(skillFile, "skill")
-				if e != nil {
-					fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
-					continue
-				}
-				af.Name = name
-				skills[name] = af
-			} else if strings.HasSuffix(entry.Name(), ".md") {
-				// Flat: SKILLS/<name>.md
-				name := strings.TrimSuffix(entry.Name(), ".md")
-				af, e := parseAgenticFile(filepath.Join(skillsDir, entry.Name()), "skill")
-				if e != nil {
-					fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
-					continue
-				}
-				af.Name = name
-				skills[name] = af
+			if !entry.IsDir() {
+				continue
 			}
+			skillDir := filepath.Join(skillsDir, entry.Name())
+			skillFile := filepath.Join(skillDir, "SKILL.md")
+			if _, e := os.Stat(skillFile); e != nil {
+				continue
+			}
+			name := entry.Name()
+			af, e := parseAgenticFile(skillFile, "skill")
+			if e != nil {
+				fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
+				continue
+			}
+			af.Name = name
+			af.SourceDir = skillDir
+			skills[name] = af
 		}
 	}
 
@@ -436,12 +428,14 @@ func readLoreMD(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
-// mergeAgenticSets merges four layers of AGENTIC content:
+// mergeAgenticSets merges four layers of content:
 //  1. Bundle (lowest) — defaults from the active bundle
-//  2. Global (~/.config/lore/AGENTIC/) — operator preferences
-//  3. Project (.lore/AGENTIC/) — project overrides
+//  2. Global (~/.config/lore/) — operator preferences
+//  3. Project (.lore/) — project overrides
 //  4. Harness (highest) — binary-managed, clobbers everything
 //
+// globalDir is the global config directory (~/.config/lore/).
+// projectDir is the project lore directory (<root>/.lore/).
 // LORE.md is accumulated from all layers (bundle → global → project).
 // Rules, skills, and agents use inherit.json policies with source-dependent
 // defaults: bundle items default to "defer", global items default to "off".
@@ -453,37 +447,34 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Read inheritance config (.lore/inherit.json).
-	projectRoot := filepath.Dir(filepath.Dir(projectDir))
+	projectRoot := filepath.Dir(projectDir)
 	inheritCfg := readInheritConfig(projectRoot)
 
-	nonce := readOrCreateNonce(filepath.Dir(projectDir))
+	nonce := readOrCreateNonce(projectRoot)
 
 	// Accumulate LORE.md from all layers (bundle → global → project)
 	var loreParts []string
 
-	// Harness AGENTIC is injected after all layers merge (see below).
+	// Harness content is injected after all layers merge (see below).
 
-	// Layer 1 (lowest): Bundle AGENTIC — all enabled bundles in priority order.
+	// Layer 1 (lowest): Bundle content — all enabled bundles in priority order.
 	// Later bundles override earlier ones for same-named items.
 	for _, pkgDir := range activeBundleDirs() {
-		pkgAgenticDir := filepath.Join(pkgDir, "AGENTIC")
-		if _, err := os.Stat(pkgAgenticDir); err == nil {
-			pkgRules, pkgSkills, pkgAgents, err := scanAgenticDir(pkgAgenticDir)
-			if err == nil {
-				for k, v := range pkgRules {
-					if p := getPolicy(inheritCfg, "rules", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Rules[k] = v
-					}
+		pkgRules, pkgSkills, pkgAgents, err := scanAgenticDir(pkgDir)
+		if err == nil {
+			for k, v := range pkgRules {
+				if p := getPolicy(inheritCfg, "rules", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Rules[k] = v
 				}
-				for k, v := range pkgSkills {
-					if p := getPolicy(inheritCfg, "skills", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Skills[k] = v
-					}
+			}
+			for k, v := range pkgSkills {
+				if p := getPolicy(inheritCfg, "skills", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Skills[k] = v
 				}
-				for k, v := range pkgAgents {
-					if p := getPolicy(inheritCfg, "agents", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Agents[k] = v
-					}
+			}
+			for k, v := range pkgAgents {
+				if p := getPolicy(inheritCfg, "agents", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Agents[k] = v
 				}
 			}
 		}
@@ -499,11 +490,11 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 		}
 	}
 
-	// Layer 2: Global AGENTIC — default policy "off"
+	// Layer 2: Global content — default policy "off"
 	if _, err := os.Stat(globalDir); err == nil {
 		rules, skills, agents, err := scanAgenticDir(globalDir)
 		if err != nil {
-			return nil, fmt.Errorf("scan global AGENTIC: %w", err)
+			return nil, fmt.Errorf("scan global content: %w", err)
 		}
 		for k, v := range rules {
 			if p := getPolicy(inheritCfg, "rules", k, "off"); p == "defer" || p == "overwrite" {
@@ -523,16 +514,16 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Global LORE.md
-	if content := readLoreMD(filepath.Join(filepath.Dir(globalDir), "LORE.md")); content != "" {
+	if content := readLoreMD(filepath.Join(globalDir, "LORE.md")); content != "" {
 		loreParts = append(loreParts, "# Global\n\n"+content)
 	}
 
-	// Layer 3 (highest): Project AGENTIC — always included,
+	// Layer 3 (highest): Project content — always included,
 	// except when a bundle/global item has "overwrite" policy.
 	if _, err := os.Stat(projectDir); err == nil {
 		rules, skills, agents, err := scanAgenticDir(projectDir)
 		if err != nil {
-			return nil, fmt.Errorf("scan project AGENTIC: %w", err)
+			return nil, fmt.Errorf("scan project content: %w", err)
 		}
 		for k, v := range rules {
 			if getPolicy(inheritCfg, "rules", k, "off") == "overwrite" {
@@ -555,7 +546,7 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Project LORE.md
-	if content := readLoreMD(filepath.Join(filepath.Dir(projectDir), "LORE.md")); content != "" {
+	if content := readLoreMD(filepath.Join(projectDir, "LORE.md")); content != "" {
 		loreParts = append(loreParts, "# Project\n\n"+content)
 	}
 
@@ -570,16 +561,16 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	for _, s := range readMCPDir(filepath.Join(globalPath(), "MCP")) {
 		mcpMap[s.Name] = s
 	}
-	for _, s := range readMCPDir(filepath.Join(projectRoot, ".lore", "MCP")) {
+	for _, s := range readMCPDir(filepath.Join(projectDir, "MCP")) {
 		mcpMap[s.Name] = s
 	}
 	ms.MCP = sortedMCP(mcpMap)
 
-	// Harness AGENTIC — injected last, clobbers everything.
+	// Harness content — injected last, clobbers everything.
 	// Binary-managed content that no other layer can override.
-	harnessAgenticDir := filepath.Join(filepath.Dir(globalDir), ".harness", "AGENTIC")
-	if _, err := os.Stat(harnessAgenticDir); err == nil {
-		hRules, hSkills, hAgents, _ := scanAgenticDir(harnessAgenticDir)
+	harnessDir := filepath.Join(globalDir, ".harness")
+	if _, err := os.Stat(harnessDir); err == nil {
+		hRules, hSkills, hAgents, _ := scanAgenticDir(harnessDir)
 		for k, v := range hRules {
 			ms.Rules[k] = v
 		}

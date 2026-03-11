@@ -76,9 +76,9 @@ func (p *CursorProjector) writeRule(root, name string, rule *AgenticFile) error 
 	if rule.Description != "" {
 		sb.WriteString(fmt.Sprintf("description: %s\n", rule.Description))
 	}
-	if len(rule.Paths) > 0 {
+	if len(rule.Globs) > 0 {
 		sb.WriteString("globs:\n")
-		for _, p := range rule.Paths {
+		for _, p := range rule.Globs {
 			sb.WriteString(fmt.Sprintf("  - %s\n", p))
 		}
 	} else {

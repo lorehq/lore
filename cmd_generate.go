@@ -69,8 +69,8 @@ func runProjection(root string, platformList []string) {
 // doProjection is the quiet, error-returning core used by both CLI and TUI.
 // Returns warnings (non-fatal) and an error (fatal).
 func doProjection(root string, platformList []string) (warnings []string, err error) {
-	globalAgenticDir := filepath.Join(globalPath(), "AGENTIC")
-	projectAgenticDir := filepath.Join(root, ".lore", "AGENTIC")
+	globalAgenticDir := globalPath()
+	projectAgenticDir := filepath.Join(root, ".lore")
 
 	ms, err := mergeAgenticSets(globalAgenticDir, projectAgenticDir)
 	if err != nil {
@@ -134,7 +134,9 @@ func projectionStale(root string) bool {
 			filepath.Join(pkgDir, "manifest.json"),
 			filepath.Join(pkgDir, "LORE.md"),
 		)
-		if newestInDir(filepath.Join(pkgDir, "AGENTIC")).After(cutoff) {
+		if newestInDir(filepath.Join(pkgDir, "RULES")).After(cutoff) ||
+			newestInDir(filepath.Join(pkgDir, "SKILLS")).After(cutoff) ||
+			newestInDir(filepath.Join(pkgDir, "AGENTS")).After(cutoff) {
 			return true
 		}
 		if newestInDir(filepath.Join(pkgDir, "MCP")).After(cutoff) {
@@ -151,13 +153,17 @@ func projectionStale(root string) bool {
 		}
 	}
 
-	// Walk AGENTIC and MCP directories
+	// Walk content and MCP directories
 	for _, dir := range []string{
-		filepath.Join(root, ".lore", "AGENTIC"),
+		filepath.Join(root, ".lore", "RULES"),
+		filepath.Join(root, ".lore", "SKILLS"),
+		filepath.Join(root, ".lore", "AGENTS"),
 		filepath.Join(root, ".lore", "MCP"),
-		filepath.Join(globalPath(), "AGENTIC"),
+		filepath.Join(globalPath(), "RULES"),
+		filepath.Join(globalPath(), "SKILLS"),
+		filepath.Join(globalPath(), "AGENTS"),
 		filepath.Join(globalPath(), "MCP"),
-		filepath.Join(globalPath(), ".harness", "AGENTIC"),
+		filepath.Join(globalPath(), ".harness"),
 	} {
 		if newestInDir(dir).After(cutoff) {
 			return true
@@ -191,12 +197,12 @@ func touchSentinel(root string) {
 	os.WriteFile(path, []byte(time.Now().Format(time.RFC3339)+"\n"), 0644)
 }
 
-const generateHelpText = `Generate platform files from AGENTIC content.
+const generateHelpText = `Generate platform files from rules, skills, and agents.
 
 Usage: lore generate [--platforms <list>]
 
-Merges AGENTIC content from ~/.config/lore/AGENTIC/ (global) and .lore/AGENTIC/
-(project) and generates platform-specific files.
+Merges content from ~/.config/lore/ (global) and .lore/ (project)
+and generates platform-specific files.
 
 By default, reads enabled platforms from .lore/config.json.
 Use --platforms to override.

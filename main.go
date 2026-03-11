@@ -7,7 +7,7 @@ import (
 
 // Set via ldflags at build time.
 var (
-	version = "0.1.5"
+	version = "0.1.6"
 	commit  = "none"
 )
 
@@ -18,7 +18,7 @@ Usage: lore [command]
 Commands:
   (no args)                           Launch interactive TUI
   init [name] [--platforms <list>]    Initialize Lore (current dir or new dir)
-  generate [--platforms <list>]       Generate platform files from AGENTIC content
+  generate [--platforms <list>]       Generate platform files from rules, skills, and agents
   bundle <subcommand>                 Manage bundles (install, list, enable, disable, update, remove)
   hook <name>                         Hook handler (called by platforms)
   version                             Print version

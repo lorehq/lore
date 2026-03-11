@@ -65,7 +65,7 @@ const (
 	// future: tabSettings, tabMarketplace, etc.
 )
 
-// projItem represents an item in the catalog or project AGENTIC listing.
+// projItem represents an item in the catalog or project content listing.
 type projItem struct {
 	kind     string   // "rule", "skill", "agent"
 	name     string
@@ -120,7 +120,7 @@ type tuiModel struct {
 	projectName string
 	platforms   map[string]bool
 
-	// AGENTIC counts
+	// Content counts
 	ruleCount  int
 	skillCount int
 	agentCount int
@@ -138,8 +138,8 @@ type tuiModel struct {
 	// projection planner state
 	projPane      int // 0=catalog, 1=project, 2=output
 	projCatalog   []projItem // unified bundle + global items (bundle first, then global)
-	projGlobal    []projItem // global AGENTIC items (Pane 0 top)
-	projBundle      []projItem // bundle AGENTIC items (Pane 0 bottom)
+	projGlobal    []projItem // global content items (Pane 0 top)
+	projBundle      []projItem // bundle content items (Pane 0 bottom)
 	projProject   []projItem
 	projHarness   []projItem // harness-managed items (always projected, clobber all)
 	projInherit   map[string]map[string]string
@@ -306,22 +306,21 @@ func (m *tuiModel) loadProjectInfo() {
 		m.platforms = defaultPlatforms()
 	}
 
-	// Count AGENTIC content: bundle + global + project
+	// Count content: bundle + global + project
 	gp := globalPath()
-	projAgentic := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	m.ruleCount = countDir(filepath.Join(gp, "AGENTIC", "RULES")) +
-		countDir(filepath.Join(projAgentic, "RULES"))
-	m.skillCount = countDir(filepath.Join(gp, "AGENTIC", "SKILLS")) +
-		countDir(filepath.Join(projAgentic, "SKILLS"))
-	m.agentCount = countDir(filepath.Join(gp, "AGENTIC", "AGENTS")) +
-		countDir(filepath.Join(projAgentic, "AGENTS"))
+	projDir := filepath.Join(m.cwd, ".lore")
+	m.ruleCount = countDir(filepath.Join(gp, "RULES")) +
+		countDir(filepath.Join(projDir, "RULES"))
+	m.skillCount = countDir(filepath.Join(gp, "SKILLS")) +
+		countDir(filepath.Join(projDir, "SKILLS"))
+	m.agentCount = countDir(filepath.Join(gp, "AGENTS")) +
+		countDir(filepath.Join(projDir, "AGENTS"))
 
 	// Add bundle agentic counts from all enabled bundles
 	for _, pkgDir := range activeBundleDirs() {
-		pkgAgenticDir := filepath.Join(pkgDir, "AGENTIC")
-		m.ruleCount += countDir(filepath.Join(pkgAgenticDir, "RULES"))
-		m.skillCount += countDir(filepath.Join(pkgAgenticDir, "SKILLS"))
-		m.agentCount += countDir(filepath.Join(pkgAgenticDir, "AGENTS"))
+		m.ruleCount += countDir(filepath.Join(pkgDir, "RULES"))
+		m.skillCount += countDir(filepath.Join(pkgDir, "SKILLS"))
+		m.agentCount += countDir(filepath.Join(pkgDir, "AGENTS"))
 	}
 }
 
@@ -423,8 +422,7 @@ func (m *tuiModel) loadProjection() {
 		}
 
 		// Scan agentic content
-		pkgAgenticDir := filepath.Join(dir, "AGENTIC")
-		if rules, skills, agents, err := scanAgenticDir(pkgAgenticDir); err == nil {
+		if rules, skills, agents, err := scanAgenticDir(dir); err == nil {
 			for _, name := range sortedKeys(rules) {
 				item := projItem{kind: "rule", name: name, desc: rules[name].Description, source: "bundle", bundleSlug: slug}
 				group.items = append(group.items, item)
@@ -453,9 +451,8 @@ func (m *tuiModel) loadProjection() {
 		}
 	}
 
-	// Scan global AGENTIC
-	globalAgenticDir := filepath.Join(gp, "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(globalAgenticDir); err == nil {
+	// Scan global content
+	if rules, skills, agents, err := scanAgenticDir(gp); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projGlobal = append(m.projGlobal, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "global"})
 		}
@@ -470,10 +467,9 @@ func (m *tuiModel) loadProjection() {
 	// Unified catalog: bundle items first, then global (for toggleCatalogItem indexing)
 	m.projCatalog = append(append([]projItem(nil), m.projBundle...), m.projGlobal...)
 
-	// Scan project AGENTIC
+	// Scan project content
 	m.projProject = nil
-	projectAgenticDir := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(projectAgenticDir); err == nil {
+	if rules, skills, agents, err := scanAgenticDir(filepath.Join(m.cwd, ".lore")); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projProject = append(m.projProject, projItem{kind: "rule", name: name, desc: rules[name].Description})
 		}
@@ -485,10 +481,10 @@ func (m *tuiModel) loadProjection() {
 		}
 	}
 
-	// Scan harness AGENTIC (always projected, clobbers all)
+	// Scan harness content (always projected, clobbers all)
 	m.projHarness = nil
-	harnessAgenticDir := filepath.Join(gp, ".harness", "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(harnessAgenticDir); err == nil {
+	harnessDir := filepath.Join(gp, ".harness")
+	if rules, skills, agents, err := scanAgenticDir(harnessDir); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projHarness = append(m.projHarness, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "harness"})
 		}
@@ -675,7 +671,7 @@ func (m *tuiModel) projCatalogCount() int {
 	return len(m.projCatalog)
 }
 
-// buildPane2Items lists project-local items from .lore/AGENTIC/ with conflict annotations.
+// buildPane2Items lists project-local items from .lore/ with conflict annotations.
 // Only items physically on disk are shown. Inherited catalog items do NOT appear here —
 // they only show up in the Projections pane via the merged names from mergeAgenticSets().
 type pane2Item struct {
@@ -717,9 +713,9 @@ func (m *tuiModel) buildPane2Items() []pane2Item {
 // computeMergedNames calls the canonical merge engine and extracts sorted name lists.
 // Single source of truth — same merge logic used by `lore generate`.
 func (m *tuiModel) computeMergedNames() (rules, skills, agents []string) {
-	globalAgenticDir := filepath.Join(globalPath(), "AGENTIC")
-	projectAgenticDir := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	ms, err := mergeAgenticSets(globalAgenticDir, projectAgenticDir)
+	globalDir := globalPath()
+	projectLoreDir := filepath.Join(m.cwd, ".lore")
+	ms, err := mergeAgenticSets(globalDir, projectLoreDir)
 	if err != nil {
 		return nil, nil, nil
 	}
@@ -953,9 +949,9 @@ func doInit(cwd string, platforms []string, createNew bool, projectName string) 
 
 		// Create .lore/ structure
 		dirs := []string{
-			filepath.Join(targetDir, ".lore", "AGENTIC", "SKILLS"),
-			filepath.Join(targetDir, ".lore", "AGENTIC", "AGENTS"),
-			filepath.Join(targetDir, ".lore", "AGENTIC", "RULES"),
+			filepath.Join(targetDir, ".lore", "SKILLS"),
+			filepath.Join(targetDir, ".lore", "AGENTS"),
+			filepath.Join(targetDir, ".lore", "RULES"),
 		}
 		for _, dir := range dirs {
 			os.MkdirAll(dir, 0755)
@@ -1026,8 +1022,8 @@ func doGenerate(cwd string, platforms []string, orphansToClean []string) tea.Cmd
 
 		// Count output files
 		gp := globalPath()
-		projDir := filepath.Join(cwd, ".lore", "AGENTIC")
-		ms, mergeErr := mergeAgenticSets(filepath.Join(gp, "AGENTIC"), projDir)
+		projDir := filepath.Join(cwd, ".lore")
+		ms, mergeErr := mergeAgenticSets(gp, projDir)
 		if mergeErr != nil {
 			return genDoneMsg{err: mergeErr}
 		}
@@ -2665,7 +2661,7 @@ var hintTexts = [3][]string{
 	},
 	{ // Project (pane 1)
 		"Your project-local agentic content",
-		"from .lore/AGENTIC/.",
+		"from .lore/.",
 		"",
 		"Only items on disk are shown here.",
 		"Conflict indicators:",

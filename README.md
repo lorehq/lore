@@ -52,13 +52,13 @@ Lore is a Go binary that centrally manages the three standard components of an a
 
 ```
 ~/.config/lore/
-├── config.json          # Platform config (packages, hooks, registryUrl)
+├── config.json          # Platform config (registryUrl)
 ├── .cache/
 │   └── registry.json    # Cached marketplace registry
-└── AGENTIC/             # Operator content
-    ├── RULES/
-    ├── SKILLS/
-    └── AGENTS/
+├── RULES/               # Operator's global rules
+├── SKILLS/              # Operator's global skills
+├── AGENTS/              # Operator's global agents
+└── MCP/                 # Operator's global MCP servers
 ```
 
 The global directory holds platform configuration and the operator's own agentic content (rules, skills, agents). Behavioral scripts, memory, and services belong to packages (e.g., `~/.lore-os/`), not the platform directory.
@@ -69,8 +69,10 @@ The global directory holds platform configuration and the operator's own agentic
 my-project/
 ├── .lore/
 │   ├── config.json       # Project config
-│   ├── AGENTIC/          # Project-specific rules, skills, agents
-│   ├── MEMORY.md         # Failsafe scratchpad (gitignored, OS-created)
+│   ├── RULES/            # Project-specific rules
+│   ├── SKILLS/           # Project-specific skills
+│   ├── AGENTS/           # Project-specific agents
+│   ├── MCP/              # Project MCP servers
 │   └── LORE.md           # Project instructions
 ├── CLAUDE.md             # Generated platform projection
 └── src/

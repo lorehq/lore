@@ -68,8 +68,8 @@ func (p *CopilotProjector) writeRule(root, name string, rule *AgenticFile) error
 	if rule.Description != "" {
 		fm["description"] = rule.Description
 	}
-	if len(rule.Paths) > 0 {
-		fm["applyTo"] = rule.Paths
+	if len(rule.Globs) > 0 {
+		fm["applyTo"] = rule.Globs
 	}
 
 	content := renderFrontmatter(fm) + "\n" + rule.Body + "\n"
