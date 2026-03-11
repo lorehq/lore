@@ -44,6 +44,12 @@ type BundleManifest struct {
 		Command string   `json:"command"`
 		Args    []string `json:"args"`
 	} `json:"mcp"`
+	TUI struct {
+		Pages []struct {
+			Name   string `json:"name"`
+			Script string `json:"script"`
+		} `json:"pages"`
+	} `json:"tui"`
 	Setup    string `json:"setup"`
 	Teardown string `json:"teardown"`
 }

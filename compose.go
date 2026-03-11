@@ -195,6 +195,44 @@ func readBundleHookEvents(pkgDir string) []string {
 	return events
 }
 
+// BundleTUIPage represents a TUI page declared by a bundle.
+type BundleTUIPage struct {
+	Name       string
+	Script     string // absolute path to script
+	BundleSlug string
+}
+
+// readBundleTUIPages reads TUI page declarations from all enabled bundle manifests.
+func readBundleTUIPages() []BundleTUIPage {
+	var pages []BundleTUIPage
+	for _, dir := range activeBundleDirs() {
+		data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+		if err != nil {
+			continue
+		}
+		var manifest struct {
+			Slug string `json:"slug"`
+			TUI  struct {
+				Pages []struct {
+					Name   string `json:"name"`
+					Script string `json:"script"`
+				} `json:"pages"`
+			} `json:"tui"`
+		}
+		if json.Unmarshal(data, &manifest) != nil {
+			continue
+		}
+		for _, p := range manifest.TUI.Pages {
+			pages = append(pages, BundleTUIPage{
+				Name:       p.Name,
+				Script:     filepath.Join(dir, p.Script),
+				BundleSlug: manifest.Slug,
+			})
+		}
+	}
+	return pages
+}
+
 // readMCPDir scans a directory for MCP server JSON declarations.
 // Each *.json file is one server; filename (minus .json) is the server name.
 // Relative paths in args are resolved relative to the JSON file's directory.

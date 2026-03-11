@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -62,7 +65,6 @@ type tabID int
 
 const (
 	tabProjection tabID = iota
-	// future: tabSettings, tabMarketplace, etc.
 )
 
 // projItem represents an item in the catalog or project content listing.
@@ -88,6 +90,34 @@ type bundleGroup struct {
 	items          []projItem
 }
 
+// ── Bundle TUI Pages ────────────────────────────────────────────────
+
+type bundlePage struct {
+	name       string
+	script     string // absolute path
+	bundleSlug string
+	tabID      tabID
+}
+
+type bundlePageOutput struct {
+	Sections []bundlePageSection `json:"sections"`
+	Status   string              `json:"status"`
+}
+
+type bundlePageSection struct {
+	Name      string           `json:"name"`
+	Badge     string           `json:"badge"`
+	Collapsed bool             `json:"collapsed"`
+	Items     []bundlePageItem `json:"items"`
+}
+
+type bundlePageItem struct {
+	Label  string `json:"label"`
+	Detail string `json:"detail"`
+	Path   string `json:"path"`
+	Badge  string `json:"badge"`
+}
+
 // ── Messages ────────────────────────────────────────────────────────
 
 type initDoneMsg struct {
@@ -100,6 +130,11 @@ type genDoneMsg struct {
 	fileCount    int
 	cleanedCount int
 	err          error
+}
+type bundlePageLoadedMsg struct {
+	tabID  tabID
+	output *bundlePageOutput
+	err    error
 }
 
 // ── Model ───────────────────────────────────────────────────────────
@@ -223,6 +258,13 @@ type tuiModel struct {
 
 	// success screen
 	successPath string
+
+	// bundle TUI pages
+	bundlePages         []bundlePage
+	bundlePageData      map[tabID]*bundlePageOutput
+	bundlePageScroll    map[tabID]int
+	bundlePageCollapsed map[tabID]map[int]bool
+	bundlePageLoading   map[tabID]bool
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -526,6 +568,24 @@ func (m *tuiModel) loadProjection() {
 
 	// Check if any MCP servers are declared (bundle, global, or project)
 	m.hasMCP = len(readBundleMCP()) > 0 || len(m.mcpGlobal) > 0 || len(m.mcpProject) > 0
+
+	// Register bundle TUI pages
+	tuiPages := readBundleTUIPages()
+	m.bundlePages = nil
+	for i, p := range tuiPages {
+		m.bundlePages = append(m.bundlePages, bundlePage{
+			name:       p.Name,
+			script:     p.Script,
+			bundleSlug: p.BundleSlug,
+			tabID:      tabID(i + 1), // 0 is tabProjection
+		})
+	}
+	if m.bundlePageData == nil {
+		m.bundlePageData = make(map[tabID]*bundlePageOutput)
+		m.bundlePageScroll = make(map[tabID]int)
+		m.bundlePageCollapsed = make(map[tabID]map[int]bool)
+		m.bundlePageLoading = make(map[tabID]bool)
+	}
 
 	m.projLoaded = true
 	m.recomputeDiff()
@@ -1056,6 +1116,33 @@ func doGenerate(cwd string, platforms []string, orphansToClean []string) tea.Cmd
 	}
 }
 
+func invokeBundlePage(page bundlePage, project, cwd string, width, height int) tea.Cmd {
+	return func() tea.Msg {
+		input := map[string]interface{}{
+			"project": project,
+			"cwd":     cwd,
+			"width":   width,
+			"height":  height,
+		}
+		inputJSON, _ := json.Marshal(input)
+
+		cmd := exec.Command("node", page.script)
+		cmd.Dir = cwd
+		cmd.Stdin = bytes.NewReader(inputJSON)
+
+		stdout, err := cmd.Output()
+		if err != nil {
+			return bundlePageLoadedMsg{tabID: page.tabID, err: err}
+		}
+
+		var output bundlePageOutput
+		if err := json.Unmarshal(stdout, &output); err != nil {
+			return bundlePageLoadedMsg{tabID: page.tabID, err: err}
+		}
+		return bundlePageLoadedMsg{tabID: page.tabID, output: &output}
+	}
+}
+
 // ── Init ────────────────────────────────────────────────────────────
 
 func (m *tuiModel) Init() tea.Cmd {
@@ -1097,6 +1184,22 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loadProjection()
 		}
 		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+
+	case bundlePageLoadedMsg:
+		m.bundlePageLoading[msg.tabID] = false
+		if msg.err != nil {
+			m.bundlePageData[msg.tabID] = &bundlePageOutput{
+				Status: "Error: " + msg.err.Error(),
+			}
+		} else {
+			m.bundlePageData[msg.tabID] = msg.output
+			// Initialize section collapse state from script defaults
+			collapsed := make(map[int]bool)
+			for i, s := range msg.output.Sections {
+				collapsed[i] = s.Collapsed
+			}
+			m.bundlePageCollapsed[msg.tabID] = collapsed
+		}
 
 	case tickMsg:
 		if m.genTick > 0 {
@@ -1357,7 +1460,32 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 }
 
 func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
-	return m.handleProjectionKey(msg)
+	key := msg.String()
+
+	// Number keys switch tabs: 1=Projections, 2+=bundle pages
+	if len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
+		idx := int(key[0] - '1') // 0-indexed
+		if idx == 0 {
+			m.tab = tabProjection
+			return m, nil
+		}
+		pageIdx := idx - 1
+		if pageIdx < len(m.bundlePages) {
+			page := m.bundlePages[pageIdx]
+			m.tab = page.tabID
+			// Load page data on first view
+			if m.bundlePageData[page.tabID] == nil && !m.bundlePageLoading[page.tabID] {
+				m.bundlePageLoading[page.tabID] = true
+				return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+			}
+			return m, nil
+		}
+	}
+
+	if m.tab == tabProjection {
+		return m.handleProjectionKey(msg)
+	}
+	return m.handleBundlePageKey(msg)
 }
 
 func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
@@ -1509,6 +1637,62 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	return m, nil
 }
 
+func (m *tuiModel) handleBundlePageKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
+	key := msg.String()
+
+	switch key {
+	case "r":
+		// Reload current bundle page
+		for _, page := range m.bundlePages {
+			if page.tabID == m.tab {
+				m.bundlePageLoading[m.tab] = true
+				m.bundlePageData[m.tab] = nil
+				return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+			}
+		}
+	case "j", "down":
+		m.bundlePageScroll[m.tab]++
+	case "k", "up":
+		scroll := m.bundlePageScroll[m.tab]
+		if scroll > 0 {
+			m.bundlePageScroll[m.tab] = scroll - 1
+		}
+	case "enter", " ":
+		// Toggle section collapse at current position
+		m.toggleBundlePageSection()
+	}
+
+	return m, nil
+}
+
+func (m *tuiModel) toggleBundlePageSection() {
+	output := m.bundlePageData[m.tab]
+	if output == nil {
+		return
+	}
+	collapsed := m.bundlePageCollapsed[m.tab]
+	if collapsed == nil {
+		return
+	}
+
+	// Find section under cursor by counting visible lines
+	scroll := m.bundlePageScroll[m.tab]
+	lineIdx := 0
+	for i, section := range output.Sections {
+		if lineIdx-scroll == 0 || lineIdx == scroll {
+			// This is approximate — toggle the first visible section header
+			if lineIdx >= scroll {
+				collapsed[i] = !collapsed[i]
+				return
+			}
+		}
+		lineIdx++ // section header
+		if !collapsed[i] {
+			lineIdx += len(section.Items)
+		}
+	}
+}
+
 func (m *tuiModel) enabledPlatformList() []string {
 	var result []string
 	for _, p := range validPlatforms {
@@ -1537,6 +1721,11 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
+			if m.tab != tabProjection {
+				// Bundle page scroll
+				m.bundlePageScroll[m.tab] += delta
+				return m, nil
+			}
 			colW := m.width / 3
 			pane := msg.X / colW
 			if pane > 2 {
@@ -1624,6 +1813,41 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 		return m, nil
+	}
+
+	// Tab clicks
+	if m.mode == modeDashboard {
+		if zone.Get("tab-projection").InBounds(msg) {
+			m.tab = tabProjection
+			return m, nil
+		}
+		for _, page := range m.bundlePages {
+			zoneID := fmt.Sprintf("tab-bundle-%d", page.tabID)
+			if zone.Get(zoneID).InBounds(msg) {
+				m.tab = page.tabID
+				// Load on first click
+				if m.bundlePageData[page.tabID] == nil && !m.bundlePageLoading[page.tabID] {
+					m.bundlePageLoading[page.tabID] = true
+					return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+				}
+				return m, nil
+			}
+		}
+		// Section collapse clicks on bundle pages
+		if m.tab != tabProjection {
+			output := m.bundlePageData[m.tab]
+			if output != nil {
+				for i := range output.Sections {
+					if zone.Get(fmt.Sprintf("bp-section-%d-%d", m.tab, i)).InBounds(msg) {
+						collapsed := m.bundlePageCollapsed[m.tab]
+						if collapsed != nil {
+							collapsed[i] = !collapsed[i]
+						}
+						return m, nil
+					}
+				}
+			}
+		}
 	}
 
 	// Projection planner clicks
@@ -2170,12 +2394,16 @@ func (m *tuiModel) viewDashboardShell() string {
 		contentH = 1
 	}
 
-	// Compute Y offset where columns begin (for mouse scroll targeting)
-	platBar := m.renderPlatformBar()
-	platBarH := strings.Count(platBar, "\n") + 1
-	m.colStartY = headerH + tabH + platBarH
-
-	content := m.viewProjectionPlanner(contentH)
+	var content string
+	if m.tab == tabProjection {
+		// Compute Y offset where columns begin (for mouse scroll targeting)
+		platBar := m.renderPlatformBar()
+		platBarH := strings.Count(platBar, "\n") + 1
+		m.colStartY = headerH + tabH + platBarH
+		content = m.viewProjectionPlanner(contentH)
+	} else {
+		content = m.viewBundlePage(contentH)
+	}
 
 	// Assemble and pad to exact terminal height
 	var b strings.Builder
@@ -2232,6 +2460,13 @@ func (m *tuiModel) renderTabBar() string {
 		id     tabID
 	}{
 		{"Projections", "tab-projection", tabProjection},
+	}
+	for _, page := range m.bundlePages {
+		tabs = append(tabs, struct {
+			label  string
+			zoneID string
+			id     tabID
+		}{page.name, fmt.Sprintf("tab-bundle-%d", page.tabID), page.tabID})
 	}
 
 	var parts []string
@@ -3585,6 +3820,106 @@ func (m *tuiModel) overlayBundleConfirmDialog(lines []string, w int) []string {
 	}
 
 	return lines
+}
+
+// ── Bundle Page Renderer ────────────────────────────────────────────
+
+func (m *tuiModel) viewBundlePage(maxH int) string {
+	output := m.bundlePageData[m.tab]
+
+	if m.bundlePageLoading[m.tab] {
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(maxH).
+			Align(lipgloss.Center, lipgloss.Center).
+			Faint(true).
+			Render("Loading...")
+	}
+
+	if output == nil {
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(maxH).
+			Align(lipgloss.Center, lipgloss.Center).
+			Faint(true).
+			Render("Press r to load")
+	}
+
+	collapsed := m.bundlePageCollapsed[m.tab]
+	if collapsed == nil {
+		collapsed = make(map[int]bool)
+		m.bundlePageCollapsed[m.tab] = collapsed
+	}
+
+	var lines []string
+
+	for i, section := range output.Sections {
+		arrow := "▾"
+		if collapsed[i] {
+			arrow = "▸"
+		}
+
+		header := fmt.Sprintf(" %s %s", arrow, bold.Render(section.Name))
+		if section.Badge != "" {
+			header += " " + dimStyle.Render("("+section.Badge+")")
+		}
+		lines = append(lines, zone.Mark(fmt.Sprintf("bp-section-%d-%d", m.tab, i), header))
+
+		if !collapsed[i] {
+			for _, item := range section.Items {
+				line := "   " + item.Label
+				if item.Detail != "" {
+					line += "  " + dimStyle.Render(item.Detail)
+				}
+				if item.Badge != "" {
+					line += "  " + item.Badge
+				}
+				lines = append(lines, line)
+			}
+		}
+
+		lines = append(lines, "") // spacer between sections
+	}
+
+	// Status line at bottom
+	if output.Status != "" {
+		lines = append(lines, dimStyle.Render(" "+output.Status))
+	}
+
+	// Apply scroll
+	scroll := m.bundlePageScroll[m.tab]
+	if scroll > len(lines) {
+		scroll = len(lines)
+		m.bundlePageScroll[m.tab] = scroll
+	}
+	if scroll < 0 {
+		scroll = 0
+		m.bundlePageScroll[m.tab] = 0
+	}
+
+	visible := lines
+	if scroll < len(visible) {
+		visible = visible[scroll:]
+	} else {
+		visible = nil
+	}
+	if len(visible) > maxH {
+		visible = visible[:maxH]
+	}
+
+	// Pad to fill height
+	for len(visible) < maxH {
+		visible = append(visible, "")
+	}
+
+	// Truncate lines to terminal width
+	for i, line := range visible {
+		if lipgloss.Width(line) > m.width {
+			visible[i] = ansi.Truncate(line, m.width, "…")
+		}
+	}
+
+	return strings.Join(visible, "\n")
 }
 
 // ── Entry Point ─────────────────────────────────────────────────────
