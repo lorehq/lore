@@ -201,6 +201,7 @@ type marketplaceItem struct {
 	version     string
 	author      string
 	repo        string
+	path        string
 	tags        []string
 	installed   bool
 }
@@ -364,6 +365,7 @@ type tuiModel struct {
 	mktConfirmSlug        string
 	mktConfirmVerb        string // "remove" or "install"
 	mktConfirmRepo        string // repo URL for install
+	mktConfirmPath        string // subpath for monorepo install
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -1341,6 +1343,7 @@ func loadMarketplace() tea.Cmd {
 						item.description = e.Description
 						item.author = e.Author
 						item.repo = e.Repo
+						item.path = e.Path
 						item.tags = e.Tags
 						break
 					}
@@ -1360,6 +1363,7 @@ func loadMarketplace() tea.Cmd {
 						description: e.Description,
 						author:      e.Author,
 						repo:        e.Repo,
+						path:        e.Path,
 						tags:        e.Tags,
 					})
 				}
@@ -1370,9 +1374,9 @@ func loadMarketplace() tea.Cmd {
 	}
 }
 
-func doMktInstall(slug, repo string) tea.Cmd {
+func doMktInstall(slug, repo, path string) tea.Cmd {
 	return func() tea.Msg {
-		err := installBundleFromRepo(slug, repo)
+		err := installBundleFromRepo(slug, repo, path)
 		return mktOpDoneMsg{verb: "install", slug: slug, err: err}
 	}
 }
@@ -2128,7 +2132,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if m.mktConfirmVerb == "remove" {
 				return m, doMktRemove(m.mktConfirmSlug)
 			}
-			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo, m.mktConfirmPath)
 		}
 		if zone.Get("mkt-cancel").InBounds(msg) {
 			m.mktConfirm = false

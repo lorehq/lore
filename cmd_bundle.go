@@ -21,6 +21,7 @@ type RegistryEntry struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Repo        string   `json:"repo"`
+	Path        string   `json:"path,omitempty"`
 	Author      string   `json:"author"`
 	Tags        []string `json:"tags"`
 }
@@ -89,8 +90,9 @@ func cmdBundle(args []string) {
 // --- install ---
 
 // installBundleFromRepo clones a bundle from a git URL into the XDG bundles directory.
+// If subPath is non-empty, the bundle lives in a subdirectory of the repo (monorepo).
 // Used by both CLI (cmdBundleInstall) and TUI marketplace.
-func installBundleFromRepo(slug, repoURL string) error {
+func installBundleFromRepo(slug, repoURL, subPath string) error {
 	if existing := bundleDirForSlug(slug); existing != "" {
 		return fmt.Errorf("bundle '%s' is already installed at %s", slug, existing)
 	}
@@ -99,9 +101,17 @@ func installBundleFromRepo(slug, repoURL string) error {
 	os.MkdirAll(bp, 0755)
 	bundleDir := filepath.Join(bp, slug)
 
-	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, bundleDir)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("clone failed: %v\n%s", err, out)
+	if subPath == "" {
+		// Single-repo bundle: clone directly
+		cmd := exec.Command("git", "clone", "--depth", "1", repoURL, bundleDir)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("clone failed: %v\n%s", err, out)
+		}
+	} else {
+		// Monorepo bundle: sparse checkout, fallback to full clone + copy
+		if err := cloneSubPath(repoURL, subPath, bundleDir); err != nil {
+			return fmt.Errorf("clone failed: %v", err)
+		}
 	}
 
 	manifest, err := readAndValidateManifest(bundleDir)
@@ -120,6 +130,50 @@ func installBundleFromRepo(slug, repoURL string) error {
 
 	return nil
 }
+
+// cloneSubPath extracts a subdirectory from a git repo.
+// Tries sparse checkout first (fast, minimal download). Falls back to
+// full shallow clone + directory copy if the server doesn't support it.
+func cloneSubPath(repoURL, subPath, destDir string) error {
+	tmpDir, err := os.MkdirTemp("", "lore-bundle-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Try sparse checkout
+	clone := exec.Command("git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", repoURL, tmpDir)
+	if out, err := clone.CombinedOutput(); err == nil {
+		sparse := exec.Command("git", "-C", tmpDir, "sparse-checkout", "set", subPath)
+		if out, err := sparse.CombinedOutput(); err == nil {
+			srcDir := filepath.Join(tmpDir, subPath)
+			if info, err := os.Stat(srcDir); err == nil && info.IsDir() {
+				return copyDir(srcDir, destDir)
+			}
+			return fmt.Errorf("path '%s' not found in repo after sparse checkout", subPath)
+		} else {
+			fmt.Fprintf(os.Stderr, "sparse checkout not supported, falling back to full clone\n%s", out)
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "sparse clone not supported, falling back to full clone\n%s", out)
+	}
+
+	// Fallback: full shallow clone
+	os.RemoveAll(tmpDir)
+	os.MkdirAll(tmpDir, 0755)
+	fallback := exec.Command("git", "clone", "--depth", "1", repoURL, tmpDir)
+	if out, err := fallback.CombinedOutput(); err != nil {
+		return fmt.Errorf("full clone failed: %v\n%s", err, out)
+	}
+
+	srcDir := filepath.Join(tmpDir, subPath)
+	if info, err := os.Stat(srcDir); err != nil || !info.IsDir() {
+		return fmt.Errorf("path '%s' not found in repo", subPath)
+	}
+
+	return copyDir(srcDir, destDir)
+}
+
 
 func cmdBundleInstall(args []string) {
 	var slug, url string
@@ -161,17 +215,19 @@ func cmdBundleInstall(args []string) {
 		}
 	}
 
-	// Resolve repo URL from registry if not provided directly
+	// Resolve repo URL (and path for monorepo bundles) from registry
+	var subPath string
 	if url == "" {
 		entry := registryLookup(slug)
 		if entry == nil {
 			fatal("Bundle '%s' not found in registry.\nUse --url to install from a git URL directly.", slug)
 		}
 		url = entry.Repo
+		subPath = entry.Path
 	}
 
 	fmt.Printf("Installing %s...\n", slug)
-	if err := installBundleFromRepo(slug, url); err != nil {
+	if err := installBundleFromRepo(slug, url, subPath); err != nil {
 		fatal(err.Error())
 	}
 
@@ -620,10 +676,6 @@ func readAndValidateManifest(bundleDir string) (*BundleManifest, error) {
 	if m.Version == "" {
 		return nil, fmt.Errorf("manifest missing required field: version")
 	}
-	if len(m.Hooks) == 0 {
-		return nil, fmt.Errorf("manifest missing required field: hooks")
-	}
-
 	// Validate hook paths: must be relative, no path traversal
 	for event, path := range m.Hooks {
 		if filepath.IsAbs(path) {

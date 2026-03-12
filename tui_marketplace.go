@@ -221,7 +221,7 @@ func (m *tuiModel) handleMarketplaceKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			if m.mktConfirmVerb == "remove" {
 				return m, doMktRemove(m.mktConfirmSlug)
 			}
-			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo, m.mktConfirmPath)
 		case "esc":
 			m.mktConfirm = false
 		}
@@ -303,6 +303,7 @@ func (m *tuiModel) handleMarketplaceMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd)
 			m.mktConfirmSlug = item.slug
 			m.mktConfirmVerb = "install"
 			m.mktConfirmRepo = item.repo
+			m.mktConfirmPath = item.path
 			return m, nil
 		}
 	}
