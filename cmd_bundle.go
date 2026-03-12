@@ -442,9 +442,12 @@ func cmdBundleInfo(args []string) {
 	fmt.Printf("Directory:   %s\n", bundleDir)
 
 	// Count agentic content
+	agenticDir := bundleDir
 	if manifest.Agentic != "" {
-		agenticDir := filepath.Join(bundleDir, manifest.Agentic)
-		rules, skills, agents, _ := scanAgenticDir(agenticDir)
+		agenticDir = filepath.Join(bundleDir, manifest.Agentic)
+	}
+	rules, skills, agents, _ := scanAgenticDir(agenticDir)
+	if len(rules) > 0 || len(skills) > 0 || len(agents) > 0 {
 		fmt.Printf("Agentic:     %d rules, %d skills, %d agents\n", len(rules), len(skills), len(agents))
 	}
 
