@@ -1,6 +1,6 @@
 ---
 name: lore-create
-description: Create a new Lore rule, skill, agent, MCP server, or hook override
+description: Create a new Lore rule, skill, agent, MCP server, or hook override at any layer
 user-invocable: true
 allowed-tools:
   - Read
@@ -11,20 +11,21 @@ allowed-tools:
 
 # Create Lore Content
 
-Create properly formatted agentic content in a Lore project.
+Create properly formatted agentic content at any layer of the Lore hierarchy.
 
 ## Workflow
 
-1. **Ask the operator:** What do you want to create?
+1. **Ask where** the content should live:
+   - **Project** (`.lore/`) — always included for this project, highest priority
+   - **Global** (`~/.config/lore/`) — available to all projects, defaults to "off" per-project
+   - **Bundle** (`~/.<slug>/`) — if the operator is developing a bundle
+
+2. **Ask what** to create:
    - **Rule** — instructions scoped by file pattern or always loaded
    - **Skill** — a reusable capability with optional supporting files
    - **Agent** — a specialized persona with skill dependencies
    - **MCP server** — a Model Context Protocol server declaration
    - **Hook** — a lifecycle event override script
-
-2. **Ask where:** Project (`.lore/`) or Global (`~/.config/lore/`)?
-   - Project content is always included for this project
-   - Global content defaults to "off" — must be enabled per-project via inherit.json
 
 3. **Load the reference** for the chosen type from `references/`:
    - `references/rule.md` — frontmatter, rule types, glob patterns
