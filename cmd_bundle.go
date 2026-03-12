@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const defaultRegistryURL = "https://raw.githubusercontent.com/lorehq/lore-registry/main/registry.json"
+const defaultRegistryURL = "https://raw.githubusercontent.com/lorehq/lore-bundles/main/registry.json"
 const registryCacheTTL = 24 * time.Hour
 
 // RegistryEntry represents a bundle listed in the registry.
