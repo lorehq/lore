@@ -134,16 +134,22 @@ func skillResourceBadge(refs, assets, scripts int) string {
 	return strings.Join(parts, ", ")
 }
 
+// hookEntry pairs an event name with the script filename that handles it.
+type hookEntry struct {
+	event  string // e.g. "prompt-submit"
+	script string // basename e.g. "prompt-submit.mjs"
+}
+
 type bundleGroup struct {
 	slug          string
 	name          string
 	collapsed     bool
 	kindCollapsed [3]bool // rules/skills/agents collapsed within this bundle
 	hasLoreMD     bool
-	hookEvents     []string // hook event names from manifest.json
-	hooksCollapsed bool     // HOOKS list collapsed
-	mcpServers     []string // MCP server names from this bundle's MCP/ dir
-	mcpCollapsed   bool     // MCP list collapsed
+	hookEntries    []hookEntry // hook event → script pairs from manifest.json
+	hooksCollapsed bool        // HOOKS list collapsed
+	mcpServers     []string    // MCP server names from this bundle's MCP/ dir
+	mcpCollapsed   bool        // MCP list collapsed
 	items          []projItem
 }
 
@@ -294,11 +300,11 @@ type tuiModel struct {
 	mcpGlobalCollapsed  bool     // global MCP list collapsed
 	mcpProjectCollapsed bool     // project MCP list collapsed
 
-	// Hook event names per layer (for display in panes)
-	hooksGlobal           []string // resolved hook events visible at global level
-	hooksProject          []string // resolved hook events visible at project level
-	hooksGlobalCollapsed  bool     // global HOOKS list collapsed
-	hooksProjectCollapsed bool     // project HOOKS list collapsed
+	// Hook entries per layer (event + script basename for display)
+	hooksGlobal           []hookEntry // resolved hook entries at global level
+	hooksProject          []hookEntry // resolved hook entries at project level
+	hooksGlobalCollapsed  bool        // global HOOKS list collapsed
+	hooksProjectCollapsed bool        // project HOOKS list collapsed
 
 	// generate state
 	genMessage     string // e.g. "Generated 14 files"
@@ -556,8 +562,8 @@ func (m *tuiModel) loadProjection() {
 		// Check LORE.md
 		group.hasLoreMD = readLoreMD(filepath.Join(dir, "LORE.md")) != ""
 
-		// Scan hook events from manifest
-		group.hookEvents = readBundleHookEvents(dir)
+		// Scan hook entries from manifest
+		group.hookEntries = readBundleHookEntries(dir)
 
 		// Scan MCP servers
 		for _, s := range readMCPDir(filepath.Join(dir, "MCP")) {
@@ -686,8 +692,8 @@ func (m *tuiModel) loadProjection() {
 	m.hasMCP = len(readBundleMCP()) > 0 || len(m.mcpGlobal) > 0 || len(m.mcpProject) > 0
 
 	// Load hook event names per layer (for pane display)
-	m.hooksGlobal = readHookEventsFromDir(filepath.Join(gp, "HOOKS"))
-	m.hooksProject = readHookEventsFromDir(filepath.Join(m.cwd, ".lore", "HOOKS"))
+	m.hooksGlobal = readHookEntriesFromDir(filepath.Join(gp, "HOOKS"))
+	m.hooksProject = readHookEntriesFromDir(filepath.Join(m.cwd, ".lore", "HOOKS"))
 
 	// Register bundle TUI pages
 	tuiPages := readBundleTUIPages()
@@ -3598,8 +3604,8 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		}
 		lines = append(lines, zone.Mark("hooks-global", header))
 		if !m.hooksGlobalCollapsed {
-			for _, name := range m.hooksGlobal {
-				lines = append(lines, "  ⚡ "+name)
+			for _, h := range m.hooksGlobal {
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" → "+h.script))
 			}
 		}
 	}
@@ -3723,19 +3729,19 @@ func (m *tuiModel) renderBundleContent(w int) string {
 				}
 
 				// HOOKS row (collapsible, only shown if non-empty)
-				if len(group.hookEvents) > 0 {
+				if len(group.hookEntries) > 0 {
 					arrow := "▾"
 					if m.enabledBundles[gi].hooksCollapsed {
 						arrow = "▸"
 					}
 					header := "   " + arrow + " HOOKS"
 					if m.enabledBundles[gi].hooksCollapsed {
-						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEvents)))
+						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
 					}
 					lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].hooksCollapsed {
-						for _, name := range group.hookEvents {
-							lines = append(lines, "    ⚡ "+name)
+						for _, h := range group.hookEntries {
+							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" → "+h.script))
 						}
 					}
 				}
@@ -3848,8 +3854,8 @@ func (m *tuiModel) renderProjectList(w int) string {
 		}
 		lines = append(lines, zone.Mark("hooks-project", header))
 		if !m.hooksProjectCollapsed {
-			for _, name := range m.hooksProject {
-				lines = append(lines, "  ⚡ "+name)
+			for _, h := range m.hooksProject {
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" → "+h.script))
 			}
 		}
 	}

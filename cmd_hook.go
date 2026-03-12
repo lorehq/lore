@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -46,45 +47,93 @@ func cmdHook(args []string) {
 		cleanStaleSessions()
 	}
 
-	// Look up hook file path from config (project first, then global)
-	hookPaths := readHookPaths()
-	scriptPath := hookPaths.PathFor(hookName)
+	// Look up all scripts for this event (accumulate from all layers)
+	hookScripts := readHookScripts()
+	scripts := hookScripts.ScriptsFor(hookName)
 
-	// No script configured for this event -> exit silently
-	if scriptPath == "" {
+	// No scripts configured for this event -> exit silently
+	if len(scripts) == 0 {
 		logHookEvent(hookName, "no-op", 0)
 		return
 	}
 
-	// Expand ~ in the path
-	scriptPath = expandHome(scriptPath)
-
-	// Verify the script exists
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		logHookEvent(hookName, "missing-script", 0)
-		fmt.Fprintf(os.Stderr, "lore hook: script not found: %s\n", scriptPath)
+	// Filter to scripts that exist on disk
+	var valid []string
+	for _, sp := range scripts {
+		sp = expandHome(sp)
+		if _, err := os.Stat(sp); err == nil {
+			valid = append(valid, sp)
+		} else {
+			fmt.Fprintf(os.Stderr, "lore hook: script not found: %s\n", sp)
+		}
+	}
+	if len(valid) == 0 {
+		logHookEvent(hookName, "no-op", 0)
 		return
 	}
 
-	// Invoke: node <scriptPath>
+	// Run all scripts in parallel
+	type scriptResult struct {
+		path   string
+		stdout []byte
+		err    error
+	}
+
+	results := make([]scriptResult, len(valid))
+	var wg sync.WaitGroup
 	cwd, _ := os.Getwd()
-	cmd := exec.Command("node", scriptPath)
-	cmd.Dir = cwd
-	cmd.Stdin = readerFromBytes(stdinData)
-	cmd.Stderr = os.Stderr
 
-	stdout, err := cmd.Output()
-	if err != nil {
-		logHookEvent(hookName, "error", 0)
-		fmt.Fprintf(os.Stderr, "lore hook: script error (%s): %v\n", filepath.Base(scriptPath), err)
-		return
+	for i, sp := range valid {
+		wg.Add(1)
+		go func(idx int, scriptPath string) {
+			defer wg.Done()
+			cmd := exec.Command("node", scriptPath)
+			cmd.Dir = cwd
+			cmd.Stdin = readerFromBytes(stdinData)
+			cmd.Stderr = os.Stderr
+			out, err := cmd.Output()
+			results[idx] = scriptResult{path: scriptPath, stdout: out, err: err}
+		}(i, sp)
+	}
+	wg.Wait()
+
+	// Aggregate results
+	blocking := blockingEvents[hookName]
+	var blockReasons []string
+	var combinedOut []byte
+
+	for _, r := range results {
+		if r.err != nil {
+			logHookEvent(hookName, "error", 0)
+			if blocking {
+				// For blocking events, collect the reason from stdout (script's block message)
+				reason := strings.TrimSpace(string(r.stdout))
+				if reason == "" {
+					reason = fmt.Sprintf("%s failed: %v", filepath.Base(r.path), r.err)
+				}
+				blockReasons = append(blockReasons, reason)
+			} else {
+				fmt.Fprintf(os.Stderr, "lore hook: script error (%s): %v\n", filepath.Base(r.path), r.err)
+			}
+			continue
+		}
+		logHookEvent(hookName, "dispatched", len(r.stdout))
+		if len(r.stdout) > 0 {
+			combinedOut = append(combinedOut, r.stdout...)
+		}
 	}
 
-	logHookEvent(hookName, "dispatched", len(stdout))
+	// For blocking events with failures: merge all block reasons into a single response
+	if blocking && len(blockReasons) > 0 {
+		// Combine block messages from all failing scripts
+		merged := strings.Join(blockReasons, "\n")
+		os.Stdout.WriteString(merged)
+		os.Exit(1)
+	}
 
-	// Forward script stdout to platform
-	if len(stdout) > 0 {
-		os.Stdout.Write(stdout)
+	// Forward combined stdout from all successful scripts
+	if len(combinedOut) > 0 {
+		os.Stdout.Write(combinedOut)
 	}
 }
 

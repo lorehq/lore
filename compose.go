@@ -181,9 +181,9 @@ func readBundleName(pkgDir string) string {
 	return name
 }
 
-// readBundleHookEvents reads hook event names from a bundle's manifest.json.
-// Returns sorted event names (e.g., ["post-tool-use", "pre-tool-use", "prompt-submit"]).
-func readBundleHookEvents(pkgDir string) []string {
+// readBundleHookEntries reads hook event → script pairs from a bundle's manifest.json.
+// Returns entries sorted by event name.
+func readBundleHookEntries(pkgDir string) []hookEntry {
 	data, err := os.ReadFile(filepath.Join(pkgDir, "manifest.json"))
 	if err != nil {
 		return nil
@@ -194,25 +194,29 @@ func readBundleHookEvents(pkgDir string) []string {
 	if json.Unmarshal(data, &manifest) != nil {
 		return nil
 	}
-	var events []string
-	for event := range manifest.Hooks {
-		events = append(events, event)
+	var entries []hookEntry
+	for event, scriptPath := range manifest.Hooks {
+		entries = append(entries, hookEntry{
+			event:  event,
+			script: filepath.Base(scriptPath),
+		})
 	}
-	sort.Strings(events)
-	return events
+	sort.Slice(entries, func(i, j int) bool { return entries[i].event < entries[j].event })
+	return entries
 }
 
-// readHookEventsFromDir scans a HOOKS directory for <event>.mjs files.
-// Returns sorted event names for any scripts found.
-func readHookEventsFromDir(dir string) []string {
-	var events []string
+// readHookEntriesFromDir scans a HOOKS directory for <event>.mjs files.
+// Returns entries sorted by event name.
+func readHookEntriesFromDir(dir string) []hookEntry {
+	var entries []hookEntry
 	for _, event := range allHookEvents {
-		p := filepath.Join(dir, event+".mjs")
+		name := event + ".mjs"
+		p := filepath.Join(dir, name)
 		if _, err := os.Stat(p); err == nil {
-			events = append(events, event)
+			entries = append(entries, hookEntry{event: event, script: name})
 		}
 	}
-	return events
+	return entries
 }
 
 // BundleTUIPage represents a TUI page declared by a bundle.
