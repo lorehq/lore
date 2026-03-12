@@ -140,6 +140,27 @@ type hookEntry struct {
 	name  string // behavior name e.g. "Ambiguity Nudge"
 }
 
+// composedItem represents a rule/skill/agent in the final merged result with provenance.
+type composedItem struct {
+	name     string
+	source   string // "bundle", "global", "project", "harness"
+	conflict bool   // true if same name exists at multiple layers
+}
+
+// composedHookItem represents a hook behavior in the composed result.
+type composedHookItem struct {
+	event  string
+	name   string
+	source string // "bundle", "global", "project"
+}
+
+// composedMCPItem represents an MCP server in the composed result.
+type composedMCPItem struct {
+	name     string
+	source   string // "bundle", "global", "project"
+	conflict bool   // true if overridden from another layer
+}
+
 type bundleGroup struct {
 	slug          string
 	name          string
@@ -266,19 +287,32 @@ type tuiModel struct {
 	wizBtnFocus  int      // -1=content (text input/list), 0=Back, 1=Continue/Confirm
 
 	// projection planner state
-	projPane      int // 0=bundles, 1=global, 2=project+output
+	projPane      int // 0=bundles, 1=global, 2=project, 3=composed, 4=projections
 	projCatalog   []projItem // unified bundle + global items (bundle first, then global)
 	projGlobal    []projItem // global content items (Pane 0 top)
 	projBundle      []projItem // bundle content items (Pane 0 bottom)
 	projProject   []projItem
 	projHarness   []projItem // harness-managed items (always projected, clobber all)
 	projInherit   map[string]map[string]string
-	projCursor    [3]int
-	projScroll    [3]int // Y offset for each pane's scroll position
+	projCursor    [5]int
+	projScroll    [5]int // Y offset for each pane's scroll position
 	projLoaded    bool
 	hasMCP        bool // true if bundle or project declares MCP servers
 
 	colStartY      int    // Y offset where column content begins (for mouse targeting)
+	resultTopH     int    // height of the Composed box in column 3 (for mouse Y targeting)
+
+	// Composed result data
+	composedRules  []composedItem
+	composedSkills []composedItem
+	composedAgents []composedItem
+	composedHooks  []composedHookItem
+	composedMCP    []composedMCPItem
+
+	// Composed pane collapse state: 0=rules, 1=skills, 2=agents
+	composedCollapsed      [3]bool
+	composedHooksCollapsed bool
+	composedMCPCollapsed   bool
 
 	// collapsible kind groups: [3]bool for rules/skills/agents collapsed state
 	globalCollapsed  [3]bool // global pane kind groups
@@ -434,8 +468,11 @@ func initialModel() *tuiModel {
 		hintPane:         -1,
 		globalCollapsed:     [3]bool{true, true, true},
 		projectCollapsed:    [3]bool{true, true, true},
+		composedCollapsed:   [3]bool{true, true, true},
 		mcpGlobalCollapsed:  true,
 		mcpProjectCollapsed: true,
+		composedHooksCollapsed: true,
+		composedMCPCollapsed:   true,
 	}
 
 	if isLore {
@@ -724,8 +761,160 @@ func (m *tuiModel) loadProjection() {
 		m.bundlePageLoading = make(map[tabID]bool)
 	}
 
+	// Build composed data — the final merged result with provenance
+	m.buildComposedData()
+
 	m.projLoaded = true
 	m.recomputeDiff()
+}
+
+// buildComposedData populates the composed result slices from the merged projection.
+// Uses mergeAgenticSets to get the final merged items, then determines provenance
+// from the AgenticFile.Path field. Hooks accumulate from all layers. MCP overrides by name.
+func (m *tuiModel) buildComposedData() {
+	gp := globalPath()
+	harnessDir := filepath.Join(gp, ".harness")
+	projectLoreDir := filepath.Join(m.cwd, ".lore")
+
+	ms, err := mergeAgenticSets(gp, projectLoreDir)
+	if err != nil {
+		m.composedRules = nil
+		m.composedSkills = nil
+		m.composedAgents = nil
+		m.composedHooks = nil
+		m.composedMCP = nil
+		return
+	}
+
+	// Build name sets per layer for conflict detection
+	bundleNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projBundle {
+		bundleNames[item.kind][item.name] = true
+	}
+	globalNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projGlobal {
+		globalNames[item.kind][item.name] = true
+	}
+	projectNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projProject {
+		projectNames[item.kind][item.name] = true
+	}
+
+	// Determine provenance from path
+	sourceOf := func(path string) string {
+		if strings.Contains(path, harnessDir) {
+			return "harness"
+		}
+		if strings.Contains(path, projectLoreDir) {
+			return "project"
+		}
+		if strings.Contains(path, gp) {
+			return "global"
+		}
+		return "bundle"
+	}
+
+	// Detect conflict: name exists in more than one input layer
+	hasConflict := func(kind, name string) bool {
+		layers := 0
+		if bundleNames[kind][name] {
+			layers++
+		}
+		if globalNames[kind][name] {
+			layers++
+		}
+		if projectNames[kind][name] {
+			layers++
+		}
+		return layers > 1
+	}
+
+	// Rules/Skills/Agents composed data
+	buildComposed := func(items map[string]*AgenticFile, kind string) []composedItem {
+		var result []composedItem
+		for _, name := range sortedKeys(items) {
+			af := items[name]
+			result = append(result, composedItem{
+				name:     name,
+				source:   sourceOf(af.Path),
+				conflict: hasConflict(kind, name),
+			})
+		}
+		return result
+	}
+
+	m.composedRules = buildComposed(ms.Rules, "rule")
+	m.composedSkills = buildComposed(ms.Skills, "skill")
+	m.composedAgents = buildComposed(ms.Agents, "agent")
+
+	// Hooks composed data — accumulate all from all layers
+	m.composedHooks = nil
+	for _, bg := range m.enabledBundles {
+		for _, h := range bg.hookEntries {
+			m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "bundle"})
+		}
+	}
+	for _, h := range m.hooksGlobal {
+		m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "global"})
+	}
+	for _, h := range m.hooksProject {
+		m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "project"})
+	}
+
+	// MCP composed data — override by name (last wins), track conflicts
+	mcpByLayer := map[string][]string{"bundle": nil, "global": nil, "project": nil}
+	mcpLayerSet := map[string]map[string]bool{"bundle": {}, "global": {}, "project": {}}
+	for _, bg := range m.enabledBundles {
+		for _, name := range bg.mcpServers {
+			if !mcpLayerSet["bundle"][name] {
+				mcpLayerSet["bundle"][name] = true
+				mcpByLayer["bundle"] = append(mcpByLayer["bundle"], name)
+			}
+		}
+	}
+	for _, name := range m.mcpGlobal {
+		mcpLayerSet["global"][name] = true
+		mcpByLayer["global"] = append(mcpByLayer["global"], name)
+	}
+	for _, name := range m.mcpProject {
+		mcpLayerSet["project"][name] = true
+		mcpByLayer["project"] = append(mcpByLayer["project"], name)
+	}
+	// Last source wins (project > global > bundle)
+	mcpFinalSource := map[string]string{}
+	for _, name := range mcpByLayer["bundle"] {
+		mcpFinalSource[name] = "bundle"
+	}
+	for _, name := range mcpByLayer["global"] {
+		mcpFinalSource[name] = "global"
+	}
+	for _, name := range mcpByLayer["project"] {
+		mcpFinalSource[name] = "project"
+	}
+	// Build sorted result
+	var mcpNames []string
+	for name := range mcpFinalSource {
+		mcpNames = append(mcpNames, name)
+	}
+	sort.Strings(mcpNames)
+	m.composedMCP = nil
+	for _, name := range mcpNames {
+		layers := 0
+		if mcpLayerSet["bundle"][name] {
+			layers++
+		}
+		if mcpLayerSet["global"][name] {
+			layers++
+		}
+		if mcpLayerSet["project"][name] {
+			layers++
+		}
+		m.composedMCP = append(m.composedMCP, composedMCPItem{
+			name:     name,
+			source:   mcpFinalSource[name],
+			conflict: layers > 1,
+		})
+	}
 }
 
 // tuiGetPolicy is a convenience wrapper around the shared getPolicy function.
@@ -1949,10 +2138,10 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 	switch key {
 	case "tab":
-		m.projPane = (m.projPane + 1) % 3
+		m.projPane = (m.projPane + 1) % 5
 		return m, nil
 	case "shift+tab":
-		m.projPane = (m.projPane + 2) % 3
+		m.projPane = (m.projPane + 4) % 5
 		return m, nil
 	case "r":
 		m.projLoaded = false
@@ -2091,10 +2280,15 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				m.bundlePageScroll[m.tab] += delta
 				return m, nil
 			}
-			colW := m.width / 3
+			colW := m.width / 4
 			pane := msg.X / colW
-			if pane > 2 {
-				pane = 2
+			if pane >= 3 {
+				// Column 3 is split: check Y to determine sub-pane
+				if msg.Y < m.colStartY+m.resultTopH {
+					pane = 3 // Composed
+				} else {
+					pane = 4 // Projections
+				}
 			}
 			m.projScroll[pane] += delta
 			return m, nil
@@ -2298,7 +2492,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Hint button clicks (open hint)
-		for pane := 0; pane < 3; pane++ {
+		for pane := 0; pane < 5; pane++ {
 			if zone.Get(fmt.Sprintf("hint-%d", pane)).InBounds(msg) {
 				m.hintPane = pane
 				return m, nil
@@ -2306,7 +2500,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Row title clicks to switch pane
-		for pane := 0; pane < 3; pane++ {
+		for pane := 0; pane < 5; pane++ {
 			if zone.Get(fmt.Sprintf("row-%d", pane)).InBounds(msg) {
 				m.projPane = pane
 				return m, nil
@@ -2452,6 +2646,25 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			m.mcpProjectCollapsed = !m.mcpProjectCollapsed
 			m.projPane = 2
 			return m, nil
+		}
+
+		// Composed pane collapse toggles
+		if zone.Get("composed-hooks").InBounds(msg) {
+			m.composedHooksCollapsed = !m.composedHooksCollapsed
+			m.projPane = 3
+			return m, nil
+		}
+		if zone.Get("composed-mcp").InBounds(msg) {
+			m.composedMCPCollapsed = !m.composedMCPCollapsed
+			m.projPane = 3
+			return m, nil
+		}
+		for i := 0; i < 3; i++ {
+			if zone.Get(fmt.Sprintf("composed-kind-%d", i)).InBounds(msg) {
+				m.composedCollapsed[i] = !m.composedCollapsed[i]
+				m.projPane = 3
+				return m, nil
+			}
 		}
 
 		// Project leaf clicks
@@ -3143,38 +3356,61 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		colMaxH = 5
 	}
 
-	colW := w / 3
+	colW := w / 4
 	innerW := colW - 2 // 2 border chars
 
-	// All three columns are full-height single boxes
-	visibleH := colMaxH - 2 // title + bottom border
-	if visibleH < 3 {
-		visibleH = 3
+	// Columns 0-2: full-height single boxes
+	fullVisibleH := colMaxH - 2 // title + bottom border
+	if fullVisibleH < 3 {
+		fullVisibleH = 3
 	}
 
-	// Column 2 merges project + projections with a dim separator
-	projectContent := m.renderProjectList(innerW)
-	sep := dimStyle.Render(strings.Repeat("─", innerW))
-	outputContent := m.renderOutputContent(innerW)
-	mergedPane2 := projectContent + "\n" + sep + "\n" + outputContent
+	// Column 3: split vertically 50/50 into Composed (pane 3) and Projections (pane 4)
+	topBoxH := colMaxH / 2
+	botBoxH := colMaxH - topBoxH
+	topVisibleH := topBoxH - 2 // title + bottom border
+	botVisibleH := botBoxH - 2
+	if topVisibleH < 2 {
+		topVisibleH = 2
+	}
+	if botVisibleH < 2 {
+		botVisibleH = 2
+	}
+	m.resultTopH = topBoxH // store for mouse Y targeting
 
+	// Pane contents for columns 0-2
 	paneContents := [3]string{
 		m.renderBundleContent(innerW),
 		m.renderGlobalList(innerW),
-		mergedPane2,
+		m.renderProjectList(innerW),
 	}
-
 	titles := [3]string{"Bundles", "Global", "Project"}
 
-	// Clamp scroll offsets for all 3 panes
+	// Clamp scroll offsets for panes 0-2
 	for i := 0; i < 3; i++ {
 		totalLines := strings.Count(paneContents[i], "\n") + 1
 		if paneContents[i] == "" {
 			totalLines = 0
 		}
-		m.clampScroll(i, totalLines, visibleH)
+		m.clampScroll(i, totalLines, fullVisibleH)
 	}
 
+	// Column 3 pane contents
+	composedContent := m.renderComposedList(innerW)
+	outputContent := m.renderOutputContent(innerW)
+
+	composedTotalLines := strings.Count(composedContent, "\n") + 1
+	if composedContent == "" {
+		composedTotalLines = 0
+	}
+	outputTotalLines := strings.Count(outputContent, "\n") + 1
+	if outputContent == "" {
+		outputTotalLines = 0
+	}
+	m.clampScroll(3, composedTotalLines, topVisibleH)
+	m.clampScroll(4, outputTotalLines, botVisibleH)
+
+	// Build columns 0-2 (full height single boxes)
 	var cols []string
 	for i := 0; i < 3; i++ {
 		allLines := strings.Split(paneContents[i], "\n")
@@ -3187,12 +3423,12 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		if start > totalLines {
 			start = totalLines
 		}
-		end := start + visibleH
+		end := start + fullVisibleH
 		if end > totalLines {
 			end = totalLines
 		}
 		visible := allLines[start:end]
-		for len(visible) < visibleH {
+		for len(visible) < fullVisibleH {
 			visible = append(visible, "")
 		}
 
@@ -3210,9 +3446,54 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 			}
 			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
 		}
-		box = append(box, m.renderBoxBottom(innerW, i, visibleH, totalLines))
+		box = append(box, m.renderBoxBottom(innerW, i, fullVisibleH, totalLines))
 		cols = append(cols, strings.Join(box, "\n"))
 	}
+
+	// Build column 3: vertically stacked Composed (pane 3) + Projections (pane 4)
+	buildSubBox := func(title string, content string, pane int, visH int) []string {
+		allLines := strings.Split(content, "\n")
+		if content == "" {
+			allLines = nil
+		}
+		total := len(allLines)
+
+		start := m.projScroll[pane]
+		if start > total {
+			start = total
+		}
+		end := start + visH
+		if end > total {
+			end = total
+		}
+		visible := allLines[start:end]
+		for len(visible) < visH {
+			visible = append(visible, "")
+		}
+
+		var box []string
+		box = append(box, m.renderBoxTitle(title, innerW, pane))
+		for _, vl := range visible {
+			lineW := lipgloss.Width(vl)
+			if lineW > innerW {
+				vl = ansi.Truncate(vl, innerW, "")
+				lineW = lipgloss.Width(vl)
+			}
+			pad := innerW - lineW
+			if pad < 0 {
+				pad = 0
+			}
+			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+		}
+		box = append(box, m.renderBoxBottom(innerW, pane, visH, total))
+		return box
+	}
+
+	topBox := buildSubBox("Composed", composedContent, 3, topVisibleH)
+	botBox := buildSubBox("Projections", outputContent, 4, botVisibleH)
+
+	col3Lines := append(topBox, botBox...)
+	cols = append(cols, strings.Join(col3Lines, "\n"))
 
 	columnsStr := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 
@@ -3286,7 +3567,7 @@ func (m *tuiModel) renderBoxBottom(innerW int, pane int, visibleH int, totalLine
 	return dimStyle.Render("╰" + fill + "╯")
 }
 
-var hintTexts = [3][]string{
+var hintTexts = [5][]string{
 	{ // Bundles (pane 0)
 		"Enabled and available bundles.",
 		"",
@@ -3307,14 +3588,27 @@ var hintTexts = [3][]string{
 		"LORE.md — prose instructions accumulated",
 		"from all layers. Edit the file directly.",
 	},
-	{ // Project + Projections (pane 2)
+	{ // Project (pane 2)
 		"Your project-local agentic content",
-		"from .lore/ and file tree preview of",
-		"what lore generate will produce.",
+		"from .lore/.",
 		"",
 		"Conflict indicators:",
 		"  yellow — shadows a deferred global item",
 		"  struck — overridden by global ● overwrite",
+	},
+	{ // Composed (pane 3)
+		"Final merged result after three-layer",
+		"composition (bundle + global + project).",
+		"",
+		"Provenance symbols:",
+		"  ⬡ bundle   ● global",
+		"  ◆ project  ⊕ harness",
+		"",
+		"  ⚠ = name exists at multiple layers",
+	},
+	{ // Projections (pane 4)
+		"File tree preview of what",
+		"lore generate will produce.",
 		"",
 		"Projection colors:",
 		"  green  — new file (does not exist yet)",
@@ -3325,7 +3619,7 @@ var hintTexts = [3][]string{
 
 // overlayHint renders a centered full-screen hint dialog for the given pane.
 func (m *tuiModel) overlayHint(lines []string, w int, _ int, pane int) []string {
-	titles := [3]string{"Bundle Catalog", "Global Catalog", "Project & Projections"}
+	titles := [5]string{"Bundle Catalog", "Global Catalog", "Project Agentics", "Composed Result", "Projection Output"}
 	title := bold.Render(titles[pane])
 
 	inner := title + "\n\n" + strings.Join(hintTexts[pane], "\n") + "\n\n" +
@@ -3653,6 +3947,108 @@ func (m *tuiModel) renderBundleContent(w int) string {
 }
 
 // renderProjectList renders the project pane with collapsible kind groups.
+// renderComposedList renders the Composed pane content showing the final merged result
+// with provenance symbols and conflict indicators.
+func (m *tuiModel) renderComposedList(w int) string {
+	var lines []string
+
+	// Provenance symbol
+	provenanceSym := func(source string) string {
+		switch source {
+		case "bundle":
+			return "⬡"
+		case "global":
+			return "●"
+		case "project":
+			return "◆"
+		case "harness":
+			return "⊕"
+		}
+		return "?"
+	}
+
+	// HOOKS row (collapsible)
+	hookCount := len(m.composedHooks)
+	if hookCount > 0 {
+		arrow := "▾"
+		if m.composedHooksCollapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", hookCount))
+		lines = append(lines, zone.Mark("composed-hooks", header))
+		if !m.composedHooksCollapsed {
+			for _, h := range m.composedHooks {
+				sym := provenanceSym(h.source)
+				lines = append(lines, "  "+sym+" "+h.event+dimStyle.Render(" > "+h.name))
+			}
+		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
+	}
+
+	// MCP row (collapsible)
+	mcpCount := len(m.composedMCP)
+	if mcpCount > 0 {
+		arrow := "▾"
+		if m.composedMCPCollapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", mcpCount))
+		lines = append(lines, zone.Mark("composed-mcp", header))
+		if !m.composedMCPCollapsed {
+			for _, item := range m.composedMCP {
+				sym := provenanceSym(item.source)
+				line := "  " + sym + " " + item.name
+				if item.conflict {
+					line += " " + dimStyle.Render("⚠")
+				}
+				lines = append(lines, line)
+			}
+		}
+	} else {
+		lines = append(lines, dimStyle.Render(" MCP (0)"))
+	}
+
+	// RULES / SKILLS / AGENTS (collapsible)
+	type kindGroup struct {
+		label string
+		items []composedItem
+		idx   int // index into composedCollapsed
+	}
+	groups := []kindGroup{
+		{"RULES", m.composedRules, 0},
+		{"SKILLS", m.composedSkills, 1},
+		{"AGENTS", m.composedAgents, 2},
+	}
+	for _, g := range groups {
+		count := len(g.items)
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+g.label+" (0)"))
+			continue
+		}
+		collapsed := m.composedCollapsed[g.idx]
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " " + g.label + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("composed-kind-%d", g.idx), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for _, item := range g.items {
+			sym := provenanceSym(item.source)
+			line := "  " + sym + " " + item.name
+			if item.conflict {
+				line += " " + dimStyle.Render("⚠")
+			}
+			lines = append(lines, line)
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func (m *tuiModel) renderProjectList(w int) string {
 	var lines []string
 
