@@ -75,6 +75,61 @@ type projItem struct {
 	skills   []string // agents only: declared skill deps
 	source   string   // "bundle", "global" (catalog items only)
 	bundleSlug string   // which bundle this item came from (bundle items only)
+	// Skills only: file counts in supporting subdirectories
+	numReferences int
+	numAssets     int
+	numScripts    int
+}
+
+// countSkillResources counts files in a skill directory's supporting subdirs.
+func countSkillResources(sourceDir string) (refs, assets, scripts int) {
+	for _, sub := range []struct {
+		name string
+		ptr  *int
+	}{
+		{"references", &refs},
+		{"assets", &assets},
+		{"scripts", &scripts},
+	} {
+		dir := filepath.Join(sourceDir, sub.name)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() {
+				*sub.ptr++
+			}
+		}
+	}
+	return
+}
+
+// skillResourceBadge returns a dimmed summary like "2 refs, 1 asset" or "".
+func skillResourceBadge(refs, assets, scripts int) string {
+	if refs == 0 && assets == 0 && scripts == 0 {
+		return ""
+	}
+	var parts []string
+	if refs > 0 {
+		parts = append(parts, fmt.Sprintf("%d ref", refs))
+		if refs > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	if assets > 0 {
+		parts = append(parts, fmt.Sprintf("%d asset", assets))
+		if assets > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	if scripts > 0 {
+		parts = append(parts, fmt.Sprintf("%d script", scripts))
+		if scripts > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	return strings.Join(parts, ", ")
 }
 
 type bundleGroup struct {
@@ -472,6 +527,9 @@ func (m *tuiModel) loadProjection() {
 			}
 			for _, name := range sortedKeys(skills) {
 				item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "bundle", bundleSlug: slug}
+				if skills[name].SourceDir != "" {
+					item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+				}
 				group.items = append(group.items, item)
 				m.projBundle = append(m.projBundle, item)
 			}
@@ -499,7 +557,11 @@ func (m *tuiModel) loadProjection() {
 			m.projGlobal = append(m.projGlobal, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "global"})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projGlobal = append(m.projGlobal, projItem{kind: "skill", name: name, desc: skills[name].Description, source: "global"})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "global"}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projGlobal = append(m.projGlobal, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projGlobal = append(m.projGlobal, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills, source: "global"})
@@ -516,7 +578,11 @@ func (m *tuiModel) loadProjection() {
 			m.projProject = append(m.projProject, projItem{kind: "rule", name: name, desc: rules[name].Description})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projProject = append(m.projProject, projItem{kind: "skill", name: name, desc: skills[name].Description})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projProject = append(m.projProject, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projProject = append(m.projProject, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills})
@@ -531,7 +597,11 @@ func (m *tuiModel) loadProjection() {
 			m.projHarness = append(m.projHarness, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "harness"})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projHarness = append(m.projHarness, projItem{kind: "skill", name: name, desc: skills[name].Description, source: "harness"})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "harness"}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projHarness = append(m.projHarness, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projHarness = append(m.projHarness, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills, source: "harness"})
@@ -738,6 +808,10 @@ type pane2Item struct {
 	kind  string
 	name  string
 	color string // "default", "yellow" (shadows deferred), "strike" (overwritten)
+	// Skills only: resource counts
+	numReferences int
+	numAssets     int
+	numScripts    int
 }
 
 func (m *tuiModel) buildPane2Items() []pane2Item {
@@ -765,7 +839,7 @@ func (m *tuiModel) buildPane2Items() []pane2Item {
 				color = "strike" // catalog item overrides this project item
 			}
 		}
-		items = append(items, pane2Item{kind: item.kind, name: item.name, color: color})
+		items = append(items, pane2Item{kind: item.kind, name: item.name, color: color, numReferences: item.numReferences, numAssets: item.numAssets, numScripts: item.numScripts})
 	}
 	return items
 }
@@ -3285,6 +3359,11 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		line := "  " + sym + " " + item.name
 		line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
 		lines = append(lines, line)
+		if item.kind == "skill" {
+			if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+				lines = append(lines, dimStyle.Render("      "+badge))
+			}
+		}
 	}
 	return strings.Join(lines, "\n")
 }
@@ -3414,6 +3493,11 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					line := "    " + sym + " " + item.name
 					line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
 					lines = append(lines, line)
+					if item.kind == "skill" {
+						if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+							lines = append(lines, dimStyle.Render("        "+badge))
+						}
+					}
 					flatIdx++
 				}
 			} else {
@@ -3532,6 +3616,11 @@ func (m *tuiModel) renderProjectList(w int) string {
 			label = redStyle.Render(label)
 		}
 		lines = append(lines, "   "+label)
+		if item.kind == "skill" {
+			if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+				lines = append(lines, dimStyle.Render("     "+badge))
+			}
+		}
 	}
 	return strings.Join(lines, "\n")
 }
