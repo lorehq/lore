@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -284,9 +285,10 @@ type tuiModel struct {
 	genConfScroll  int      // scroll offset in confirmation dialog
 
 	// cached merged names — recomputed in recomputeDiff(), shared by tree/diff/orphan
-	mergedRules  []string
-	mergedSkills []string
-	mergedAgents []string
+	mergedRules     []string
+	mergedSkills    []string
+	mergedAgents    []string
+	skillSourceDirs map[string]string // skill name → source dir (for resource file enumeration)
 
 	// clean mode — show orphan files in projections pane, delete on generate
 	cleanMode   bool     // destructive mode toggle
@@ -686,7 +688,7 @@ func (m *tuiModel) setPolicy(kind, name, policy string) {
 // Called after every state change (policy toggle, platform toggle, bundle change).
 // Caches merged names so buildOutputTree/computeGenDiff/computeOrphanFiles share one merge.
 func (m *tuiModel) recomputeDiff() {
-	m.mergedRules, m.mergedSkills, m.mergedAgents = m.computeMergedNames()
+	m.mergedRules, m.mergedSkills, m.mergedAgents, m.skillSourceDirs = m.computeMergedNames()
 	m.genNewFiles, m.genOverFiles = m.computeGenDiff()
 	m.orphanFiles = m.computeOrphanFiles()
 }
@@ -850,14 +852,20 @@ func (m *tuiModel) buildPane2Items() []pane2Item {
 
 // computeMergedNames calls the canonical merge engine and extracts sorted name lists.
 // Single source of truth — same merge logic used by `lore generate`.
-func (m *tuiModel) computeMergedNames() (rules, skills, agents []string) {
+func (m *tuiModel) computeMergedNames() (rules, skills, agents []string, skillSrcDirs map[string]string) {
 	globalDir := globalPath()
 	projectLoreDir := filepath.Join(m.cwd, ".lore")
 	ms, err := mergeAgenticSets(globalDir, projectLoreDir)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
-	return sortedKeys(ms.Rules), sortedKeys(ms.Skills), sortedKeys(ms.Agents)
+	srcDirs := map[string]string{}
+	for name, skill := range ms.Skills {
+		if skill.SourceDir != "" {
+			srcDirs[name] = skill.SourceDir
+		}
+	}
+	return sortedKeys(ms.Rules), sortedKeys(ms.Skills), sortedKeys(ms.Agents), srcDirs
 }
 
 // buildOutputTree builds a lipgloss tree showing all files that projection would create.
@@ -873,6 +881,13 @@ func (m *tuiModel) buildOutputTree() string {
 			continue
 		}
 		for _, path := range platformOutputPaths(p, rules, skills, agents, m.hasMCP) {
+			if !seen[path] {
+				seen[path] = true
+				allPaths = append(allPaths, path)
+			}
+		}
+		// Include skill resource files (references/, scripts/, assets/)
+		for _, path := range skillResourcePaths(p, m.skillSourceDirs) {
 			if !seen[path] {
 				seen[path] = true
 				allPaths = append(allPaths, path)
@@ -1070,6 +1085,46 @@ func platformOutputPaths(platform string, rules, skills, agents []string, hasMCP
 		return nil
 	}
 	return projector.OutputPaths(rules, skills, agents, hasMCP)
+}
+
+// skillResourcePaths returns the output paths for skill resource files
+// (references/, scripts/, assets/) by walking source directories.
+// These are projected by copySkillResources during generation.
+func skillResourcePaths(platform string, skillSrcDirs map[string]string) []string {
+	projector, ok := projectorRegistry[platform]
+	if !ok || len(skillSrcDirs) == 0 {
+		return nil
+	}
+	// Get the skill output base dirs from the projector.
+	// Use a single dummy skill to discover the platform's skill path pattern.
+	probe := projector.OutputPaths(nil, []string{"__probe__"}, nil, false)
+	var prefixPattern string
+	for _, p := range probe {
+		if strings.Contains(p, "__probe__") && strings.HasSuffix(p, "/") {
+			prefixPattern = p
+			break
+		}
+	}
+	if prefixPattern == "" {
+		return nil
+	}
+
+	var paths []string
+	for name, srcDir := range skillSrcDirs {
+		outDir := strings.Replace(prefixPattern, "__probe__", name, 1)
+		filepath.WalkDir(srcDir, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return nil
+			}
+			rel, _ := filepath.Rel(srcDir, p)
+			if rel == "." || rel == "SKILL.md" {
+				return nil
+			}
+			paths = append(paths, outDir+filepath.ToSlash(rel))
+			return nil
+		})
+	}
+	return paths
 }
 
 // ── Commands ────────────────────────────────────────────────────────
@@ -2611,13 +2666,19 @@ func (m *tuiModel) computeGenDiff() (newFiles, overFiles []string) {
 func (m *tuiModel) computeOrphanFiles() []string {
 	rules, skills, agents := m.mergedRules, m.mergedSkills, m.mergedAgents
 
-	// Build the set of files that WOULD be generated
+	// Build the set of files that WOULD be generated.
+	// Track directory entries separately — any file under an expected skill
+	// directory is expected (skill resources: references/, scripts/, assets/).
 	expected := map[string]bool{}
+	expectedDirs := []string{} // directory prefixes (e.g., ".claude/skills/lore-repair/")
 	for _, p := range validPlatforms {
 		if !m.platforms[p] {
 			continue
 		}
 		for _, path := range platformOutputPaths(p, rules, skills, agents, m.hasMCP) {
+			if strings.HasSuffix(path, "/") {
+				expectedDirs = append(expectedDirs, path)
+			}
 			expected[strings.TrimSuffix(path, "/")] = true
 		}
 	}
@@ -2634,7 +2695,18 @@ func (m *tuiModel) computeOrphanFiles() []string {
 			}
 			rel, _ := filepath.Rel(m.cwd, p)
 			rel = filepath.ToSlash(rel)
-			if !expected[rel] && !seen[rel] {
+			if expected[rel] || seen[rel] {
+				return nil
+			}
+			// Check if file is under an expected directory (skill resources)
+			underExpectedDir := false
+			for _, prefix := range expectedDirs {
+				if strings.HasPrefix(rel, prefix) {
+					underExpectedDir = true
+					break
+				}
+			}
+			if !underExpectedDir {
 				seen[rel] = true
 				orphans = append(orphans, rel)
 			}
