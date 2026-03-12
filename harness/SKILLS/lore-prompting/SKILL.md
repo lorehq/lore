@@ -1,7 +1,7 @@
 ---
 name: lore-prompting
 description: Prompt engineering principles for writing effective rules, skills, agents, and LORE.md content
-user-invocable: true
+user-invocable: false
 ---
 
 # Prompt Engineering Principles

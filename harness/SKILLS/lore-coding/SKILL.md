@@ -1,7 +1,7 @@
 ---
 name: lore-coding
 description: Coding principles — surface confusion early, write less code, prove it works
-user-invocable: true
+user-invocable: false
 ---
 
 # Coding Principles
