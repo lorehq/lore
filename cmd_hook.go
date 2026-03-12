@@ -394,6 +394,8 @@ Hooks:
   stop             Invoked when the agent finishes responding
   pre-compact      Invoked before context window compression
   session-end      Invoked when a session terminates
+  subagent-start   Invoked before a subagent spawns (3/6 platforms)
+  subagent-stop    Invoked after a subagent completes (4/6 platforms)
 
 Hook input is read from stdin as JSON (provided by the platform).
 Script stdout is forwarded back to the platform.

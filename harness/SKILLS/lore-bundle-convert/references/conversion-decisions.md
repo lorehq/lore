@@ -70,7 +70,9 @@ Indicators:
    - Claude `SessionStart` → `session-start`
    - Claude `Stop` → `stop`
    - Claude `PreCompact` → `pre-compact`
-   - Claude `SessionEnd` / `SubagentStart` → `session-end` (or drop if no equivalent)
+   - Claude `SessionEnd` → `session-end`
+   - Claude `SubagentStart` → `subagent-start`
+   - Claude `SubagentStop` → `subagent-stop`
 
 2. **Assess each hook's portability:**
    - Platform-agnostic logic (git push guard, console.log warning, lint check, context injection) → **CONVERT**

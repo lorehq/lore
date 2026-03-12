@@ -166,6 +166,8 @@ func (p *ClaudeProjector) writeSettings(root string) error {
 			"Stop":             loreHook("lore hook stop"),
 			"PreCompact":       loreHook("lore hook pre-compact"),
 			"SessionEnd":       loreHook("lore hook session-end"),
+			"SubagentStart":    loreHook("lore hook subagent-start"),
+			"SubagentStop":     loreHook("lore hook subagent-stop"),
 		},
 	}
 

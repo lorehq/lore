@@ -118,6 +118,8 @@ func (p *CursorProjector) writeHooks(root string) error {
 			"stop":              loreHook("lore hook stop"),
 			"preCompact":        loreHook("lore hook pre-compact"),
 			"sessionEnd":        loreHook("lore hook session-end"),
+			"subagentStart":     loreHook("lore hook subagent-start"),
+			"subagentStop":      loreHook("lore hook subagent-stop"),
 		},
 	}
 

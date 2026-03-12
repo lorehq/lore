@@ -141,6 +141,7 @@ type copilotHooksEvents struct {
 	SessionStart        []copilotHookEntry `json:"sessionStart,omitempty"`
 	AgentStop           []copilotHookEntry `json:"agentStop,omitempty"`
 	SessionEnd          []copilotHookEntry `json:"sessionEnd,omitempty"`
+	SubagentStop        []copilotHookEntry `json:"subagentStop,omitempty"`
 }
 
 type copilotHookEntry struct {
@@ -161,6 +162,7 @@ func (p *CopilotProjector) writeHooks(root string) error {
 			SessionStart:        h("lore hook session-start"),
 			AgentStop:           h("lore hook stop"),
 			SessionEnd:          h("lore hook session-end"),
+			SubagentStop:        h("lore hook subagent-stop"),
 		},
 	}
 

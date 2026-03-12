@@ -44,6 +44,7 @@ type HookScripts struct {
 var allHookEvents = []string{
 	"pre-tool-use", "post-tool-use", "prompt-submit",
 	"session-start", "stop", "pre-compact", "session-end",
+	"subagent-start", "subagent-stop",
 }
 
 // blockingEvents are hook events where a non-zero exit blocks the action.
@@ -51,6 +52,7 @@ var blockingEvents = map[string]bool{
 	"pre-tool-use":  true,
 	"prompt-submit": true,
 	"stop":          true,
+	"subagent-stop": true,
 }
 
 // readHookScripts resolves hook scripts using three-layer accumulation:
