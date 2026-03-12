@@ -3,13 +3,13 @@
 ## Overview
 
 Bundles are installable packages that extend Lore with rules, skills, agents, hooks,
-and MCP servers. Each bundle is a directory at `~/.<slug>/` containing a `manifest.json`
-and optional content directories and hook scripts.
+and MCP servers. Each bundle is a directory at `~/.local/share/lore/bundles/<slug>/`
+containing a `manifest.json` and optional content directories and hook scripts.
 
 ## Bundle Structure
 
 ```
-~/.<slug>/                    # Bundle home directory
+~/.local/share/lore/bundles/<slug>/
   manifest.json               # Required: metadata and hook declarations
   LORE.md                     # Optional: instructions appended to mandate files
   RULES/*.md                  # Optional: rules
@@ -18,10 +18,10 @@ and optional content directories and hook scripts.
   MCP/                        # Optional: MCP server declarations and implementations
     <name>.json               # Server declaration
     <name>.js                 # Server implementation (ignored by scanner)
-  hooks/                      # Optional: hook scripts (referenced by manifest.json)
-    pre-tool-use.mjs
-    post-tool-use.mjs
-    prompt-submit.mjs
+  SCRIPTS/                    # Optional: hook behavior scripts (referenced by manifest.json)
+    memory-guard.mjs
+    harness-guard.mjs
+    ambiguity-nudge.mjs
 ```
 
 ## manifest.json
@@ -30,36 +30,46 @@ Required file at the bundle root. Fields:
 
 ```json
 {
+  "manifest_version": 1,
   "slug": "lore-os",
   "name": "Lore OS",
-  "version": "0.1.0",
+  "version": "0.1.10",
+  "description": "Opinionated behavioral layer for the Lore harness.",
   "hooks": {
-    "pre-tool-use": "hooks/pre-tool-use.mjs",
-    "post-tool-use": "hooks/post-tool-use.mjs",
-    "prompt-submit": "hooks/prompt-submit.mjs"
+    "pre-tool-use": [
+      { "name": "Memory Guard", "script": "SCRIPTS/memory-guard.mjs" },
+      { "name": "Harness Guard", "script": "SCRIPTS/harness-guard.mjs" }
+    ],
+    "post-tool-use": [
+      { "name": "Memory Capture", "script": "SCRIPTS/memory-capture.mjs" }
+    ],
+    "prompt-submit": [
+      { "name": "Ambiguity Nudge", "script": "SCRIPTS/ambiguity-nudge.mjs" }
+    ]
   }
 }
 ```
 
-- `slug` — required. Used as directory name (`~/.<slug>/`) and config reference.
+- `slug` — required. Used as directory name and config reference.
 - `name` — display name. Used in LORE.md section headers.
 - `version` — semver string.
-- `hooks` — maps hook event names to script paths (relative to bundle root).
+- `hooks` — maps event names to arrays of `{name, script}` behavior objects.
 
 ## Discovery (`discoverBundles`)
 
-Scans `~/` for directories matching `~/.<name>/manifest.json`:
-1. Lists all entries in home directory starting with `.`
+Scans `~/.local/share/lore/bundles/` (XDG) and legacy `~/.<name>/` for manifests:
+1. Lists directories in both locations
 2. Follows symlinks (uses `os.Stat` not `os.Lstat`)
 3. Reads `manifest.json` from each candidate
 4. Validates: slug must be non-empty
-5. Returns sorted by slug, with `Active` flag from current project config
+5. XDG takes precedence (deduped by slug)
+6. Returns sorted by slug, with `Active` flag from current project config
 
 ## Installation (`cmd_bundle.go`)
 
 ### `lore bundle install <slug> --url <git-url>`
 
-1. Clones the git repo to `~/.<slug>/`
+1. Clones the git repo to `~/.local/share/lore/bundles/<slug>/`
 2. Validates `manifest.json` exists and has a valid slug
 3. Does NOT enable — enabling is per-project only
 
@@ -79,56 +89,59 @@ Scans `~/` for directories matching `~/.<name>/manifest.json`:
 
 ### `lore bundle update <slug>`
 
-1. Runs `git pull` in `~/.<slug>/`
+1. Runs `git pull` in the bundle directory
 2. Runs `lore generate` if in a Lore project
 
 ### `lore bundle remove <slug>`
 
 1. Disables bundle if enabled
-2. Removes `~/.<slug>/` directory
+2. Removes bundle directory
 
 ## Hook Dispatch
 
-### Resolution Strategy
+### Accumulation Strategy
 
-For each hook event, ONE script runs. Resolution is last-wins across layers:
+All behaviors from all layers run in parallel per event. No last-wins — every layer contributes.
 
-1. Check project hooks: `.lore/HOOKS/<event>.mjs`
-2. Check global hooks: `~/.config/lore/HOOKS/<event>.mjs`
-3. Check bundles (priority order, last = highest):
-   - Read `manifest.json` `hooks` field
-   - Resolve script path relative to bundle root
-   - Last bundle with a handler for this event wins
+**Layer order (all accumulate):**
+1. **Bundle** behaviors from `manifest.json` (arrays of `{name, script}`)
+2. **Global** behaviors from `~/.config/lore/HOOKS/<event>/*.mjs`
+3. **Project** behaviors from `.lore/HOOKS/<event>/*.mjs`
 
-Project > Global > highest-priority Bundle.
+**Blocking events** (pre-tool-use, prompt-submit, stop): if ANY behavior returns deny/block, the event is blocked. Reasons from all failing scripts are concatenated.
+
+**Non-blocking events** (post-tool-use, session-start, pre-compact, session-end): all behaviors run, failures are logged to stderr but don't block.
 
 ### Hook Events
 
-| Event | Trigger | Response Format |
-|-------|---------|-----------------|
-| `pre-tool-use` | Before a tool executes | JSON: `{"decision": "allow"/"block", "reason": "..."}` |
-| `post-tool-use` | After a tool executes | JSON: `{"notification": "..."}` (optional) |
-| `prompt-submit` | User submits a prompt | JSON: `{"notification": "..."}` (optional) |
-| `session-start` | Session begins or resumes | JSON: `{"additionalContext": "..."}` (optional) |
-| `stop` | Agent finishes responding | JSON: `{"decision": "block", "reason": "..."}` (optional) |
-| `pre-compact` | Before context compression | JSON: `{"additionalContext": "..."}` (optional) |
-| `session-end` | Session terminates | JSON: `{"additionalContext": "..."}` (optional) |
+| Event | Trigger | Blocking | Response Format |
+|-------|---------|----------|-----------------|
+| `pre-tool-use` | Before a tool executes | yes | `{"decision": "allow"/"deny", "reason": "..."}` |
+| `post-tool-use` | After a tool executes | no | `{"additionalContext": "..."}` (optional) |
+| `prompt-submit` | User submits a prompt | yes | `{"additionalContext": "..."}` (optional) |
+| `session-start` | Session begins or resumes | no | `{"additionalContext": "..."}` (optional) |
+| `stop` | Agent finishes responding | yes | `{"decision": "block", "reason": "..."}` (optional) |
+| `pre-compact` | Before context compression | no | `{"additionalContext": "..."}` (optional) |
+| `session-end` | Session terminates | no | `{"additionalContext": "..."}` (optional) |
 
-### `readHookPaths()`
+### `readHookScripts()`
 
-Resolves the winning script for each hook event using three-layer last-wins resolution:
-1. **Bundle(s)** (lowest) — from `manifest.json` `hooks` field, last bundle wins per event
-2. **Global** — `~/.config/lore/HOOKS/<event>.mjs`
-3. **Project** (highest) — `.lore/HOOKS/<event>.mjs`
+Accumulates all behavior scripts from all layers. Returns `HookScripts` with `map[event][]string` (event → list of script paths).
+
+For bundles: parses `manifest.json` `hooks` field. Supports both array format (`[{name, script}]`) and legacy string format (`"path/to/script.mjs"`).
+
+For global/project: scans `HOOKS/<event>/` directories for `.mjs` files. Falls back to legacy `HOOKS/<event>.mjs` single-file layout.
 
 ### Hook Execution (`cmd_hook.go`)
 
 1. Binary receives hook event via `lore hook <event>`
 2. Reads stdin for hook payload (JSON)
-3. Resolves winning script via `readHookPaths()` (three-layer)
-4. Executes script with payload on stdin
-5. Parses script's stdout as JSON response
-6. Returns response to the calling platform
+3. Accumulates all scripts via `readHookScripts()`
+4. Runs all scripts in parallel (goroutine fan-out)
+5. Aggregates results:
+   - Blocking events: concatenate block reasons, exit non-zero if any blocked
+   - Non-blocking events: log failures to stderr, always exit 0
+6. Returns aggregated response to the calling platform
 
 **Critical:** Hook stderr MUST NOT contain output that could be parsed as JSON.
 Debug logging should go to `/tmp` or similar. Stderr contamination causes
@@ -186,7 +199,7 @@ across bundles, the last bundle's version wins.
 ## Troubleshooting
 
 **Bundle not discovered:**
-- Verify `~/.<slug>/manifest.json` exists
+- Verify `~/.local/share/lore/bundles/<slug>/manifest.json` exists
 - Check `slug` field is non-empty in manifest
 - Check for symlink issues (scanner follows symlinks)
 
@@ -196,10 +209,10 @@ across bundles, the last bundle's version wins.
 - Verify RULES/, SKILLS/, AGENTS/ directories exist in the bundle
 
 **Hook not firing:**
-- Check manifest.json `hooks` field maps the event correctly
+- Check manifest.json `hooks` field declares behaviors for the event
 - Verify script file exists at the resolved path
-- Test script directly: `echo '{}' | node ~/.<slug>/hooks/pre-tool-use.mjs`
-- Check for higher-priority overrides (project or other bundle)
+- Test script directly: `echo '{}' | node ~/.local/share/lore/bundles/<slug>/SCRIPTS/my-guard.mjs`
+- Check for script errors in stderr
 
 **Wrong bundle version used:**
 - Check `"bundles"` array order — last = highest priority

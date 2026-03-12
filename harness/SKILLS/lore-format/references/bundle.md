@@ -20,8 +20,8 @@
 ├── MCP/                      # MCP server declarations (optional)
 │   ├── <name>.json           # Declaration (scanned by binary)
 │   └── <name>.js             # Implementation (ignored by scanner)
-└── HOOKS/                    # Hook scripts (optional)
-    └── <event>.mjs
+└── SCRIPTS/                  # Hook behavior scripts (referenced by manifest.json)
+    └── <name>.mjs
 ```
 
 ## manifest.json
@@ -48,7 +48,7 @@ Optional fields: `hooks`, `content`, `setup`/`teardown`, `tui`.
 
 ### hooks
 
-Maps event names to script paths (relative to bundle root):
+Maps event names to arrays of behavior objects. Each behavior has a `name` (human-readable, shown in TUI) and a `script` (path relative to bundle root):
 
 ```json
 {
@@ -58,16 +58,23 @@ Maps event names to script paths (relative to bundle root):
   "version": "1.0.0",
   "description": "Bundle with hooks",
   "hooks": {
-    "pre-tool-use": "HOOKS/pre-tool-use.mjs",
-    "post-tool-use": "HOOKS/post-tool-use.mjs",
-    "stop": "HOOKS/stop.mjs"
+    "pre-tool-use": [
+      { "name": "Destructive Guard", "script": "SCRIPTS/destructive-guard.mjs" },
+      { "name": "Secrets Guard", "script": "SCRIPTS/secrets-guard.mjs" }
+    ],
+    "post-tool-use": [
+      { "name": "Lint Warning", "script": "SCRIPTS/lint-warning.mjs" }
+    ],
+    "stop": [
+      { "name": "Uncommitted Check", "script": "SCRIPTS/uncommitted-check.mjs" }
+    ]
   }
 }
 ```
 
 Valid event keys: `pre-tool-use`, `post-tool-use`, `prompt-submit`, `session-start`, `stop`, `pre-compact`, `session-end`.
 
-Bundle hooks are the lowest priority — project and global hooks override them per-event. Only one script runs per event (last-wins). Scripts must be Node.js ES modules (`.mjs`).
+All layers accumulate behaviors. Every behavior across all layers (bundles → global → project) runs in parallel per event. Blocking events (pre-tool-use, prompt-submit, stop) fail if any behavior returns a block/deny. Scripts must be Node.js ES modules (`.mjs`).
 
 ## LORE.md
 
@@ -77,15 +84,15 @@ Keep it focused: 15-30 lines. It will be read by the agent at the start of every
 
 ## Bundle Home Directory
 
-Bundles live at `~/.<slug>/` (e.g., `~/.lore-os/`). Discovery: the binary scans `~/` for `~/.<name>/manifest.json`.
+Bundles live at `~/.local/share/lore/bundles/<slug>/` (XDG-compliant). Discovery scans both XDG and legacy `~/.<slug>/` locations; XDG takes precedence.
 
 ## Bundle Lifecycle
 
-- **Install**: `lore bundle install <slug> --url <git-url>` — clones to `~/.<slug>/`
+- **Install**: `lore bundle install <slug> --url <git-url>` — clones to `~/.local/share/lore/bundles/<slug>/`
 - **Enable**: `lore bundle enable <slug>` — adds to `.lore/config.json` `"bundles"` array
 - **Disable**: `lore bundle disable <slug>` — removes from bundles array
 - **Update**: `lore bundle update <slug>` — pulls latest from origin
-- **Remove**: `lore bundle remove <slug>` — deletes `~/.<slug>/`
+- **Remove**: `lore bundle remove <slug>` — deletes bundle directory
 
 Enable/disable is per-project. Install/remove is global.
 

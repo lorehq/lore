@@ -1,10 +1,12 @@
-# Creating Hook Scripts
+# Creating Hook Behaviors
 
 ## Location
 
-- Project: `.lore/HOOKS/<event>.mjs`
-- Global: `~/.config/lore/HOOKS/<event>.mjs`
-- Bundle: anywhere in bundle, referenced via `manifest.json` `"hooks"` field
+Hook behaviors can be added at three layers. All layers accumulate — every behavior across all layers runs in parallel per event.
+
+- **Bundle**: declared in `manifest.json` as `{name, script}` objects
+- **Global**: `~/.config/lore/HOOKS/<event>/<name>.mjs`
+- **Project**: `.lore/HOOKS/<event>/<name>.mjs`
 
 No `lore generate` needed — hooks resolve at runtime.
 
@@ -12,25 +14,29 @@ No `lore generate` needed — hooks resolve at runtime.
 
 | Event | Filename | When it fires |
 |-------|----------|---------------|
-| PreToolUse | `pre-tool-use.mjs` | Before a tool executes |
-| PostToolUse | `post-tool-use.mjs` | After a tool executes |
-| PromptSubmit | `prompt-submit.mjs` | Before user message is processed |
-| SessionStart | `session-start.mjs` | Session begins or resumes |
-| Stop | `stop.mjs` | Agent finishes responding |
-| PreCompact | `pre-compact.mjs` | Before context compression |
-| SessionEnd | `session-end.mjs` | Session terminates |
+| PreToolUse | `pre-tool-use` | Before a tool executes |
+| PostToolUse | `post-tool-use` | After a tool executes |
+| PromptSubmit | `prompt-submit` | Before user message is processed |
+| SessionStart | `session-start` | Session begins or resumes |
+| Stop | `stop` | Agent finishes responding |
+| PreCompact | `pre-compact` | Before context compression |
+| SessionEnd | `session-end` | Session terminates |
 
-## Resolution Order (last-wins)
+## Accumulation (all layers contribute)
 
-1. **Project** `.lore/HOOKS/` (highest)
-2. **Global** `~/.config/lore/HOOKS/`
-3. **Bundle** declared in `manifest.json` (lowest)
+All behaviors from all layers run in parallel per event:
 
-Only ONE script runs per event. No chaining.
+1. **Bundle** behaviors from `manifest.json` (lowest priority)
+2. **Global** behaviors from `~/.config/lore/HOOKS/<event>/*.mjs`
+3. **Project** behaviors from `.lore/HOOKS/<event>/*.mjs` (highest priority)
+
+For **blocking events** (pre-tool-use, prompt-submit, stop): if ANY behavior returns a block/deny decision, the event is blocked. Block reasons from all failing scripts are concatenated.
+
+For **non-blocking events** (post-tool-use, session-start, pre-compact, session-end): all behaviors run, failures are logged to stderr but don't block.
 
 ## Bundle Hook Declaration
 
-Bundles declare hooks in `manifest.json`, not via directory scanning:
+Bundles declare behaviors as arrays of `{name, script}` objects per event:
 
 ```json
 {
@@ -40,61 +46,33 @@ Bundles declare hooks in `manifest.json`, not via directory scanning:
   "version": "1.0.0",
   "description": "Example bundle with hooks",
   "hooks": {
-    "pre-tool-use": "HOOKS/pre-tool-use.mjs",
-    "post-tool-use": "HOOKS/post-tool-use.mjs",
-    "prompt-submit": "HOOKS/prompt-submit.mjs",
-    "stop": "HOOKS/stop.mjs"
+    "pre-tool-use": [
+      { "name": "Destructive Guard", "script": "SCRIPTS/destructive-guard.mjs" },
+      { "name": "Secrets Guard", "script": "SCRIPTS/secrets-guard.mjs" }
+    ],
+    "prompt-submit": [
+      { "name": "Deploy Warning", "script": "SCRIPTS/deploy-warning.mjs" }
+    ]
   }
 }
 ```
 
-Paths are relative to bundle root. Scripts can live in `HOOKS/` or any directory — only the manifest path matters.
+Each behavior is one file, one job, one name. The `name` field is human-readable and displayed in the TUI.
 
-## One Script, Multiple Concerns
+## Global/Project Hook Layout
 
-Lore runs ONE script per event. If you need multiple behaviors on the same event (e.g., block destructive commands AND warn about console.log), combine them into a single script using tool-name matching:
+For global and project layers, behaviors are organized as files inside event directories:
 
-```javascript
-import { readFileSync } from "fs";
-
-const input = JSON.parse(readFileSync("/dev/stdin", "utf8"));
-const tool = input.tool_name || "";
-const toolInput = input.tool_input || {};
-
-// --- Guard: block destructive bash commands ---
-if (tool === "Bash") {
-  const cmd = toolInput.command || "";
-  if (/\brm\s+-rf\b/.test(cmd) || /\bgit\s+push\s+--force\b/.test(cmd)) {
-    console.log(JSON.stringify({
-      decision: "deny",
-      reason: `Destructive command blocked: ${cmd.slice(0, 80)}`
-    }));
-    process.exit(0);
-  }
-  if (/\bgit\s+push\b/.test(cmd)) {
-    console.log(JSON.stringify({
-      decision: "ask",
-      message: "Review changes before pushing?"
-    }));
-    process.exit(0);
-  }
-}
-
-// --- Guard: warn on writing to protected paths ---
-if (tool === "Write" || tool === "Edit") {
-  const path = toolInput.file_path || toolInput.path || "";
-  if (/\.(env|pem|key)$/.test(path)) {
-    console.log(JSON.stringify({
-      decision: "deny",
-      reason: `Writing to sensitive file blocked: ${path}`
-    }));
-    process.exit(0);
-  }
-}
-
-// Default: allow
-console.log(JSON.stringify({ decision: "allow" }));
 ```
+HOOKS/
+  pre-tool-use/
+    destructive-guard.mjs
+    secrets-guard.mjs
+  prompt-submit/
+    deploy-warning.mjs
+```
+
+The filename (minus `.mjs`) becomes the behavior name. Legacy single-file layout (`HOOKS/<event>.mjs`) is still supported as a fallback.
 
 ## Input/Output Contract
 
@@ -116,6 +94,29 @@ console.log(JSON.stringify({ decision: "allow" }));
 - `{ "decision": "block", "reason": "..." }` = block stop (Stop event only)
 
 ## Script Templates
+
+**PreToolUse — single-purpose guard:**
+```javascript
+import { readFileSync } from "fs";
+
+const input = JSON.parse(readFileSync("/dev/stdin", "utf8"));
+const tool = input.tool_name || "";
+const toolInput = input.tool_input || {};
+
+if (tool === "Bash") {
+  const cmd = toolInput.command || "";
+  if (/\brm\s+-rf\b/.test(cmd) || /\bgit\s+push\s+--force\b/.test(cmd)) {
+    console.log(JSON.stringify({
+      decision: "deny",
+      reason: `Destructive command blocked: ${cmd.slice(0, 80)}`
+    }));
+    process.exit(0);
+  }
+}
+
+// Default: allow
+console.log(JSON.stringify({ decision: "allow" }));
+```
 
 **PostToolUse — lint warning after edit:**
 ```javascript
@@ -141,48 +142,19 @@ if ((tool === "Edit" || tool === "Write") && /\.(ts|tsx|js|jsx)$/.test(filePath)
 // No-op for other tools
 ```
 
-**PromptSubmit — keyword detection:**
+**PromptSubmit — context injection:**
 ```javascript
 import { readFileSync } from "fs";
 const input = JSON.parse(readFileSync("/dev/stdin", "utf8"));
-const message = input.user_message || input.message || "";
 
-if (/deploy|production|release/i.test(message)) {
-  console.log(JSON.stringify({
-    additionalContext: "REMINDER: This appears to be a production-related request. Verify all changes are tested before proceeding."
-  }));
-}
+console.log(JSON.stringify({
+  additionalContext: "Reminder text injected into agent context."
+}));
 ```
 
-**SessionStart — context loading:**
+**No-op (pass-through):**
 ```javascript
-import { readFileSync, existsSync } from "fs";
-const input = JSON.parse(readFileSync("/dev/stdin", "utf8"));
-
-const contextFile = ".dev/session-context.md";
-if (existsSync(contextFile)) {
-  const context = readFileSync(contextFile, "utf8");
-  console.log(JSON.stringify({
-    additionalContext: `Session context loaded:\n${context}`
-  }));
-}
-```
-
-**Stop — end-of-session reminders:**
-```javascript
-import { readFileSync } from "fs";
-import { execSync } from "child_process";
-
-const input = JSON.parse(readFileSync("/dev/stdin", "utf8"));
-
-try {
-  const uncommitted = execSync("git diff --name-only HEAD 2>/dev/null", { encoding: "utf8" }).trim();
-  if (uncommitted) {
-    console.log(JSON.stringify({
-      additionalContext: `REMINDER: You have uncommitted changes:\n${uncommitted}`
-    }));
-  }
-} catch { /* not a git repo or no changes */ }
+// Empty output = allow/continue
 ```
 
 ## Important
@@ -192,3 +164,4 @@ try {
 - **Stop blocking varies by platform.** Claude/Copilot support `block` decision; Cursor/Windsurf don't.
 - **Exit early with `process.exit(0)`** after writing your decision. Don't fall through to default logic.
 - **No external dependencies.** Scripts run with Node.js built-ins only — no npm packages.
+- **One behavior per file.** Keep each script focused on a single concern. Use multiple behaviors on the same event instead of combining logic into one script.
