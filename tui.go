@@ -134,10 +134,10 @@ func skillResourceBadge(refs, assets, scripts int) string {
 	return strings.Join(parts, ", ")
 }
 
-// hookEntry pairs an event name with the script filename that handles it.
+// hookEntry pairs an event name with a behavior name.
 type hookEntry struct {
-	event  string // e.g. "prompt-submit"
-	script string // basename e.g. "prompt-submit.mjs"
+	event string // e.g. "prompt-submit"
+	name  string // behavior name e.g. "Ambiguity Nudge"
 }
 
 type bundleGroup struct {
@@ -3605,7 +3605,7 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		lines = append(lines, zone.Mark("hooks-global", header))
 		if !m.hooksGlobalCollapsed {
 			for _, h := range m.hooksGlobal {
-				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" → "+h.script))
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
 	}
@@ -3741,7 +3741,7 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].hooksCollapsed {
 						for _, h := range group.hookEntries {
-							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" → "+h.script))
+							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 						}
 					}
 				}
@@ -3855,7 +3855,7 @@ func (m *tuiModel) renderProjectList(w int) string {
 		lines = append(lines, zone.Mark("hooks-project", header))
 		if !m.hooksProjectCollapsed {
 			for _, h := range m.hooksProject {
-				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" → "+h.script))
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
 	}

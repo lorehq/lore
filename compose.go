@@ -181,39 +181,71 @@ func readBundleName(pkgDir string) string {
 	return name
 }
 
-// readBundleHookEntries reads hook event → script pairs from a bundle's manifest.json.
-// Returns entries sorted by event name.
+// readBundleHookEntries reads hook behaviors from a bundle's manifest.json.
+// Supports array format [{"name": "...", "script": "..."}] and legacy string format.
+// Returns entries sorted by event then name.
 func readBundleHookEntries(pkgDir string) []hookEntry {
 	data, err := os.ReadFile(filepath.Join(pkgDir, "manifest.json"))
 	if err != nil {
 		return nil
 	}
 	var manifest struct {
-		Hooks map[string]string `json:"hooks"`
+		Hooks map[string]json.RawMessage `json:"hooks"`
 	}
 	if json.Unmarshal(data, &manifest) != nil {
 		return nil
 	}
 	var entries []hookEntry
-	for event, scriptPath := range manifest.Hooks {
-		entries = append(entries, hookEntry{
-			event:  event,
-			script: filepath.Base(scriptPath),
-		})
+	for event, raw := range manifest.Hooks {
+		// Try array of behavior objects
+		var behaviors []struct {
+			Name   string `json:"name"`
+			Script string `json:"script"`
+		}
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				entries = append(entries, hookEntry{event: event, name: b.Name})
+			}
+			continue
+		}
+		// Legacy: plain string — derive name from filename
+		var scriptPath string
+		if json.Unmarshal(raw, &scriptPath) == nil && scriptPath != "" {
+			base := filepath.Base(scriptPath)
+			entries = append(entries, hookEntry{event: event, name: strings.TrimSuffix(base, ".mjs")})
+		}
 	}
-	sort.Slice(entries, func(i, j int) bool { return entries[i].event < entries[j].event })
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].event != entries[j].event {
+			return entries[i].event < entries[j].event
+		}
+		return entries[i].name < entries[j].name
+	})
 	return entries
 }
 
-// readHookEntriesFromDir scans a HOOKS directory for <event>.mjs files.
-// Returns entries sorted by event name.
+// readHookEntriesFromDir scans a HOOKS directory for behavior scripts.
+// New layout: HOOKS/<event>/<name>.mjs. Legacy: HOOKS/<event>.mjs.
+// Returns entries sorted by event then name.
 func readHookEntriesFromDir(dir string) []hookEntry {
 	var entries []hookEntry
 	for _, event := range allHookEvents {
-		name := event + ".mjs"
-		p := filepath.Join(dir, name)
+		// New layout: HOOKS/<event>/*.mjs
+		eventDir := filepath.Join(dir, event)
+		if dirEntries, err := os.ReadDir(eventDir); err == nil {
+			for _, e := range dirEntries {
+				if e.IsDir() || !strings.HasSuffix(e.Name(), ".mjs") {
+					continue
+				}
+				name := strings.TrimSuffix(e.Name(), ".mjs")
+				entries = append(entries, hookEntry{event: event, name: name})
+			}
+			continue
+		}
+		// Legacy: HOOKS/<event>.mjs
+		p := filepath.Join(dir, event+".mjs")
 		if _, err := os.Stat(p); err == nil {
-			entries = append(entries, hookEntry{event: event, script: name})
+			entries = append(entries, hookEntry{event: event, name: event})
 		}
 	}
 	return entries

@@ -80,9 +80,24 @@ func (hs HookScripts) ScriptsFor(event string) []string {
 	return hs.scripts[event]
 }
 
-// appendFromDir scans a HOOKS directory for <event>.mjs files.
+// appendFromDir scans a HOOKS directory for behavior scripts.
+// New layout: HOOKS/<event>/<name>.mjs (directory per event, file per behavior).
+// Legacy layout: HOOKS/<event>.mjs (single file per event) — still supported.
 func (hs *HookScripts) appendFromDir(dir string) {
 	for _, event := range allHookEvents {
+		// New layout: HOOKS/<event>/*.mjs
+		eventDir := filepath.Join(dir, event)
+		if entries, err := os.ReadDir(eventDir); err == nil {
+			for _, e := range entries {
+				if e.IsDir() || !strings.HasSuffix(e.Name(), ".mjs") {
+					continue
+				}
+				absPath, _ := filepath.Abs(filepath.Join(eventDir, e.Name()))
+				hs.scripts[event] = append(hs.scripts[event], absPath)
+			}
+			continue
+		}
+		// Legacy layout: HOOKS/<event>.mjs
 		p := filepath.Join(dir, event+".mjs")
 		if _, err := os.Stat(p); err == nil {
 			absPath, _ := filepath.Abs(p)
@@ -91,7 +106,9 @@ func (hs *HookScripts) appendFromDir(dir string) {
 	}
 }
 
-// appendFromBundle reads hook paths from a bundle's manifest.
+// appendFromBundle reads hook behavior paths from a bundle's manifest.
+// Supports array format: [{"name": "...", "script": "..."}]
+// and legacy string format: "SCRIPTS/foo.mjs"
 func (hs *HookScripts) appendFromBundle(slug string) {
 	bundleDir := bundleDirForSlug(slug)
 	if bundleDir == "" {
@@ -102,14 +119,31 @@ func (hs *HookScripts) appendFromBundle(slug string) {
 		return
 	}
 	var manifest struct {
-		Hooks map[string]string `json:"hooks"`
+		Hooks map[string]json.RawMessage `json:"hooks"`
 	}
 	if json.Unmarshal(data, &manifest) != nil {
 		return
 	}
-	for event, relPath := range manifest.Hooks {
-		absPath := filepath.Join(bundleDir, relPath)
-		hs.scripts[event] = append(hs.scripts[event], absPath)
+	for event, raw := range manifest.Hooks {
+		// Try array of behavior objects
+		var behaviors []struct {
+			Script string `json:"script"`
+		}
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				if b.Script != "" {
+					absPath := filepath.Join(bundleDir, b.Script)
+					hs.scripts[event] = append(hs.scripts[event], absPath)
+				}
+			}
+			continue
+		}
+		// Legacy: plain string
+		var scriptPath string
+		if json.Unmarshal(raw, &scriptPath) == nil && scriptPath != "" {
+			absPath := filepath.Join(bundleDir, scriptPath)
+			hs.scripts[event] = append(hs.scripts[event], absPath)
+		}
 	}
 }
 
