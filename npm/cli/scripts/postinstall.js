@@ -26,18 +26,18 @@ function run(cmd) {
 }
 
 try {
-  console.log(logo);
+  process.stderr.write(logo);
 
   // Bootstrap ~/.config/lore/ — dirs, harness seeds, examples
-  process.stdout.write("  Setting up...");
+  process.stderr.write("  Setting up...");
   run("lore version");
-  process.stdout.write(" done.\n");
+  process.stderr.write(" done.\n");
 
   // Install default bundle (lore-os)
-  process.stdout.write("  Installing lore-os...");
+  process.stderr.write("  Installing lore-os...");
   run("lore bundle install lore-os --url https://github.com/lorehq/lore-os.git");
-  process.stdout.write(" done.\n\n");
+  process.stderr.write(" done.\n\n");
 } catch (e) {
   // Binary not yet in PATH during install — will bootstrap on first user command
-  console.log("");
+  process.stderr.write("\n");
 }

@@ -1,6 +1,6 @@
 {
   "name": "@lorehq/cli-win32-x64",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Lore CLI binary for Windows x64",
   "os": ["win32"],
   "cpu": ["x64"],
