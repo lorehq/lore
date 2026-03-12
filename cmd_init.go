@@ -453,26 +453,10 @@ func createLocalFiles(targetDir string) {
 	// LORE.md — operator instructions, projected into each platform's mandate file
 	lorePath := filepath.Join(targetDir, ".lore", "LORE.md")
 	if _, err := os.Stat(lorePath); err != nil {
-		_ = os.WriteFile(lorePath, []byte(loreMDStarter), 0644)
+		stub, _ := templateFS.ReadFile("templates/project-lore.md")
+		_ = os.WriteFile(lorePath, stub, 0644)
 	}
 }
-
-
-const loreMDStarter = `# Project Instructions
-
-> **This project has not been configured yet.** This is the default LORE.md stub.
-> Run /lore-setup to configure this project, or replace this file with your own instructions.
->
-> Project setup typically includes:
-> - Repository layout and structure overview
-> - Key architectural decisions and conventions
-> - Naming conventions and coding style specific to this project
-> - Build, test, and deployment commands
-> - Team agreements and workflow preferences
->
-> This file is projected into each platform's mandate file (CLAUDE.md, GEMINI.md, etc.).
-> Edit this file, then run: lore generate
-`
 
 func copyFile(src, dst string) {
 	data, err := os.ReadFile(src)
