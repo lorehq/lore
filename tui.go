@@ -3621,22 +3621,21 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		lines = append(lines, zone.Mark("lore-global", dimStyle.Render(" 🗋 LORE.md")))
 	}
 
-	// HOOKS row (collapsible, only shown if non-empty)
+	// HOOKS row (collapsible, always shown)
 	if len(m.hooksGlobal) > 0 {
 		arrow := "▾"
 		if m.hooksGlobalCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " HOOKS"
-		if m.hooksGlobalCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksGlobal)))
-		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksGlobal)))
 		lines = append(lines, zone.Mark("hooks-global", header))
 		if !m.hooksGlobalCollapsed {
 			for _, h := range m.hooksGlobal {
 				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
 	}
 
 	// MCP row (collapsible, always shown)
@@ -3645,10 +3644,7 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		if m.mcpGlobalCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " MCP"
-		if m.mcpGlobalCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpGlobal)))
-		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpGlobal)))
 		lines = append(lines, zone.Mark("mcp-global", header))
 		if !m.mcpGlobalCollapsed {
 			for _, name := range m.mcpGlobal {
@@ -3659,39 +3655,37 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		lines = append(lines, dimStyle.Render(" MCP (0)"))
 	}
 
-	if len(m.projGlobal) == 0 {
-		return strings.Join(lines, "\n")
-	}
-
-	lastKind := ""
-	kindIdx := -1 // 0=rules, 1=skills, 2=agents
-	for i, item := range m.projGlobal {
-		if item.kind != lastKind {
-			lastKind = item.kind
-			kindIdx = kindIndex(item.kind)
-			collapsed := kindIdx >= 0 && m.globalCollapsed[kindIdx]
-			arrow := "▾"
-			if collapsed {
-				arrow = "▸"
-			}
-			count := m.countKindItems(m.projGlobal, item.kind)
-			header := " " + arrow + " " + strings.ToUpper(item.kind) + "S"
-			if collapsed {
-				header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-			}
-			lines = append(lines, zone.Mark(fmt.Sprintf("global-kind-%d", kindIdx), bold.Render(header)))
-		}
-		if kindIdx >= 0 && m.globalCollapsed[kindIdx] {
+	// RULES / SKILLS / AGENTS (always shown)
+	for _, kind := range []string{"rule", "skill", "agent"} {
+		ki := kindIndex(kind)
+		count := m.countKindItems(m.projGlobal, kind)
+		collapsed := m.globalCollapsed[ki]
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+strings.ToUpper(kind)+"S (0)"))
 			continue
 		}
-		policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
-		sym := policySymbol(policy)
-		line := "  " + sym + " " + item.name
-		line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
-		lines = append(lines, line)
-		if item.kind == "skill" {
-			if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
-				lines = append(lines, dimStyle.Render("      "+badge))
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("global-kind-%d", ki), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for i, item := range m.projGlobal {
+			if item.kind != kind {
+				continue
+			}
+			policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
+			sym := policySymbol(policy)
+			line := "  " + sym + " " + item.name
+			line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
+			lines = append(lines, line)
+			if item.kind == "skill" {
+				if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+					lines = append(lines, dimStyle.Render("      "+badge))
+				}
 			}
 		}
 	}
@@ -3757,22 +3751,21 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					lines = append(lines, zone.Mark(fmt.Sprintf("lore-bundle-%d", gi), "   🖹 LORE.md"))
 				}
 
-				// HOOKS row (collapsible, only shown if non-empty)
+				// HOOKS row (collapsible, always shown)
 				if len(group.hookEntries) > 0 {
 					arrow := "▾"
 					if m.enabledBundles[gi].hooksCollapsed {
 						arrow = "▸"
 					}
-					header := "   " + arrow + " HOOKS"
-					if m.enabledBundles[gi].hooksCollapsed {
-						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
-					}
+					header := "   " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
 					lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].hooksCollapsed {
 						for _, h := range group.hookEntries {
 							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 						}
 					}
+				} else {
+					lines = append(lines, dimStyle.Render("   HOOKS (0)"))
 				}
 
 				// MCP row (collapsible, always shown)
@@ -3781,10 +3774,7 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					if m.enabledBundles[gi].mcpCollapsed {
 						arrow = "▸"
 					}
-					header := "   " + arrow + " MCP"
-					if m.enabledBundles[gi].mcpCollapsed {
-						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
-					}
+					header := "   " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
 					lines = append(lines, zone.Mark(fmt.Sprintf("mcp-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].mcpCollapsed {
 						for _, name := range group.mcpServers {
@@ -3795,40 +3785,41 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					lines = append(lines, dimStyle.Render("   MCP (0)"))
 				}
 
-				// Items grouped by kind, each kind collapsible
-				lastKind := ""
-				ki := -1
-				for _, item := range group.items {
-					if item.kind != lastKind {
-						lastKind = item.kind
-						ki = kindIndex(item.kind)
-						collapsed := ki >= 0 && m.enabledBundles[gi].kindCollapsed[ki]
-						arrow := "▾"
-						if collapsed {
-							arrow = "▸"
-						}
-						header := "   " + arrow + " " + strings.ToUpper(item.kind) + "S"
-						if collapsed {
-							count := m.countKindItems(group.items, item.kind)
-							header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-						}
-						lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
-					}
-					if ki >= 0 && m.enabledBundles[gi].kindCollapsed[ki] {
-						flatIdx++
+				// RULES / SKILLS / AGENTS (always shown)
+				for _, kind := range []string{"rule", "skill", "agent"} {
+					ki := kindIndex(kind)
+					count := m.countKindItems(group.items, kind)
+					collapsed := m.enabledBundles[gi].kindCollapsed[ki]
+					if count == 0 {
+						lines = append(lines, dimStyle.Render("   "+strings.ToUpper(kind)+"S (0)"))
 						continue
 					}
-					policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
-					sym := policySymbol(policy)
-					line := "    " + sym + " " + item.name
-					line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
-					lines = append(lines, line)
-					if item.kind == "skill" {
-						if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
-							lines = append(lines, dimStyle.Render("        "+badge))
-						}
+					arrow := "▾"
+					if collapsed {
+						arrow = "▸"
 					}
-					flatIdx++
+					header := "   " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+					lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
+					if collapsed {
+						flatIdx += count
+						continue
+					}
+					for _, item := range group.items {
+						if item.kind != kind {
+							continue
+						}
+						policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
+						sym := policySymbol(policy)
+						line := "    " + sym + " " + item.name
+						line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
+						lines = append(lines, line)
+						if item.kind == "skill" {
+							if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+								lines = append(lines, dimStyle.Render("        "+badge))
+							}
+						}
+						flatIdx++
+					}
 				}
 			} else {
 				flatIdx += len(group.items)
@@ -3871,22 +3862,21 @@ func (m *tuiModel) renderProjectList(w int) string {
 		lines = append(lines, zone.Mark("lore-project", dimStyle.Render(" 🗋 LORE.md")))
 	}
 
-	// HOOKS row (collapsible, only shown if non-empty)
+	// HOOKS row (collapsible, always shown)
 	if len(m.hooksProject) > 0 {
 		arrow := "▾"
 		if m.hooksProjectCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " HOOKS"
-		if m.hooksProjectCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksProject)))
-		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksProject)))
 		lines = append(lines, zone.Mark("hooks-project", header))
 		if !m.hooksProjectCollapsed {
 			for _, h := range m.hooksProject {
 				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
 	}
 
 	// MCP row (collapsible, always shown)
@@ -3895,10 +3885,7 @@ func (m *tuiModel) renderProjectList(w int) string {
 		if m.mcpProjectCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " MCP"
-		if m.mcpProjectCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpProject)))
-		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpProject)))
 		lines = append(lines, zone.Mark("mcp-project", header))
 		if !m.mcpProjectCollapsed {
 			for _, name := range m.mcpProject {
@@ -3909,46 +3896,43 @@ func (m *tuiModel) renderProjectList(w int) string {
 		lines = append(lines, dimStyle.Render(" MCP (0)"))
 	}
 
+	// RULES / SKILLS / AGENTS (always shown)
 	items := m.buildPane2Items()
-	if len(items) == 0 {
-		lines = append(lines, dimStyle.Render(" RULES"), dimStyle.Render(" SKILLS"), dimStyle.Render(" AGENTS"))
-		return strings.Join(lines, "\n")
-	}
-
-	lastKind := ""
-	kindIdx := -1
-	for _, item := range items {
-		if item.kind != lastKind {
-			lastKind = item.kind
-			kindIdx = kindIndex(item.kind)
-			collapsed := kindIdx >= 0 && m.projectCollapsed[kindIdx]
-			arrow := "▾"
-			if collapsed {
-				arrow = "▸"
-			}
-			count := countPane2Kind(items, item.kind)
-			header := " " + arrow + " " + strings.ToUpper(item.kind) + "S"
-			if collapsed {
-				header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-			}
-			lines = append(lines, zone.Mark(fmt.Sprintf("project-kind-%d", kindIdx), bold.Render(header)))
-		}
-		if kindIdx >= 0 && m.projectCollapsed[kindIdx] {
+	for _, kind := range []string{"rule", "skill", "agent"} {
+		ki := kindIndex(kind)
+		count := countPane2Kind(items, kind)
+		collapsed := m.projectCollapsed[ki]
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+strings.ToUpper(kind)+"S (0)"))
 			continue
 		}
-		label := item.name
-		switch item.color {
-		case "green":
-			label = greenStyle.Render(label)
-		case "yellow":
-			label = yellowStyle.Render(label)
-		case "strike":
-			label = redStyle.Render(label)
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
 		}
-		lines = append(lines, "   "+label)
-		if item.kind == "skill" {
-			if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
-				lines = append(lines, dimStyle.Render("     "+badge))
+		header := " " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("project-kind-%d", ki), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for _, item := range items {
+			if item.kind != kind {
+				continue
+			}
+			label := item.name
+			switch item.color {
+			case "green":
+				label = greenStyle.Render(label)
+			case "yellow":
+				label = yellowStyle.Render(label)
+			case "strike":
+				label = redStyle.Render(label)
+			}
+			lines = append(lines, "   "+label)
+			if item.kind == "skill" {
+				if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+					lines = append(lines, dimStyle.Render("     "+badge))
+				}
 			}
 		}
 	}
