@@ -65,7 +65,8 @@ const (
 type tabID int
 
 const (
-	tabProjection tabID = iota
+	tabProjection  tabID = iota
+	tabMarketplace
 )
 
 // projItem represents an item in the catalog or project content listing.
@@ -191,6 +192,29 @@ type bundlePageLoadedMsg struct {
 	tabID  tabID
 	output *bundlePageOutput
 	err    error
+}
+
+type marketplaceItem struct {
+	slug        string
+	name        string
+	description string
+	version     string
+	author      string
+	repo        string
+	tags        []string
+	installed   bool
+}
+
+type mktLoadedMsg struct {
+	installed []marketplaceItem
+	available []marketplaceItem
+	err       error
+}
+
+type mktOpDoneMsg struct {
+	verb string
+	slug string
+	err  error
 }
 
 // ── Model ───────────────────────────────────────────────────────────
@@ -322,6 +346,24 @@ type tuiModel struct {
 	bundlePageScroll    map[tabID]int
 	bundlePageCollapsed map[tabID]map[int]bool
 	bundlePageLoading   map[tabID]bool
+
+	// marketplace tab state
+	mktLoaded             bool
+	mktLoading            bool
+	mktInstalled          []marketplaceItem
+	mktAvailable          []marketplaceItem
+	mktScroll             int
+	mktSearch             string
+	mktSearchActive       bool
+	mktInstalledCollapsed bool
+	mktAvailableCollapsed bool
+	mktOpActive           bool
+	mktOpSlug             string
+	mktOpVerb             string
+	mktConfirm            bool
+	mktConfirmSlug        string
+	mktConfirmVerb        string // "remove" or "install"
+	mktConfirmRepo        string // repo URL for install
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -653,7 +695,7 @@ func (m *tuiModel) loadProjection() {
 			name:       p.Name,
 			script:     p.Script,
 			bundleSlug: p.BundleSlug,
-			tabID:      tabID(i + 1), // 0 is tabProjection
+			tabID:      tabID(i + 2), // 0=tabProjection, 1=tabMarketplace
 		})
 	}
 	if m.bundlePageData == nil {
@@ -1276,6 +1318,79 @@ func invokeBundlePage(page bundlePage, project, cwd string, width, height int) t
 	}
 }
 
+// ── Marketplace Commands ────────────────────────────────────────────
+
+func loadMarketplace() tea.Cmd {
+	return func() tea.Msg {
+		bundles := discoverBundles()
+		registry := fetchRegistry(false)
+
+		installed := make(map[string]bool)
+		var mktInstalled []marketplaceItem
+		for _, b := range bundles {
+			item := marketplaceItem{
+				slug:      b.Slug,
+				name:      b.Name,
+				version:   b.Version,
+				installed: true,
+			}
+			// Enrich from registry if available
+			if registry != nil {
+				for _, e := range registry.Bundles {
+					if e.Slug == b.Slug {
+						item.description = e.Description
+						item.author = e.Author
+						item.repo = e.Repo
+						item.tags = e.Tags
+						break
+					}
+				}
+			}
+			mktInstalled = append(mktInstalled, item)
+			installed[b.Slug] = true
+		}
+
+		var mktAvailable []marketplaceItem
+		if registry != nil {
+			for _, e := range registry.Bundles {
+				if !installed[e.Slug] {
+					mktAvailable = append(mktAvailable, marketplaceItem{
+						slug:        e.Slug,
+						name:        e.Name,
+						description: e.Description,
+						author:      e.Author,
+						repo:        e.Repo,
+						tags:        e.Tags,
+					})
+				}
+			}
+		}
+
+		return mktLoadedMsg{installed: mktInstalled, available: mktAvailable}
+	}
+}
+
+func doMktInstall(slug, repo string) tea.Cmd {
+	return func() tea.Msg {
+		err := installBundleFromRepo(slug, repo)
+		return mktOpDoneMsg{verb: "install", slug: slug, err: err}
+	}
+}
+
+func doMktUpdate(slug string) tea.Cmd {
+	return func() tea.Msg {
+		err := updateBundleInPlace(slug)
+		return mktOpDoneMsg{verb: "update", slug: slug, err: err}
+	}
+}
+
+func doMktRemove(slug string) tea.Cmd {
+	return func() tea.Msg {
+		err := removeBundleFromDisk(slug)
+		return mktOpDoneMsg{verb: "remove", slug: slug, err: err}
+	}
+}
+
 // ── Init ────────────────────────────────────────────────────────────
 
 func (m *tuiModel) Init() tea.Cmd {
@@ -1333,6 +1448,42 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.bundlePageCollapsed[msg.tabID] = collapsed
 		}
+
+	case mktLoadedMsg:
+		m.mktLoading = false
+		if msg.err != nil {
+			m.genMessage = "Marketplace: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.mktInstalled = msg.installed
+			m.mktAvailable = msg.available
+			m.mktLoaded = true
+		}
+
+	case mktOpDoneMsg:
+		m.mktOpActive = false
+		m.mktOpSlug = ""
+		m.mktOpVerb = ""
+		if msg.err != nil {
+			m.genMessage = fmt.Sprintf("Failed to %s %s: %s", msg.verb, msg.slug, msg.err)
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			verbed := capitalize(msg.verb) + "ed"
+			if strings.HasSuffix(msg.verb, "e") {
+				verbed = capitalize(msg.verb) + "d"
+			}
+			m.genMessage = fmt.Sprintf("%s %s", verbed, msg.slug)
+			m.genIsError = false
+			m.genTick = 3
+			m.mktLoaded = false  // force reload
+			m.projLoaded = false // refresh projection tab
+		}
+		return m, tea.Batch(
+			loadMarketplace(),
+			tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} }),
+		)
 
 	case tickMsg:
 		if m.genTick > 0 {
@@ -1595,14 +1746,22 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
-	// Number keys switch tabs: 1=Projections, 2+=bundle pages
+	// Number keys switch tabs: 1=Projections, 2=Marketplace, 3+=bundle pages
 	if len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
 		idx := int(key[0] - '1') // 0-indexed
 		if idx == 0 {
 			m.tab = tabProjection
 			return m, nil
 		}
-		pageIdx := idx - 1
+		if idx == 1 {
+			m.tab = tabMarketplace
+			if !m.mktLoaded && !m.mktLoading {
+				m.mktLoading = true
+				return m, loadMarketplace()
+			}
+			return m, nil
+		}
+		pageIdx := idx - 2
 		if pageIdx < len(m.bundlePages) {
 			page := m.bundlePages[pageIdx]
 			m.tab = page.tabID
@@ -1615,10 +1774,14 @@ func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		}
 	}
 
-	if m.tab == tabProjection {
+	switch m.tab {
+	case tabProjection:
 		return m.handleProjectionKey(msg)
+	case tabMarketplace:
+		return m.handleMarketplaceKey(msg)
+	default:
+		return m.handleBundlePageKey(msg)
 	}
-	return m.handleBundlePageKey(msg)
 }
 
 func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
@@ -1854,6 +2017,13 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
+			if m.tab == tabMarketplace {
+				m.mktScroll += delta
+				if m.mktScroll < 0 {
+					m.mktScroll = 0
+				}
+				return m, nil
+			}
 			if m.tab != tabProjection {
 				// Bundle page scroll
 				m.bundlePageScroll[m.tab] += delta
@@ -1948,10 +2118,37 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		return m, nil
 	}
 
+	// Marketplace confirm dialog clicks
+	if m.mktConfirm {
+		if zone.Get("mkt-confirm").InBounds(msg) {
+			m.mktConfirm = false
+			m.mktOpActive = true
+			m.mktOpSlug = m.mktConfirmSlug
+			m.mktOpVerb = m.mktConfirmVerb
+			if m.mktConfirmVerb == "remove" {
+				return m, doMktRemove(m.mktConfirmSlug)
+			}
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
+		}
+		if zone.Get("mkt-cancel").InBounds(msg) {
+			m.mktConfirm = false
+			return m, nil
+		}
+		return m, nil
+	}
+
 	// Tab clicks
 	if m.mode == modeDashboard {
 		if zone.Get("tab-projection").InBounds(msg) {
 			m.tab = tabProjection
+			return m, nil
+		}
+		if zone.Get("tab-marketplace").InBounds(msg) {
+			m.tab = tabMarketplace
+			if !m.mktLoaded && !m.mktLoading {
+				m.mktLoading = true
+				return m, loadMarketplace()
+			}
 			return m, nil
 		}
 		for _, page := range m.bundlePages {
@@ -1966,8 +2163,14 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				return m, nil
 			}
 		}
+
+		// Marketplace item clicks
+		if m.tab == tabMarketplace {
+			return m.handleMarketplaceMouse(msg)
+		}
+
 		// Section collapse clicks on bundle pages
-		if m.tab != tabProjection {
+		if m.tab != tabProjection && m.tab != tabMarketplace {
 			output := m.bundlePageData[m.tab]
 			if output != nil {
 				for i := range output.Sections {
@@ -2506,10 +2709,13 @@ func (m *tuiModel) viewWelcome() string {
 // ── Dashboard View ──────────────────────────────────────────────────
 
 func (m *tuiModel) viewDashboardShell() string {
-	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm
+	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm
 
 	// When a dialog is open, give it the entire screen
 	if hasDialog {
+		if m.mktConfirm {
+			return m.viewMarketplace(m.height)
+		}
 		return m.viewProjectionPlanner(m.height)
 	}
 
@@ -2528,13 +2734,16 @@ func (m *tuiModel) viewDashboardShell() string {
 	}
 
 	var content string
-	if m.tab == tabProjection {
+	switch m.tab {
+	case tabProjection:
 		// Compute Y offset where columns begin (for mouse scroll targeting)
 		platBar := m.renderPlatformBar()
 		platBarH := strings.Count(platBar, "\n") + 1
 		m.colStartY = headerH + tabH + platBarH
 		content = m.viewProjectionPlanner(contentH)
-	} else {
+	case tabMarketplace:
+		content = m.viewMarketplace(contentH)
+	default:
 		content = m.viewBundlePage(contentH)
 	}
 
@@ -2593,6 +2802,7 @@ func (m *tuiModel) renderTabBar() string {
 		id     tabID
 	}{
 		{"Projections", "tab-projection", tabProjection},
+		{"Marketplace", "tab-marketplace", tabMarketplace},
 	}
 	for _, page := range m.bundlePages {
 		tabs = append(tabs, struct {
@@ -2627,7 +2837,12 @@ func (m *tuiModel) renderTabBar() string {
 }
 
 func (m *tuiModel) renderStatusBar() string {
-	left := dimStyle.Render(" Inheritance: ○ off  ◐ defer  ● overwrite")
+	var left string
+	if m.tab == tabMarketplace {
+		left = dimStyle.Render(" Marketplace: install and manage bundles")
+	} else {
+		left = dimStyle.Render(" Inheritance: ○ off  ◐ defer  ● overwrite")
+	}
 	right := dimStyle.Render(fmt.Sprintf("lore v%s ", version))
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 0 {

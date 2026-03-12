@@ -136,18 +136,25 @@ func activeBundleDirsFrom(projectDir string) []string {
 	return dirs
 }
 
-// bundleDirForSlug resolves a bundle slug to its home directory.
+// bundleDirForSlug resolves a bundle slug to its installed directory.
+// Checks XDG data path first, falls back to legacy ~/.<slug>/ for migration.
 func bundleDirForSlug(slug string) string {
 	if slug == "" {
 		return ""
 	}
+	// XDG path: ~/.local/share/lore/bundles/<slug>/
+	dir := filepath.Join(bundlesPath(), slug)
+	if _, err := os.Stat(dir); err == nil {
+		return dir
+	}
+	// Legacy path: ~/.<slug>/
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	dir := filepath.Join(home, "."+slug)
-	if _, err := os.Stat(dir); err == nil {
-		return dir
+	legacy := filepath.Join(home, "."+slug)
+	if _, err := os.Stat(legacy); err == nil {
+		return legacy
 	}
 	return ""
 }
@@ -324,38 +331,20 @@ type BundleInfo struct {
 	Active  bool   // true if this is the currently active bundle
 }
 
-// discoverBundles scans the home directory for installed bundles.
-// A bundle is any ~/.<name>/ directory containing a valid manifest.json.
+// discoverBundles scans for installed bundles in XDG data path and legacy home dirs.
 func discoverBundles() []BundleInfo {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil
-	}
-
 	activeSlugs := make(map[string]bool)
 	for _, s := range readBundleSlugs() {
 		activeSlugs[s] = true
 	}
 
-	entries, err := os.ReadDir(home)
-	if err != nil {
-		return nil
-	}
-
+	seen := make(map[string]bool)
 	var bundles []BundleInfo
-	for _, e := range entries {
-		if !strings.HasPrefix(e.Name(), ".") {
-			continue
-		}
-		// Follow symlinks: e.IsDir() is false for symlinks, so stat the target
-		dir := filepath.Join(home, e.Name())
-		info, err := os.Stat(dir)
-		if err != nil || !info.IsDir() {
-			continue
-		}
+
+	addBundle := func(dir string) {
 		data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
 		if err != nil {
-			continue
+			return
 		}
 		var manifest struct {
 			Slug    string `json:"slug"`
@@ -363,8 +352,12 @@ func discoverBundles() []BundleInfo {
 			Version string `json:"version"`
 		}
 		if json.Unmarshal(data, &manifest) != nil || manifest.Slug == "" {
-			continue
+			return
 		}
+		if seen[manifest.Slug] {
+			return // XDG takes precedence over legacy
+		}
+		seen[manifest.Slug] = true
 		bundles = append(bundles, BundleInfo{
 			Slug:    manifest.Slug,
 			Name:    manifest.Name,
@@ -372,6 +365,37 @@ func discoverBundles() []BundleInfo {
 			Dir:     dir,
 			Active:  activeSlugs[manifest.Slug],
 		})
+	}
+
+	// XDG path: ~/.local/share/lore/bundles/*/
+	bp := bundlesPath()
+	if entries, err := os.ReadDir(bp); err == nil {
+		for _, e := range entries {
+			dir := filepath.Join(bp, e.Name())
+			info, err := os.Stat(dir)
+			if err != nil || !info.IsDir() {
+				continue
+			}
+			addBundle(dir)
+		}
+	}
+
+	// Legacy path: ~/.<name>/ (for migration)
+	home, _ := os.UserHomeDir()
+	if home != "" {
+		if entries, err := os.ReadDir(home); err == nil {
+			for _, e := range entries {
+				if !strings.HasPrefix(e.Name(), ".") {
+					continue
+				}
+				dir := filepath.Join(home, e.Name())
+				info, err := os.Stat(dir)
+				if err != nil || !info.IsDir() {
+					continue
+				}
+				addBundle(dir)
+			}
+		}
 	}
 
 	sort.Slice(bundles, func(i, j int) bool {

@@ -20,6 +20,19 @@ func globalPath() string {
 	return filepath.Join(home, ".config", "lore")
 }
 
+// bundlesPath returns the directory where bundles are installed.
+// Uses $XDG_DATA_HOME/lore/bundles if set, otherwise ~/.local/share/lore/bundles.
+func bundlesPath() string {
+	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
+		return filepath.Join(xdg, "lore", "bundles")
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(os.TempDir(), "lore", "bundles")
+	}
+	return filepath.Join(home, ".local", "share", "lore", "bundles")
+}
+
 // Platform-managed directories. Only structural scaffolding.
 // Bundle-specific directories are created by the bundle's setup script.
 var globalDirs = []string{
@@ -41,6 +54,10 @@ func ensureGlobalDir() error {
 		if err := os.MkdirAll(filepath.Join(gp, dir), 0755); err != nil {
 			return fmt.Errorf("create dir %s: %w", dir, err)
 		}
+	}
+	// Ensure bundles directory exists
+	if err := os.MkdirAll(bundlesPath(), 0755); err != nil {
+		return fmt.Errorf("create bundles dir: %w", err)
 	}
 	seedGlobalContent(gp)
 	return nil

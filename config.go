@@ -368,7 +368,7 @@ func writeInheritConfig(projectDir string, config map[string]map[string]string) 
 // The new bundle is added at the end (highest priority).
 func enableBundle(projectDir, slug string) error {
 	if bundleDirForSlug(slug) == "" {
-		return fmt.Errorf("bundle '%s' not found at ~/.%s/", slug, slug)
+		return fmt.Errorf("bundle '%s' is not installed", slug)
 	}
 
 	configPath := filepath.Join(projectDir, ".lore", "config.json")
