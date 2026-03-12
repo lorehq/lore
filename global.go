@@ -52,7 +52,7 @@ func seedGlobalContent(gp string) {
 	// Create LORE.md stub if it doesn't exist
 	loreMDPath := filepath.Join(gp, "LORE.md")
 	if _, err := os.Stat(loreMDPath); err != nil {
-		os.WriteFile(loreMDPath, []byte(""), 0644)
+		os.WriteFile(loreMDPath, []byte(globalLoreMDStub), 0644)
 	}
 
 	// Harness content — always written (binary owns these files).
@@ -124,10 +124,23 @@ Skip nitpicks. If the code works and reads clearly, approve it.
 	}
 }
 
+const globalLoreMDStub = `# Global Instructions
+
+> **Lore is not configured yet.** This is the default global LORE.md stub.
+> Run /lore-setup to configure your global environment, or replace this file
+> with your own global instructions.
+>
+> Global setup typically includes:
+> - Operator preferences (coding style, communication style, tools you use)
+> - Machine context (OS, runtimes, key tools installed)
+> - Environment details (services, platforms, infrastructure you work with)
+>
+> After setup, replace this content with instructions you want applied to ALL projects.
+> Global LORE.md content is accumulated into every project's mandate file.
+`
+
 // seedHarnessContent writes harness content from the embedded harness/ FS.
 // Harness content is always overwritten — the binary owns these files.
-// This includes the lore-harness-engineer agent, lore-repair skill (with deep
-// reference docs), lore-status skill, and lore-migrate skill.
 func seedHarnessContent(gp string) {
 	harnessRoot := filepath.Join(gp, ".harness")
 	fs.WalkDir(harnessFS, "harness", func(path string, d fs.DirEntry, err error) error {

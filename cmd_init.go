@@ -460,9 +460,18 @@ func createLocalFiles(targetDir string) {
 
 const loreMDStarter = `# Project Instructions
 
-<!-- Your project-level instructions for coding agents. -->
-<!-- This file is projected into each platform's mandate file (CLAUDE.md, GEMINI.md, etc.) -->
-<!-- Edit this file, then run: lore generate --platforms <list> -->
+> **This project has not been configured yet.** This is the default LORE.md stub.
+> Run /lore-setup to configure this project, or replace this file with your own instructions.
+>
+> Project setup typically includes:
+> - Repository layout and structure overview
+> - Key architectural decisions and conventions
+> - Naming conventions and coding style specific to this project
+> - Build, test, and deployment commands
+> - Team agreements and workflow preferences
+>
+> This file is projected into each platform's mandate file (CLAUDE.md, GEMINI.md, etc.).
+> Edit this file, then run: lore generate
 `
 
 func copyFile(src, dst string) {

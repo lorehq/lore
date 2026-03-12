@@ -1,6 +1,6 @@
 ---
 name: lore-setup
-description: First-run setup — initialize project, migrate pre-Lore content, configure platforms
+description: First-run setup — configure global environment or initialize a project
 user-invocable: true
 allowed-tools:
   - Read
@@ -11,75 +11,51 @@ allowed-tools:
   - Grep
 ---
 
-# Setup — Initialize and Configure a Lore Project
+# Setup — Configure Lore
 
-Guides the operator through first-time Lore setup or reconfiguration.
+Guides the operator through first-time setup at the global or project level.
 
-## When to Use
+## Detecting What Needs Setup
 
-- New project that needs `lore init`
-- Existing project with pre-Lore agentic files (`.pre-lore` backups)
-- Changing platform configuration after initial setup
-- Adding a bundle to a project for the first time
+Check for the default LORE.md stubs — they contain a "not configured yet" message:
+
+- **Global stub detected** → offer global setup (operator profile, machine, environment)
+- **Project stub detected** → offer project setup (repo context, rules, conventions)
+- **Both stubs** → start with global (it feeds into all projects), then project
 
 ## Workflow
 
-### 1. Check Current State
+### 1. Determine Scope
 
-Run `lore version` to verify installation. If not installed, stop and provide install instructions.
+Ask: "Is this a **global** setup (your environment across all projects) or a **project** setup (this specific repo)?"
 
-Check if `.lore/` exists:
-- **No `.lore/`** → fresh init needed (step 2)
-- **Has `.lore/`** → check for `.pre-lore` backups (step 3) or reconfigure (step 4)
+If the global LORE.md still has the default stub, recommend global setup first.
 
-### 2. Initialize
+### 2. Load the Right Reference
 
-Ask the operator which platforms they use. Valid platforms: `claude`, `cursor`, `copilot`, `gemini`, `windsurf`, `opencode`.
+- For global setup → load `references/global-setup.md`
+- For project setup → load `references/project-setup.md`
 
-Run `lore init` (or `lore init .` for in-place on existing project). This will:
-- Create `.lore/` with config.json, inherit.json, LORE.md
-- Create content directories: RULES/, SKILLS/, AGENTS/, HOOKS/, MCP/
-- Back up existing platform files with `.pre-lore` suffix
-- Run initial `lore generate`
+### 3. Follow the Reference
 
-### 3. Migrate Pre-Lore Content
+Each reference has a step-by-step workflow. Key phases:
 
-Scan for `*.pre-lore` files and directories at the project root.
+**Global setup:**
+1. Gather operator profile (role, experience, preferences)
+2. Scout machine context (OS, runtimes, tools)
+3. Understand environment (cloud, services, infrastructure)
+4. Write global LORE.md and create global rules
+5. Verify
 
-For each backup, categorize and convert:
+**Project setup:**
+1. Understand the codebase (stack, layout, conventions)
+2. Write project LORE.md with repo context
+3. Create project-specific rules
+4. Enable bundles and configure platforms
+5. Migrate any `.pre-lore` backups
+6. Generate and commit
 
-| Source | Destination | Notes |
-|--------|------------|-------|
-| `CLAUDE.md.pre-lore` | `.lore/LORE.md` | Extract instructions (skip boilerplate) |
-| `.windsurfrules.pre-lore` | `.lore/LORE.md` | Append unique content |
-| `GEMINI.md.pre-lore` | `.lore/LORE.md` | Append unique content |
-| `.github/copilot-instructions.md.pre-lore` | `.lore/LORE.md` | Append unique content |
-| `.claude/rules/*.pre-lore` | `.lore/RULES/<name>.md` | Strip `paths:` → `globs:`, strip `alwaysApply:` |
-| `.cursor/rules/*.pre-lore` | `.lore/RULES/<name>.md` | Strip `.mdc` extension, normalize frontmatter |
-| `.windsurf/rules/*.pre-lore` | `.lore/RULES/<name>.md` | Normalize frontmatter |
-| `.claude/skills/*/` | `.lore/SKILLS/<name>/` | Copy SKILL.md + supporting files |
-| `.claude/agents/*.pre-lore` | `.lore/AGENTS/<name>.md` | Preserve frontmatter |
-| Settings/hooks files | Skip | Lore generates these |
+### 4. Replace the Stub
 
-**Rules for migration:**
-- Present the full plan before executing. Get operator approval.
-- Preserve original content as closely as possible.
-- Normalize frontmatter to Lore format (use `globs:` not `paths:` or `applyTo:`).
-- If a mandate file has mixed content (rules + instructions), split appropriately.
-- Don't overwrite existing `.lore/` content — ask on conflict.
-- After migration, offer to delete `.pre-lore` backups.
-
-### 4. Configure Platforms
-
-Show current platform config from `.lore/config.json`.
-Ask if changes are needed. Update via the config file directly.
-
-### 5. Enable Bundles
-
-If bundles are installed (`lore bundle list`), ask if the operator wants to enable any.
-Run `lore bundle enable <slug>` for each.
-
-### 6. Regenerate
-
-Run `lore generate` to project all content to enabled platforms.
-Show the operator what was generated.
+After setup, the LORE.md should contain real instructions — not the default stub.
+The "not configured yet" message is the signal that setup is needed.
