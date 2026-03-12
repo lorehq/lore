@@ -195,6 +195,19 @@ func readBundleHookEvents(pkgDir string) []string {
 	return events
 }
 
+// readHookEventsFromDir scans a HOOKS directory for <event>.mjs files.
+// Returns sorted event names for any scripts found.
+func readHookEventsFromDir(dir string) []string {
+	var events []string
+	for _, event := range allHookEvents {
+		p := filepath.Join(dir, event+".mjs")
+		if _, err := os.Stat(p); err == nil {
+			events = append(events, event)
+		}
+	}
+	return events
+}
+
 // BundleTUIPage represents a TUI page declared by a bundle.
 type BundleTUIPage struct {
 	Name       string

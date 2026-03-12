@@ -162,8 +162,9 @@ func cmdInit(args []string) {
 		"agents": {},
 	})
 
-	// Create .lore/MCP/ directory for project MCP server declarations
+	// Create .lore/MCP/ and .lore/HOOKS/ directories
 	os.MkdirAll(filepath.Join(targetDir, ".lore", "MCP"), 0755)
+	os.MkdirAll(filepath.Join(targetDir, ".lore", "HOOKS"), 0755)
 
 	// Create MEMORY.md and LORE.md
 	createLocalFiles(targetDir)

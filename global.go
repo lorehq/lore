@@ -26,6 +26,7 @@ var globalDirs = []string{
 	"SKILLS",
 	"RULES",
 	"AGENTS",
+	"HOOKS",
 	"MCP",
 	".harness/SKILLS",
 	".harness/RULES",

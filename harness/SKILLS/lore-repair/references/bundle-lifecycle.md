@@ -109,17 +109,23 @@ Project > Global > highest-priority Bundle.
 | `pre-tool-use` | Before a tool executes | JSON: `{"decision": "allow"/"block", "reason": "..."}` |
 | `post-tool-use` | After a tool executes | JSON: `{"notification": "..."}` (optional) |
 | `prompt-submit` | User submits a prompt | JSON: `{"notification": "..."}` (optional) |
+| `session-start` | Session begins or resumes | JSON: `{"additionalContext": "..."}` (optional) |
+| `stop` | Agent finishes responding | JSON: `{"decision": "block", "reason": "..."}` (optional) |
+| `pre-compact` | Before context compression | JSON: `{"additionalContext": "..."}` (optional) |
+| `session-end` | Session terminates | JSON: `{"additionalContext": "..."}` (optional) |
 
 ### `readHookPaths()`
 
-Resolves the winning script for each hook event. Returns `map[event]scriptPath`.
-Multi-bundle: iterates bundles in priority order, later overrides earlier.
+Resolves the winning script for each hook event using three-layer last-wins resolution:
+1. **Bundle(s)** (lowest) — from `manifest.json` `hooks` field, last bundle wins per event
+2. **Global** — `~/.config/lore/HOOKS/<event>.mjs`
+3. **Project** (highest) — `.lore/HOOKS/<event>.mjs`
 
 ### Hook Execution (`cmd_hook.go`)
 
 1. Binary receives hook event via `lore hook <event>`
 2. Reads stdin for hook payload (JSON)
-3. Resolves winning script via `readHookPaths()`
+3. Resolves winning script via `readHookPaths()` (three-layer)
 4. Executes script with payload on stdin
 5. Parses script's stdout as JSON response
 6. Returns response to the calling platform

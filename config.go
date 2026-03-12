@@ -46,37 +46,90 @@ type HookPaths struct {
 	SessionEnd   string `json:"session-end,omitempty"`
 }
 
-// readHookPaths derives hook script paths from all enabled bundles.
-// Iterates bundles in priority order; higher-priority bundles override
-// lower-priority ones per event. Returns empty HookPaths if no bundles enabled.
+// allHookEvents lists every canonical hook event name.
+var allHookEvents = []string{
+	"pre-tool-use", "post-tool-use", "prompt-submit",
+	"session-start", "stop", "pre-compact", "session-end",
+}
+
+// readHookPaths resolves hook scripts using three-layer last-wins resolution:
+//   Bundle(s) → Global → Project
+// For each event, the highest-priority layer that has a script wins.
 func readHookPaths() HookPaths {
-	slugs := readBundleSlugs()
 	var hp HookPaths
+
+	// Layer 1 (lowest): Bundles — last bundle wins per event
+	slugs := readBundleSlugs()
 	for _, slug := range slugs {
-		next := hookPathsForSlug(slug)
-		if next.PreToolUse != "" {
-			hp.PreToolUse = next.PreToolUse
-		}
-		if next.PostToolUse != "" {
-			hp.PostToolUse = next.PostToolUse
-		}
-		if next.PromptSubmit != "" {
-			hp.PromptSubmit = next.PromptSubmit
-		}
-		if next.SessionStart != "" {
-			hp.SessionStart = next.SessionStart
-		}
-		if next.Stop != "" {
-			hp.Stop = next.Stop
-		}
-		if next.PreCompact != "" {
-			hp.PreCompact = next.PreCompact
-		}
-		if next.SessionEnd != "" {
-			hp.SessionEnd = next.SessionEnd
+		mergeHookPaths(&hp, hookPathsForSlug(slug))
+	}
+
+	// Layer 2: Global — ~/.config/lore/HOOKS/<event>.mjs
+	mergeHookPaths(&hp, hookPathsFromDir(filepath.Join(globalPath(), "HOOKS")))
+
+	// Layer 3 (highest): Project — .lore/HOOKS/<event>.mjs
+	mergeHookPaths(&hp, hookPathsFromDir(filepath.Join(".lore", "HOOKS")))
+
+	return hp
+}
+
+// mergeHookPaths overwrites dst fields with non-empty src fields.
+func mergeHookPaths(dst *HookPaths, src HookPaths) {
+	if src.PreToolUse != "" {
+		dst.PreToolUse = src.PreToolUse
+	}
+	if src.PostToolUse != "" {
+		dst.PostToolUse = src.PostToolUse
+	}
+	if src.PromptSubmit != "" {
+		dst.PromptSubmit = src.PromptSubmit
+	}
+	if src.SessionStart != "" {
+		dst.SessionStart = src.SessionStart
+	}
+	if src.Stop != "" {
+		dst.Stop = src.Stop
+	}
+	if src.PreCompact != "" {
+		dst.PreCompact = src.PreCompact
+	}
+	if src.SessionEnd != "" {
+		dst.SessionEnd = src.SessionEnd
+	}
+}
+
+// hookPathsFromDir scans a HOOKS directory for <event>.mjs files.
+// Returns a HookPaths with absolute paths for any matching scripts found.
+func hookPathsFromDir(dir string) HookPaths {
+	var hp HookPaths
+	for _, event := range allHookEvents {
+		p := filepath.Join(dir, event+".mjs")
+		if _, err := os.Stat(p); err == nil {
+			absPath, _ := filepath.Abs(p)
+			hp.setEvent(event, absPath)
 		}
 	}
 	return hp
+}
+
+// setEvent sets the path for a given event name.
+func (hp *HookPaths) setEvent(event, path string) {
+	switch event {
+	case "pre-tool-use":
+		hp.PreToolUse = path
+	case "post-tool-use":
+		hp.PostToolUse = path
+	case "prompt-submit":
+		hp.PromptSubmit = path
+	case "session-start":
+		hp.SessionStart = path
+	case "stop":
+		hp.Stop = path
+	case "pre-compact":
+		hp.PreCompact = path
+	case "session-end":
+		hp.SessionEnd = path
+	}
 }
 
 // hookPathsForSlug resolves hook script paths from a bundle's manifest.

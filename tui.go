@@ -639,6 +639,10 @@ func (m *tuiModel) loadProjection() {
 	// Check if any MCP servers are declared (bundle, global, or project)
 	m.hasMCP = len(readBundleMCP()) > 0 || len(m.mcpGlobal) > 0 || len(m.mcpProject) > 0
 
+	// Load hook event names per layer (for pane display)
+	m.hooksGlobal = readHookEventsFromDir(filepath.Join(gp, "HOOKS"))
+	m.hooksProject = readHookEventsFromDir(filepath.Join(m.cwd, ".lore", "HOOKS"))
+
 	// Register bundle TUI pages
 	tuiPages := readBundleTUIPages()
 	m.bundlePages = nil
