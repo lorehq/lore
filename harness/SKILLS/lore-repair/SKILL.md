@@ -20,6 +20,9 @@ Then hand off to the agent. The agent has deep reference material in this skill'
 - `references/projection-pipeline.md` — composition + projection internals
 - `references/agent-skills-standard.md` — Agent Skills standard structure
 - `references/mcp-resolution.md` — MCP server troubleshooting
-- `references/bundle-lifecycle.md` — bundle management internals
+- `references/bundle-lifecycle.md` — bundle management + hook dispatch
+- `references/frontmatter-schemas.md` — rule/skill/agent/MCP frontmatter specs
+- `references/directory-layout.md` — global, project, bundle directory structures
+- `references/hook-events.md` — 7 canonical events, per-platform mappings, I/O contract
 
 Load the relevant reference file(s) based on the symptom domain before diving into code.

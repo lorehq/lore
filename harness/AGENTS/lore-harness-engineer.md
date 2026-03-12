@@ -4,6 +4,8 @@ description: Harness engineer — diagnoses bugs, implements fixes, submits PRs 
 skills:
   - lore-repair
   - lore-status
+  - coding-principles
+  - prompt-engineering
 tools:
   - Read
   - Write
@@ -138,7 +140,10 @@ the `lore-repair` skill's `references/` directory:
 - `references/projection-pipeline.md` — composition + projection internals
 - `references/agent-skills-standard.md` — Agent Skills standard deep structure
 - `references/mcp-resolution.md` — MCP server configuration and troubleshooting
-- `references/bundle-lifecycle.md` — bundle management internals
+- `references/bundle-lifecycle.md` — bundle management + hook dispatch
+- `references/frontmatter-schemas.md` — rule/skill/agent/MCP frontmatter specs, platform projection
+- `references/directory-layout.md` — global, project, bundle, harness directory structures
+- `references/hook-events.md` — 7 canonical events, per-platform mappings, I/O contract
 
 ## Workflow
 
