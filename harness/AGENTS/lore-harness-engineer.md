@@ -6,6 +6,7 @@ skills:
   - lore-status
   - lore-setup
   - lore-create
+  - lore-format
   - lore-coding
   - lore-prompting
 tools:
@@ -60,6 +61,12 @@ platform's native format via a composition and projection pipeline.
 - `design/architecture/global-directory.md` — directory layouts
 - `design/reference/commands.md` — CLI command reference
 - `design/reference/configuration.md` — config file reference
+
+## Format References
+
+For content format specifications (frontmatter schemas, directory layouts, platform projection),
+load from the `lore-format` skill's `references/` directory:
+- `rule.md`, `skill.md`, `agent.md`, `hook.md`, `mcp.md`, `bundle.md`, `platform-portability.md`
 
 ## Projection Pipeline
 

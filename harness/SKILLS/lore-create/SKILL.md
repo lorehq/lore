@@ -27,12 +27,12 @@ Create properly formatted agentic content at any layer of the Lore hierarchy.
    - **MCP server** — a Model Context Protocol server declaration
    - **Hook** — a lifecycle event override script
 
-3. **Load the reference** for the chosen type from `references/`:
-   - `references/rule.md` — frontmatter, rule types, glob patterns
-   - `references/skill.md` — directory layout, progressive disclosure, frontmatter
-   - `references/agent.md` — skill dependencies, tools, platform projection
-   - `references/mcp.md` — JSON schema, path resolution, merge behavior
-   - `references/hook.md` — script templates, I/O contract, resolution order
+3. **Load the format reference** for the chosen type from the `lore-format` skill's `references/` directory:
+   - `rule.md` — frontmatter, rule types, glob patterns
+   - `skill.md` — directory layout, progressive disclosure, frontmatter
+   - `agent.md` — skill dependencies, tools, platform projection
+   - `mcp.md` — JSON schema, path resolution, merge behavior
+   - `hook.md` — script templates, I/O contract, resolution order
 
 4. **Follow the reference** to create the content with correct format and placement.
 

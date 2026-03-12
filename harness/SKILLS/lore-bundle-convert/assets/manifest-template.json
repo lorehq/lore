@@ -1,0 +1,8 @@
+{
+  "manifest_version": 1,
+  "slug": "SLUG_HERE",
+  "name": "DISPLAY_NAME_HERE",
+  "version": "1.0.0",
+  "description": "DESCRIPTION_HERE",
+  "hooks": {}
+}
