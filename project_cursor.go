@@ -105,18 +105,19 @@ type cursorHook struct {
 }
 
 func (p *CursorProjector) writeHooks(root string) error {
+	loreHook := func(cmd string) []cursorHook {
+		return []cursorHook{{Command: cmd, Type: "command"}}
+	}
 	cfg := cursorHooksConfig{
 		Version: 1,
 		Hooks: map[string][]cursorHook{
-			"preToolUse": {
-				{Command: "lore hook pre-tool-use", Type: "command"},
-			},
-			"postToolUse": {
-				{Command: "lore hook post-tool-use", Type: "command"},
-			},
-			"beforeSubmitPrompt": {
-				{Command: "lore hook prompt-submit", Type: "command"},
-			},
+			"preToolUse":        loreHook("lore hook pre-tool-use"),
+			"postToolUse":       loreHook("lore hook post-tool-use"),
+			"beforeSubmitPrompt": loreHook("lore hook prompt-submit"),
+			"sessionStart":      loreHook("lore hook session-start"),
+			"stop":              loreHook("lore hook stop"),
+			"preCompact":        loreHook("lore hook pre-compact"),
+			"sessionEnd":        loreHook("lore hook session-end"),
 		},
 	}
 

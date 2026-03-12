@@ -127,21 +127,41 @@ func (p *CopilotProjector) writeCopilotInstructions(root string, ms *MergedSet) 
 }
 
 // copilotHooksConfig matches .github/hooks/<name>.json format.
+// Uses Coding Agent schema (camelCase, version field) for GA compatibility.
+// VS Code agent mode also reads hooks from .claude/settings.json (projected separately).
 type copilotHooksConfig struct {
+	Version             int                `json:"version"`
+	Hooks               copilotHooksEvents `json:"hooks"`
+}
+
+type copilotHooksEvents struct {
 	PreToolUse          []copilotHookEntry `json:"preToolUse,omitempty"`
 	PostToolUse         []copilotHookEntry `json:"postToolUse,omitempty"`
 	UserPromptSubmitted []copilotHookEntry `json:"userPromptSubmitted,omitempty"`
+	SessionStart        []copilotHookEntry `json:"sessionStart,omitempty"`
+	AgentStop           []copilotHookEntry `json:"agentStop,omitempty"`
+	SessionEnd          []copilotHookEntry `json:"sessionEnd,omitempty"`
 }
 
 type copilotHookEntry struct {
-	Command string `json:"command"`
+	Type    string `json:"type"`
+	Bash    string `json:"bash"`
 }
 
 func (p *CopilotProjector) writeHooks(root string) error {
+	h := func(cmd string) []copilotHookEntry {
+		return []copilotHookEntry{{Type: "command", Bash: cmd}}
+	}
 	cfg := copilotHooksConfig{
-		PreToolUse:          []copilotHookEntry{{Command: "lore hook pre-tool-use"}},
-		PostToolUse:         []copilotHookEntry{{Command: "lore hook post-tool-use"}},
-		UserPromptSubmitted: []copilotHookEntry{{Command: "lore hook prompt-submit"}},
+		Version: 1,
+		Hooks: copilotHooksEvents{
+			PreToolUse:          h("lore hook pre-tool-use"),
+			PostToolUse:         h("lore hook post-tool-use"),
+			UserPromptSubmitted: h("lore hook prompt-submit"),
+			SessionStart:        h("lore hook session-start"),
+			AgentStop:           h("lore hook stop"),
+			SessionEnd:          h("lore hook session-end"),
+		},
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")

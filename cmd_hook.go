@@ -341,6 +341,10 @@ Hooks:
   pre-tool-use     Invoked before a tool executes
   post-tool-use    Invoked after a tool executes
   prompt-submit    Invoked before a user message is processed
+  session-start    Invoked when a session begins or resumes
+  stop             Invoked when the agent finishes responding
+  pre-compact      Invoked before context window compression
+  session-end      Invoked when a session terminates
 
 Hook input is read from stdin as JSON (provided by the platform).
 Script stdout is forwarded back to the platform.

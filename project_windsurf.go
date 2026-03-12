@@ -100,13 +100,19 @@ type windsurfHook struct {
 }
 
 func (p *WindsurfProjector) writeHooks(root string) error {
+	h := func(cmd string) []windsurfHook { return []windsurfHook{{Command: cmd}} }
 	cfg := windsurfHooksConfig{
 		Hooks: map[string][]windsurfHook{
-			"pre_write_code":  {{Command: "lore hook pre-tool-use"}},
-			"post_write_code": {{Command: "lore hook post-tool-use"}},
-			"pre_run_command": {{Command: "lore hook pre-tool-use"}},
-			"pre_read_code":   {{Command: "lore hook pre-tool-use"}},
-			"pre_user_prompt": {{Command: "lore hook prompt-submit"}},
+			"pre_read_code":        h("lore hook pre-tool-use"),
+			"pre_write_code":       h("lore hook pre-tool-use"),
+			"pre_run_command":      h("lore hook pre-tool-use"),
+			"pre_mcp_tool_use":     h("lore hook pre-tool-use"),
+			"post_read_code":       h("lore hook post-tool-use"),
+			"post_write_code":      h("lore hook post-tool-use"),
+			"post_run_command":     h("lore hook post-tool-use"),
+			"post_mcp_tool_use":    h("lore hook post-tool-use"),
+			"pre_user_prompt":      h("lore hook prompt-submit"),
+			"post_cascade_response": h("lore hook stop"),
 		},
 	}
 

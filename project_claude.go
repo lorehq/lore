@@ -152,17 +152,20 @@ type ClaudeHook struct {
 }
 
 func (p *ClaudeProjector) writeSettings(root string) error {
+	loreHook := func(cmd string) []ClaudeHookGroup {
+		return []ClaudeHookGroup{
+			{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: cmd}}},
+		}
+	}
 	settings := ClaudeSettings{
 		Hooks: map[string][]ClaudeHookGroup{
-			"PreToolUse": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook pre-tool-use"}}},
-			},
-			"PostToolUse": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook post-tool-use"}}},
-			},
-			"UserPromptSubmit": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook prompt-submit"}}},
-			},
+			"PreToolUse":       loreHook("lore hook pre-tool-use"),
+			"PostToolUse":      loreHook("lore hook post-tool-use"),
+			"UserPromptSubmit": loreHook("lore hook prompt-submit"),
+			"SessionStart":     loreHook("lore hook session-start"),
+			"Stop":             loreHook("lore hook stop"),
+			"PreCompact":       loreHook("lore hook pre-compact"),
+			"SessionEnd":       loreHook("lore hook session-end"),
 		},
 	}
 

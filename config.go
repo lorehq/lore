@@ -40,6 +40,10 @@ type HookPaths struct {
 	PreToolUse   string `json:"pre-tool-use,omitempty"`
 	PostToolUse  string `json:"post-tool-use,omitempty"`
 	PromptSubmit string `json:"prompt-submit,omitempty"`
+	SessionStart string `json:"session-start,omitempty"`
+	Stop         string `json:"stop,omitempty"`
+	PreCompact   string `json:"pre-compact,omitempty"`
+	SessionEnd   string `json:"session-end,omitempty"`
 }
 
 // readHookPaths derives hook script paths from all enabled bundles.
@@ -58,6 +62,18 @@ func readHookPaths() HookPaths {
 		}
 		if next.PromptSubmit != "" {
 			hp.PromptSubmit = next.PromptSubmit
+		}
+		if next.SessionStart != "" {
+			hp.SessionStart = next.SessionStart
+		}
+		if next.Stop != "" {
+			hp.Stop = next.Stop
+		}
+		if next.PreCompact != "" {
+			hp.PreCompact = next.PreCompact
+		}
+		if next.SessionEnd != "" {
+			hp.SessionEnd = next.SessionEnd
 		}
 	}
 	return hp
@@ -89,6 +105,14 @@ func hookPathsForSlug(slug string) HookPaths {
 			hp.PostToolUse = absPath
 		case "prompt-submit":
 			hp.PromptSubmit = absPath
+		case "session-start":
+			hp.SessionStart = absPath
+		case "stop":
+			hp.Stop = absPath
+		case "pre-compact":
+			hp.PreCompact = absPath
+		case "session-end":
+			hp.SessionEnd = absPath
 		}
 	}
 	return hp
@@ -103,6 +127,14 @@ func (hp HookPaths) PathFor(event string) string {
 		return hp.PostToolUse
 	case "prompt-submit":
 		return hp.PromptSubmit
+	case "session-start":
+		return hp.SessionStart
+	case "stop":
+		return hp.Stop
+	case "pre-compact":
+		return hp.PreCompact
+	case "session-end":
+		return hp.SessionEnd
 	default:
 		return ""
 	}

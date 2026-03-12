@@ -97,29 +97,20 @@ type geminiHook struct {
 }
 
 func (p *GeminiProjector) writeSettings(root string) error {
+	loreHook := func(cmd, name string) []geminiHookGroup {
+		return []geminiHookGroup{
+			{Hooks: []geminiHook{{Type: "command", Command: cmd, Name: name}}},
+		}
+	}
 	cfg := geminiSettings{
 		Hooks: map[string][]geminiHookGroup{
-			"BeforeTool": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook pre-tool-use",
-					Name:    "lore-pre-tool",
-				}}},
-			},
-			"AfterTool": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook post-tool-use",
-					Name:    "lore-post-tool",
-				}}},
-			},
-			"BeforeAgent": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook prompt-submit",
-					Name:    "lore-prompt",
-				}}},
-			},
+			"BeforeTool":   loreHook("lore hook pre-tool-use", "lore-pre-tool"),
+			"AfterTool":    loreHook("lore hook post-tool-use", "lore-post-tool"),
+			"BeforeAgent":  loreHook("lore hook prompt-submit", "lore-prompt"),
+			"SessionStart": loreHook("lore hook session-start", "lore-session-start"),
+			"AfterAgent":   loreHook("lore hook stop", "lore-stop"),
+			"PreCompress":  loreHook("lore hook pre-compact", "lore-pre-compact"),
+			"SessionEnd":   loreHook("lore hook session-end", "lore-session-end"),
 		},
 	}
 
