@@ -325,8 +325,8 @@ type tuiModel struct {
 	cleanMode   bool     // destructive mode toggle
 	orphanFiles []string // files that would be deleted (computed)
 
-	// harness visibility — hide harness-managed items from projection tree
-	hideHarness bool
+	// harness visibility — show harness-managed items in projection tree
+	showHarness bool
 
 	// agent-disable skill picker
 	agentDisableActive bool
@@ -428,7 +428,6 @@ func initialModel() *tuiModel {
 		projectCollapsed:    [3]bool{true, true, true},
 		mcpGlobalCollapsed:  true,
 		mcpProjectCollapsed: true,
-		hideHarness:         true,
 	}
 
 	if isLore {
@@ -927,9 +926,9 @@ func (m *tuiModel) computeMergedNames() (rules, skills, agents []string, skillSr
 func (m *tuiModel) buildOutputTree() string {
 	rules, skills, agents := m.mergedRules, m.mergedSkills, m.mergedAgents
 
-	// When hideHarness is active, exclude harness-sourced items from the tree.
+	// Unless showHarness is active, exclude harness-sourced items from the tree.
 	skillSrcDirs := m.skillSourceDirs
-	if m.hideHarness {
+	if !m.showHarness {
 		harnessNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
 		for _, item := range m.projHarness {
 			harnessNames[item.kind][item.name] = true
@@ -2245,9 +2244,9 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 
-		// Harness visibility toggle
+		// Harness visibility toggle (in projections pane)
 		if zone.Get("harness-toggle").InBounds(msg) {
-			m.hideHarness = !m.hideHarness
+			m.showHarness = !m.showHarness
 			return m, nil
 		}
 
@@ -3068,22 +3067,13 @@ func (m *tuiModel) renderActionBar() string {
 		}
 		content = strings.Repeat(" ", pad) + msg
 	} else {
-		// Left side: clean mode toggle + harness visibility toggle
-		var cleanToggle string
+		// Left side: clean mode toggle
+		var leftSide string
 		if m.cleanMode {
-			cleanToggle = zone.Mark("clean-toggle", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("● Clean orphans"))
+			leftSide = zone.Mark("clean-toggle", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("● Clean orphans"))
 		} else {
-			cleanToggle = zone.Mark("clean-toggle", dimStyle.Render("○ Clean orphans"))
+			leftSide = zone.Mark("clean-toggle", dimStyle.Render("○ Clean orphans"))
 		}
-
-		var harnessToggle string
-		if m.hideHarness {
-			harnessToggle = zone.Mark("harness-toggle", dimStyle.Render("◉ Hide harness"))
-		} else {
-			harnessToggle = zone.Mark("harness-toggle", dimStyle.Render("◎ Hide harness"))
-		}
-
-		leftSide := cleanToggle + "  " + harnessToggle
 
 		// Right side: generate
 		genBtn := zone.Mark("gen-btn", btnPrimary.Render("▶ Generate"))
@@ -3978,15 +3968,23 @@ func countPane2Kind(items []pane2Item, kind string) int {
 
 // renderOutputContent renders the projection output as a file tree.
 func (m *tuiModel) renderOutputContent(w int) string {
+	// Harness visibility toggle
+	var toggle string
+	if m.showHarness {
+		toggle = zone.Mark("harness-toggle", dimStyle.Render("● Show harness"))
+	} else {
+		toggle = zone.Mark("harness-toggle", dimStyle.Render("○ Show harness"))
+	}
+
 	treeStr := m.buildOutputTree()
 	if treeStr == "" {
-		return dimStyle.Render(" (no output)")
+		return " " + toggle + "\n" + dimStyle.Render(" (no output)")
 	}
 	lines := strings.Split(treeStr, "\n")
 	for i, l := range lines {
 		lines[i] = " " + l
 	}
-	return strings.Join(lines, "\n")
+	return " " + toggle + "\n" + strings.Join(lines, "\n")
 }
 
 // overlayAgentDisableDialog renders a centered dialog for choosing which skills
