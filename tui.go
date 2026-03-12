@@ -3365,9 +3365,13 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		fullVisibleH = 3
 	}
 
-	// Column 3: split vertically 50/50 into Composed (pane 3) and Projections (pane 4)
-	topBoxH := colMaxH / 2
-	botBoxH := colMaxH - topBoxH
+	// Column 3: "Results" wrapper (2 lines for outer border) + split 50/50
+	resultInnerH := colMaxH - 2 // outer top/bottom border
+	if resultInnerH < 6 {
+		resultInnerH = 6
+	}
+	topBoxH := resultInnerH / 2
+	botBoxH := resultInnerH - topBoxH
 	topVisibleH := topBoxH - 2 // title + bottom border
 	botVisibleH := botBoxH - 2
 	if topVisibleH < 2 {
@@ -3376,7 +3380,7 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	if botVisibleH < 2 {
 		botVisibleH = 2
 	}
-	m.resultTopH = topBoxH // store for mouse Y targeting
+	m.resultTopH = topBoxH + 1 // +1 for outer top border, for mouse Y targeting
 
 	// Pane contents for columns 0-2
 	paneContents := [3]string{
@@ -3492,7 +3496,28 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	topBox := buildSubBox("Composed", composedContent, 3, topVisibleH)
 	botBox := buildSubBox("Projections", outputContent, 4, botVisibleH)
 
-	col3Lines := append(topBox, botBox...)
+	// Outer "Results" wrapper with harness toggle
+	var harnessToggle string
+	if m.showHarness {
+		harnessToggle = zone.Mark("harness-toggle", "● harness")
+	} else {
+		harnessToggle = zone.Mark("harness-toggle", "○ harness")
+	}
+	resultsLabel := " Results "
+	toggleW := lipgloss.Width(harnessToggle)
+	labelW := lipgloss.Width(resultsLabel)
+	fillW := innerW - labelW - toggleW
+	if fillW < 1 {
+		fillW = 1
+	}
+	outerTop := dimStyle.Render("┌") + bold.Render(resultsLabel) + dimStyle.Render(strings.Repeat("─", fillW)) + dimStyle.Render(" ") + harnessToggle + dimStyle.Render("┐")
+	outerBot := dimStyle.Render("└") + dimStyle.Render(strings.Repeat("─", innerW)) + dimStyle.Render("┘")
+
+	var col3Lines []string
+	col3Lines = append(col3Lines, outerTop)
+	col3Lines = append(col3Lines, topBox...)
+	col3Lines = append(col3Lines, botBox...)
+	col3Lines = append(col3Lines, outerBot)
 	cols = append(cols, strings.Join(col3Lines, "\n"))
 
 	columnsStr := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
@@ -3952,17 +3977,31 @@ func (m *tuiModel) renderBundleContent(w int) string {
 func (m *tuiModel) renderComposedList(w int) string {
 	var lines []string
 
+	// Filter harness items when not showing harness
+	filterItems := func(items []composedItem) []composedItem {
+		if m.showHarness {
+			return items
+		}
+		var filtered []composedItem
+		for _, item := range items {
+			if item.source != "harness" {
+				filtered = append(filtered, item)
+			}
+		}
+		return filtered
+	}
+
 	// Provenance symbol
 	provenanceSym := func(source string) string {
 		switch source {
 		case "bundle":
-			return "⬡"
+			return "📦"
 		case "global":
-			return "●"
+			return "🌐"
 		case "project":
-			return "◆"
+			return "📁"
 		case "harness":
-			return "⊕"
+			return "🔧"
 		}
 		return "?"
 	}
@@ -4016,9 +4055,9 @@ func (m *tuiModel) renderComposedList(w int) string {
 		idx   int // index into composedCollapsed
 	}
 	groups := []kindGroup{
-		{"RULES", m.composedRules, 0},
-		{"SKILLS", m.composedSkills, 1},
-		{"AGENTS", m.composedAgents, 2},
+		{"RULES", filterItems(m.composedRules), 0},
+		{"SKILLS", filterItems(m.composedSkills), 1},
+		{"AGENTS", filterItems(m.composedAgents), 2},
 	}
 	for _, g := range groups {
 		count := len(g.items)
@@ -4149,23 +4188,15 @@ func countPane2Kind(items []pane2Item, kind string) int {
 
 // renderOutputContent renders the projection output as a file tree.
 func (m *tuiModel) renderOutputContent(w int) string {
-	// Harness visibility toggle
-	var toggle string
-	if m.showHarness {
-		toggle = zone.Mark("harness-toggle", dimStyle.Render("● Show harness"))
-	} else {
-		toggle = zone.Mark("harness-toggle", dimStyle.Render("○ Show harness"))
-	}
-
 	treeStr := m.buildOutputTree()
 	if treeStr == "" {
-		return " " + toggle + "\n" + dimStyle.Render(" (no output)")
+		return dimStyle.Render(" (no output)")
 	}
 	lines := strings.Split(treeStr, "\n")
 	for i, l := range lines {
 		lines[i] = " " + l
 	}
-	return " " + toggle + "\n" + strings.Join(lines, "\n")
+	return strings.Join(lines, "\n")
 }
 
 // overlayAgentDisableDialog renders a centered dialog for choosing which skills
