@@ -39,7 +39,7 @@ type BundleManifest struct {
 	Name            string            `json:"name"`
 	Version         string            `json:"version"`
 	Description     string            `json:"description"`
-	Hooks           map[string]string `json:"hooks"`
+	Hooks           map[string]json.RawMessage `json:"hooks"`
 	Agentic         string            `json:"agentic"`
 	MCP             map[string]struct {
 		Command string   `json:"command"`
@@ -677,12 +677,29 @@ func readAndValidateManifest(bundleDir string) (*BundleManifest, error) {
 		return nil, fmt.Errorf("manifest missing required field: version")
 	}
 	// Validate hook paths: must be relative, no path traversal
-	for event, path := range m.Hooks {
-		if filepath.IsAbs(path) {
-			return nil, fmt.Errorf("hook '%s' path must be relative: %s", event, path)
+	for event, raw := range m.Hooks {
+		// Collect script paths from both formats
+		var paths []string
+		var behaviors []struct {
+			Script string `json:"script"`
 		}
-		if strings.Contains(path, "..") {
-			return nil, fmt.Errorf("hook '%s' path must not contain '..': %s", event, path)
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				paths = append(paths, b.Script)
+			}
+		} else {
+			var single string
+			if json.Unmarshal(raw, &single) == nil && single != "" {
+				paths = append(paths, single)
+			}
+		}
+		for _, path := range paths {
+			if filepath.IsAbs(path) {
+				return nil, fmt.Errorf("hook '%s' path must be relative: %s", event, path)
+			}
+			if strings.Contains(path, "..") {
+				return nil, fmt.Errorf("hook '%s' path must not contain '..': %s", event, path)
+			}
 		}
 	}
 
