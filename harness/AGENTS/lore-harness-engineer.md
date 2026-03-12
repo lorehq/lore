@@ -4,8 +4,14 @@ description: Harness engineer — diagnoses bugs, implements fixes, submits PRs 
 skills:
   - lore-repair
   - lore-status
-  - coding-principles
-  - prompt-engineering
+  - lore-setup
+  - lore-coding
+  - lore-prompting
+  - lore-create-rule
+  - lore-create-skill
+  - lore-create-agent
+  - lore-create-mcp
+  - lore-create-hook
 tools:
   - Read
   - Write
