@@ -61,7 +61,7 @@ Lore is a Go binary that centrally manages the three standard components of an a
 └── MCP/                 # Operator's global MCP servers
 ```
 
-The global directory holds platform configuration and the operator's own agentic content (rules, skills, agents). Behavioral scripts, memory, and services belong to packages (e.g., `~/.lore-os/`), not the platform directory.
+The global directory holds platform configuration and the operator's own agentic content (rules, skills, agents). Behavioral scripts, memory, and services belong to bundles (e.g., `~/.lore-os/`), not the platform directory.
 
 ### Project Instances
 
@@ -78,39 +78,30 @@ my-project/
 └── src/
 ```
 
-When `lore generate` runs, three layers merge: harness system content, global operator content, and project-local overrides. The result is emitted as platform-native files.
+When `lore generate` runs, three layers merge: bundle content, global operator content, and project-local overrides. The result is emitted as platform-native files.
 
 ## Commands
-
-### Slash commands (in-session)
-
-| Command | What it does |
-|---------|-------------|
-| `/lore` | Show available subcommands |
-| `/lore status` | Show instance health -- version, hooks, skills, fieldnotes, active work |
-| `/lore memory` | Start/stop the local Docker memory engine |
-| `/lore memory burn` | Promote hot cache facts to the persistent DATABANK |
-
-### CLI commands (terminal)
 
 | Command | What it does |
 |---------|-------------|
 | `lore` | Launch the TUI dashboard |
 | `lore init` | Scaffold a new Lore project |
 | `lore generate` | Run composition and projection |
-| `lore memory start\|stop\|status` | Docker memory engine lifecycle |
+| `lore bundle <sub>` | Manage bundles (install, list, enable, disable, update, remove, info) |
 | `lore hook <event>` | Hook handler (called by platforms, not users) |
+| `lore version` | Print version |
+| `lore help` | Print help |
 
 ## Platforms
 
 | Platform | Target files |
 |----------|-------------|
-| **Claude Code** | `CLAUDE.md`, `.claude/` |
-| **GitHub Copilot** | `.github/copilot-instructions.md`, `.github/hooks/`, `AGENTS.md` |
-| **Cursor** | `.cursor/rules/*.mdc`, `.cursor/hooks.json`, `AGENTS.md` |
-| **Gemini CLI** | `GEMINI.md`, `.gemini/` |
-| **Windsurf** | `.windsurfrules`, `.windsurf/` |
-| **OpenCode** | `AGENTS.md`, `.opencode/` |
+| **Claude Code** | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, `.claude/agents/`, `.claude/settings.json` |
+| **GitHub Copilot** | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/skills/`, `.github/agents/`, `.github/hooks/`, `AGENTS.md` |
+| **Cursor** | `.cursor/rules/*.mdc`, `.cursor/skills/`, `.cursor/agents/`, `.cursor/hooks.json`, `AGENTS.md` |
+| **Gemini CLI** | `GEMINI.md`, `.gemini/skills/`, `.gemini/agents/`, `.gemini/settings.json` |
+| **Windsurf** | `.windsurfrules`, `.windsurf/rules/`, `.windsurf/skills/`, `.windsurf/hooks.json`, `AGENTS.md` |
+| **OpenCode** | `.claude/rules/`, `.claude/skills/`, `.opencode/skills/`, `.opencode/agents/`, `.opencode/plugins/`, `AGENTS.md` |
 
 All platforms share the same knowledge base. Rules, skills, agents, and fieldnotes written once are projected into platform-specific formats automatically.
 

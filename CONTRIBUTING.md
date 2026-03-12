@@ -44,7 +44,7 @@ CI runs all of these on Ubuntu + macOS, Node 18 + 20.
 - Keep changes focused — one concern per PR
 - Match existing code style
 - Run `bash .lore/harness/scripts/validate-consistency.sh` before submitting
-- Skills and agents use YAML frontmatter — see `.lore/harness/skills/lore-create-fieldnote/SKILL.md` for the format
+- Skills use directory format only: `SKILLS/<name>/SKILL.md` with optional supporting files. See `harness/SKILLS/lore-create/SKILL.md` for an example
 - The `lore-*` prefix is reserved for harness-owned skills and agents — these are overwritten on sync. Operator-created skills and agents must not use this prefix
 
 ## Reporting Issues
