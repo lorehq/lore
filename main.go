@@ -7,7 +7,7 @@ import (
 
 // Set via ldflags at build time.
 var (
-	version = "0.1.26"
+	version = "0.1.27"
 	commit  = "none"
 )
 
