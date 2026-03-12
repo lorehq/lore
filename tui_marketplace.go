@@ -12,11 +12,6 @@ import (
 
 // viewMarketplace renders the marketplace tab content.
 func (m *tuiModel) viewMarketplace(maxH int) string {
-	// Detail modal overlay
-	if m.mktDetail {
-		return m.overlayMktDetails(maxH)
-	}
-
 	// Confirm dialog overlay
 	if m.mktConfirm {
 		return m.overlayMktConfirmDialog(maxH)
@@ -130,7 +125,7 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 			// Repo links
 			var repoLinks []string
 			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+item.repo)
+				repoLinks = append(repoLinks, "repo: "+browsableURL(item.repo, item.path))
 			}
 			if item.source != "" {
 				repoLinks = append(repoLinks, "source: "+item.source)
@@ -178,7 +173,7 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 			// Repo links
 			var repoLinks []string
 			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+item.repo)
+				repoLinks = append(repoLinks, "repo: "+browsableURL(item.repo, item.path))
 			}
 			if item.source != "" {
 				repoLinks = append(repoLinks, "source: "+item.source)
@@ -257,23 +252,6 @@ func (m *tuiModel) handleMarketplaceKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		return m, nil
 	}
 
-	// Detail modal intercepts
-	if m.mktDetail {
-		switch key {
-		case "esc", "q":
-			m.mktDetail = false
-			m.mktDetailReadme = ""
-			m.mktDetailScroll = 0
-		case "j", "down":
-			m.mktDetailScroll++
-		case "k", "up":
-			if m.mktDetailScroll > 0 {
-				m.mktDetailScroll--
-			}
-		}
-		return m, nil
-	}
-
 	// Search mode intercepts
 	if m.mktSearchActive {
 		switch key {
@@ -319,16 +297,6 @@ func (m *tuiModel) handleMarketplaceKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 // handleMarketplaceMouse handles mouse clicks on the marketplace tab.
 func (m *tuiModel) handleMarketplaceMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
-	// Detail close button
-	if m.mktDetail {
-		if zone.Get("mkt-detail-close").InBounds(msg) {
-			m.mktDetail = false
-			m.mktDetailReadme = ""
-			m.mktDetailScroll = 0
-		}
-		return m, nil
-	}
-
 	// Refresh button
 	if zone.Get("mkt-refresh").InBounds(msg) {
 		m.mktLoading = true
@@ -464,28 +432,34 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 	contentLines = append(contentLines, title)
 	contentLines = append(contentLines, "")
 
-	// Links
-	if item.repo != "" {
-		contentLines = append(contentLines, dimStyle.Render("Bundle repo: "+item.repo))
-	}
-	if item.source != "" {
-		contentLines = append(contentLines, dimStyle.Render("Original:    "+item.source))
-	}
-	if item.repo != "" || item.source != "" {
-		contentLines = append(contentLines, "")
-	}
-
-	if len(item.tags) > 0 {
-		contentLines = append(contentLines, dimStyle.Render("Tags: "+strings.Join(item.tags, ", ")))
-		contentLines = append(contentLines, "")
-	}
-
-	// README content
+	// README content (primary content of the modal)
 	if m.mktDetailReadme != "" {
 		readmeLines := strings.Split(m.mktDetailReadme, "\n")
 		contentLines = append(contentLines, readmeLines...)
-	} else if item.description != "" {
-		contentLines = append(contentLines, item.description)
+	} else if item.dir != "" {
+		contentLines = append(contentLines, dimStyle.Render("No README.md found in bundle."))
+	} else {
+		// Not installed — show description and links
+		if item.description != "" {
+			contentLines = append(contentLines, item.description)
+			contentLines = append(contentLines, "")
+		}
+		var links []string
+		if item.repo != "" {
+			links = append(links, "repo: "+browsableURL(item.repo, item.path))
+		}
+		if item.source != "" {
+			links = append(links, "source: "+item.source)
+		}
+		for _, l := range links {
+			contentLines = append(contentLines, dimStyle.Render(l))
+		}
+		if len(item.tags) > 0 {
+			contentLines = append(contentLines, "")
+			contentLines = append(contentLines, dimStyle.Render("Tags: "+strings.Join(item.tags, ", ")))
+		}
+		contentLines = append(contentLines, "")
+		contentLines = append(contentLines, dimStyle.Render("Install the bundle to view the full README."))
 	}
 
 	// Apply scroll
@@ -555,6 +529,20 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		Height(maxH).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(rendered)
+}
+
+// browsableURL returns a human-friendly URL for a monorepo bundle.
+// If path is set, it converts "https://github.com/org/repo.git" + "subdir"
+// into "https://github.com/org/repo/tree/main/subdir".
+func browsableURL(repo, path string) string {
+	if repo == "" {
+		return ""
+	}
+	base := strings.TrimSuffix(repo, ".git")
+	if path != "" {
+		return base + "/tree/main/" + path
+	}
+	return base
 }
 
 // capitalize returns s with first letter uppercased.

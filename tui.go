@@ -164,6 +164,7 @@ type composedMCPItem struct {
 type bundleGroup struct {
 	slug          string
 	name          string
+	dir           string  // absolute path to installed bundle directory
 	collapsed     bool
 	kindCollapsed [3]bool // rules/skills/agents collapsed within this bundle
 	hasLoreMD     bool
@@ -594,6 +595,7 @@ func (m *tuiModel) loadProjection() {
 		group := bundleGroup{
 			slug: slug,
 			name: p.Name,
+			dir:  dir,
 		}
 		if seen {
 			group.collapsed = state.collapsed
@@ -2033,6 +2035,23 @@ func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		}
 	}
 
+	// Detail modal intercepts all keys regardless of tab
+	if m.mktDetail {
+		switch msg.String() {
+		case "esc", "q":
+			m.mktDetail = false
+			m.mktDetailReadme = ""
+			m.mktDetailScroll = 0
+		case "j", "down":
+			m.mktDetailScroll++
+		case "k", "up":
+			if m.mktDetailScroll > 0 {
+				m.mktDetailScroll--
+			}
+		}
+		return m, nil
+	}
+
 	switch m.tab {
 	case tabProjection:
 		return m.handleProjectionKey(msg)
@@ -2259,6 +2278,13 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Dialog scrolling takes priority
+		if m.mktDetail {
+			m.mktDetailScroll += delta
+			if m.mktDetailScroll < 0 {
+				m.mktDetailScroll = 0
+			}
+			return m, nil
+		}
 		if m.genConfirm {
 			m.genConfScroll += delta
 			if m.genConfScroll < 0 {
@@ -2303,6 +2329,16 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	if m.mode == modeSuccess {
 		m.mode = modeDashboard
 		m.loadProjectInfo()
+		return m, nil
+	}
+
+	// Detail modal close button (works from any tab)
+	if m.mktDetail {
+		if zone.Get("mkt-detail-close").InBounds(msg) {
+			m.mktDetail = false
+			m.mktDetailReadme = ""
+			m.mktDetailScroll = 0
+		}
 		return m, nil
 	}
 
@@ -2513,6 +2549,24 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				m.bundleConfirmSlug = g.slug
 				m.bundleConfirmName = g.name
 				m.bundleConfirmEnable = false
+				return m, nil
+			}
+		}
+
+		// Bundle readme clicks
+		for i, g := range m.enabledBundles {
+			if zone.Get(fmt.Sprintf("bundle-readme-%d", i)).InBounds(msg) {
+				m.mktDetail = true
+				m.mktDetailItem = marketplaceItem{
+					slug: g.slug,
+					name: g.name,
+					dir:  g.dir,
+				}
+				m.mktDetailReadme = ""
+				m.mktDetailScroll = 0
+				if g.dir != "" {
+					return m, loadMktReadme(g.slug, g.dir)
+				}
 				return m, nil
 			}
 		}
@@ -2961,10 +3015,13 @@ func (m *tuiModel) viewWelcome() string {
 // ── Dashboard View ──────────────────────────────────────────────────
 
 func (m *tuiModel) viewDashboardShell() string {
-	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm
+	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm || m.mktDetail
 
 	// When a dialog is open, give it the entire screen
 	if hasDialog {
+		if m.mktDetail {
+			return m.overlayMktDetails(m.height)
+		}
 		if m.mktConfirm {
 			return m.viewMarketplace(m.height)
 		}
@@ -3855,15 +3912,16 @@ func (m *tuiModel) renderBundleContent(w int) string {
 				arrow = "▸"
 			}
 			nameLabel := zone.Mark(fmt.Sprintf("bundle-toggle-%d", gi), " "+arrow+" "+group.name)
+			readmeBtn := zone.Mark(fmt.Sprintf("bundle-readme-%d", gi), dimStyle.Render("?"))
 			disableBtn := zone.Mark(fmt.Sprintf("bundle-disable-%d", gi),
 				lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("×"))
 			nameW := lipgloss.Width(nameLabel)
-			btnW := 1
+			btnW := lipgloss.Width(readmeBtn) + 1 + 1 // readme + space + disable
 			gap := w - nameW - btnW
 			if gap < 1 {
 				gap = 1
 			}
-			lines = append(lines, nameLabel+strings.Repeat(" ", gap)+disableBtn)
+			lines = append(lines, nameLabel+strings.Repeat(" ", gap)+readmeBtn+" "+disableBtn)
 
 			if !group.collapsed {
 				// LORE.md row
