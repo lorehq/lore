@@ -325,6 +325,9 @@ type tuiModel struct {
 	cleanMode   bool     // destructive mode toggle
 	orphanFiles []string // files that would be deleted (computed)
 
+	// harness visibility — hide harness-managed items from projection tree
+	hideHarness bool
+
 	// agent-disable skill picker
 	agentDisableActive bool
 	agentDisableName   string
@@ -425,6 +428,7 @@ func initialModel() *tuiModel {
 		projectCollapsed:    [3]bool{true, true, true},
 		mcpGlobalCollapsed:  true,
 		mcpProjectCollapsed: true,
+		hideHarness:         true,
 	}
 
 	if isLore {
@@ -923,6 +927,26 @@ func (m *tuiModel) computeMergedNames() (rules, skills, agents []string, skillSr
 func (m *tuiModel) buildOutputTree() string {
 	rules, skills, agents := m.mergedRules, m.mergedSkills, m.mergedAgents
 
+	// When hideHarness is active, exclude harness-sourced items from the tree.
+	skillSrcDirs := m.skillSourceDirs
+	if m.hideHarness {
+		harnessNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+		for _, item := range m.projHarness {
+			harnessNames[item.kind][item.name] = true
+		}
+		rules = filterOut(rules, harnessNames["rule"])
+		skills = filterOut(skills, harnessNames["skill"])
+		agents = filterOut(agents, harnessNames["agent"])
+		// Also filter skill resource dirs so harness skill resources are excluded
+		filtered := make(map[string]string, len(skillSrcDirs))
+		for k, v := range skillSrcDirs {
+			if !harnessNames["skill"][k] {
+				filtered[k] = v
+			}
+		}
+		skillSrcDirs = filtered
+	}
+
 	// Collect all paths from all enabled platforms, deduplicated
 	seen := map[string]bool{}
 	var allPaths []string
@@ -937,7 +961,7 @@ func (m *tuiModel) buildOutputTree() string {
 			}
 		}
 		// Include skill resource files (references/, scripts/, assets/)
-		for _, path := range skillResourcePaths(p, m.skillSourceDirs) {
+		for _, path := range skillResourcePaths(p, skillSrcDirs) {
 			if !seen[path] {
 				seen[path] = true
 				allPaths = append(allPaths, path)
@@ -2221,6 +2245,12 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 
+		// Harness visibility toggle
+		if zone.Get("harness-toggle").InBounds(msg) {
+			m.hideHarness = !m.hideHarness
+			return m, nil
+		}
+
 		// Confirmation dialog buttons
 		if m.genConfirm {
 			if zone.Get("gen-confirm").InBounds(msg) {
@@ -3038,13 +3068,22 @@ func (m *tuiModel) renderActionBar() string {
 		}
 		content = strings.Repeat(" ", pad) + msg
 	} else {
-		// Left side: clean mode toggle
-		var leftSide string
+		// Left side: clean mode toggle + harness visibility toggle
+		var cleanToggle string
 		if m.cleanMode {
-			leftSide = zone.Mark("clean-toggle", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("● Clean orphans"))
+			cleanToggle = zone.Mark("clean-toggle", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("● Clean orphans"))
 		} else {
-			leftSide = zone.Mark("clean-toggle", dimStyle.Render("○ Clean orphans"))
+			cleanToggle = zone.Mark("clean-toggle", dimStyle.Render("○ Clean orphans"))
 		}
+
+		var harnessToggle string
+		if m.hideHarness {
+			harnessToggle = zone.Mark("harness-toggle", dimStyle.Render("◉ Hide harness"))
+		} else {
+			harnessToggle = zone.Mark("harness-toggle", dimStyle.Render("◎ Hide harness"))
+		}
+
+		leftSide := cleanToggle + "  " + harnessToggle
 
 		// Right side: generate
 		genBtn := zone.Mark("gen-btn", btnPrimary.Render("▶ Generate"))

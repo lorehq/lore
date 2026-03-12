@@ -381,3 +381,14 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	return keys
 }
+
+// filterOut returns a new slice with entries in the exclude set removed.
+func filterOut(names []string, exclude map[string]bool) []string {
+	var out []string
+	for _, n := range names {
+		if !exclude[n] {
+			out = append(out, n)
+		}
+	}
+	return out
+}
