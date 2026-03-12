@@ -266,7 +266,7 @@ type tuiModel struct {
 	wizBtnFocus  int      // -1=content (text input/list), 0=Back, 1=Continue/Confirm
 
 	// projection planner state
-	projPane      int // 0=catalog, 1=project, 2=output
+	projPane      int // 0=bundles, 1=global, 2=project+output
 	projCatalog   []projItem // unified bundle + global items (bundle first, then global)
 	projGlobal    []projItem // global content items (Pane 0 top)
 	projBundle      []projItem // bundle content items (Pane 0 bottom)
@@ -278,10 +278,6 @@ type tuiModel struct {
 	projLoaded    bool
 	hasMCP        bool // true if bundle or project declares MCP servers
 
-	// catalog sub-pane state (pane 0 has two stacked boxes)
-	catalogScroll  [2]int // [0]=global scroll, [1]=bundle scroll
-	catalogSub     int    // 0=global, 1=bundle (sub-pane focus within pane 0)
-	catalogGlobalH int    // height of the global box in pane 0 (for mouse scroll targeting)
 	colStartY      int    // Y offset where column content begins (for mouse targeting)
 
 	// collapsible kind groups: [3]bool for rules/skills/agents collapsed state
@@ -1972,23 +1968,15 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	// Scroll with j/k for all panes
 	switch key {
 	case "j", "down":
-		if m.projPane == 0 {
-			m.catalogScroll[m.catalogSub]++
-		} else {
-			m.projScroll[m.projPane]++
-		}
+		m.projScroll[m.projPane]++
 		return m, nil
 	case "k", "up":
-		if m.projPane == 0 {
-			m.catalogScroll[m.catalogSub]--
-		} else {
-			m.projScroll[m.projPane]--
-		}
+		m.projScroll[m.projPane]--
 		return m, nil
 	}
 
-	// Action keys only apply to catalog pane (pane 0) with a selected item
-	if m.projPane == 0 && m.projCursor[0] < len(m.projCatalog) {
+	// Action keys apply to bundle pane (0) and global pane (1) — both contain toggleable catalog items
+	if (m.projPane == 0 || m.projPane == 1) && m.projCursor[0] < len(m.projCatalog) {
 		switch key {
 		case " ", "enter":
 			m.toggleCatalogItem(m.projCursor[0])
@@ -2108,17 +2096,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if pane > 2 {
 				pane = 2
 			}
-			if pane == 0 {
-				// Pane 0 has two stacked sub-boxes; scroll based on mouse Y position.
-				colContentY := msg.Y - m.colStartY
-				sub := 0
-				if m.catalogGlobalH > 0 && colContentY >= m.catalogGlobalH {
-					sub = 1
-				}
-				m.catalogScroll[sub] += delta
-			} else {
-				m.projScroll[pane] += delta
-			}
+			m.projScroll[pane] += delta
 			return m, nil
 		}
 	}
@@ -2331,9 +2309,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		for pane := 0; pane < 3; pane++ {
 			if zone.Get(fmt.Sprintf("row-%d", pane)).InBounds(msg) {
 				m.projPane = pane
-				if pane == 0 {
-					m.catalogSub = 0
-				}
 				return m, nil
 			}
 		}
@@ -2353,7 +2328,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if zone.Get(fmt.Sprintf("bundle-toggle-%d", i)).InBounds(msg) {
 				m.enabledBundles[i].collapsed = !m.enabledBundles[i].collapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
 		}
@@ -2364,7 +2338,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				if zone.Get(fmt.Sprintf("bundle-kind-%d-%d", gi, ki)).InBounds(msg) {
 					m.enabledBundles[gi].kindCollapsed[ki] = !m.enabledBundles[gi].kindCollapsed[ki]
 					m.projPane = 0
-					m.catalogSub = 1
 					return m, nil
 				}
 			}
@@ -2375,7 +2348,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if zone.Get(fmt.Sprintf("hooks-bundle-%d", gi)).InBounds(msg) {
 				m.enabledBundles[gi].hooksCollapsed = !m.enabledBundles[gi].hooksCollapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
 		}
@@ -2385,24 +2357,15 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if zone.Get(fmt.Sprintf("mcp-bundle-%d", gi)).InBounds(msg) {
 				m.enabledBundles[gi].mcpCollapsed = !m.enabledBundles[gi].mcpCollapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
-		}
-
-		// Bundle box title click
-		if zone.Get("row-0p").InBounds(msg) {
-			m.projPane = 0
-			m.catalogSub = 1
-			return m, nil
 		}
 
 		// Global kind group collapse toggles
 		for i := 0; i < 3; i++ {
 			if zone.Get(fmt.Sprintf("global-kind-%d", i)).InBounds(msg) {
 				m.globalCollapsed[i] = !m.globalCollapsed[i]
-				m.projPane = 0
-				m.catalogSub = 0
+				m.projPane = 1
 				return m, nil
 			}
 		}
@@ -2410,24 +2373,21 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Global HOOKS collapse toggle
 		if zone.Get("hooks-global").InBounds(msg) {
 			m.hooksGlobalCollapsed = !m.hooksGlobalCollapsed
-			m.projPane = 0
-			m.catalogSub = 0
+			m.projPane = 1
 			return m, nil
 		}
 
 		// Global MCP collapse toggle
 		if zone.Get("mcp-global").InBounds(msg) {
 			m.mcpGlobalCollapsed = !m.mcpGlobalCollapsed
-			m.projPane = 0
-			m.catalogSub = 0
+			m.projPane = 1
 			return m, nil
 		}
 
 		// Global catalog leaf clicks
 		for i := 0; i < len(m.projGlobal); i++ {
 			if zone.Get(fmt.Sprintf("leaf-g-%d", i)).InBounds(msg) {
-				m.projPane = 0
-				m.catalogSub = 0
+				m.projPane = 1
 				catIdx := len(m.projBundle) + i
 				m.projCursor[0] = catIdx
 				m.toggleCatalogItem(catIdx)
@@ -2439,7 +2399,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		for i := 0; i < len(m.projBundle); i++ {
 			if zone.Get(fmt.Sprintf("leaf-p-%d", i)).InBounds(msg) {
 				m.projPane = 0
-				m.catalogSub = 1
 				m.projCursor[0] = i
 				m.toggleCatalogItem(i)
 				return m, nil
@@ -2476,7 +2435,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		for i := 0; i < 3; i++ {
 			if zone.Get(fmt.Sprintf("project-kind-%d", i)).InBounds(msg) {
 				m.projectCollapsed[i] = !m.projectCollapsed[i]
-				m.projPane = 1
+				m.projPane = 2
 				return m, nil
 			}
 		}
@@ -2484,14 +2443,14 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Project HOOKS collapse toggle
 		if zone.Get("hooks-project").InBounds(msg) {
 			m.hooksProjectCollapsed = !m.hooksProjectCollapsed
-			m.projPane = 1
+			m.projPane = 2
 			return m, nil
 		}
 
 		// Project MCP collapse toggle
 		if zone.Get("mcp-project").InBounds(msg) {
 			m.mcpProjectCollapsed = !m.mcpProjectCollapsed
-			m.projPane = 1
+			m.projPane = 2
 			return m, nil
 		}
 
@@ -2499,8 +2458,8 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		items := m.buildPane2Items()
 		for i := 0; i < len(items); i++ {
 			if zone.Get(fmt.Sprintf("leaf-1-%d", i)).InBounds(msg) {
-				m.projPane = 1
-				m.projCursor[1] = i
+				m.projPane = 2
+				m.projCursor[2] = i
 				return m, nil
 			}
 		}
@@ -3187,43 +3146,44 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	colW := w / 3
 	innerW := colW - 2 // 2 border chars
 
-	// Build pane 0 (catalog) as two stacked boxes
-	pane0 := m.renderCatalogColumn(innerW, colMaxH, false, false)
-
-	// Build panes 1 and 2 as single boxes
+	// All three columns are full-height single boxes
 	visibleH := colMaxH - 2 // title + bottom border
 	if visibleH < 3 {
 		visibleH = 3
 	}
 
-	paneContents := [2]string{
-		m.renderProjectList(innerW),
-		m.renderOutputContent(innerW),
+	// Column 2 merges project + projections with a dim separator
+	projectContent := m.renderProjectList(innerW)
+	sep := dimStyle.Render(strings.Repeat("─", innerW))
+	outputContent := m.renderOutputContent(innerW)
+	mergedPane2 := projectContent + "\n" + sep + "\n" + outputContent
+
+	paneContents := [3]string{
+		m.renderBundleContent(innerW),
+		m.renderGlobalList(innerW),
+		mergedPane2,
 	}
 
-	// Clamp scroll offsets for panes 1 and 2
-	for i := 0; i < 2; i++ {
-		paneIdx := i + 1
+	titles := [3]string{"Bundles", "Global", "Project"}
+
+	// Clamp scroll offsets for all 3 panes
+	for i := 0; i < 3; i++ {
 		totalLines := strings.Count(paneContents[i], "\n") + 1
 		if paneContents[i] == "" {
 			totalLines = 0
 		}
-		m.clampScroll(paneIdx, totalLines, visibleH)
+		m.clampScroll(i, totalLines, visibleH)
 	}
 
-	titles := [2]string{"Project", "Projections"}
 	var cols []string
-	cols = append(cols, pane0)
-
-	for i := 0; i < 2; i++ {
-		paneIdx := i + 1
+	for i := 0; i < 3; i++ {
 		allLines := strings.Split(paneContents[i], "\n")
 		if paneContents[i] == "" {
 			allLines = nil
 		}
 		totalLines := len(allLines)
 
-		start := m.projScroll[paneIdx]
+		start := m.projScroll[i]
 		if start > totalLines {
 			start = totalLines
 		}
@@ -3237,7 +3197,7 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		}
 
 		var box []string
-		box = append(box, m.renderBoxTitle(titles[i], innerW, paneIdx))
+		box = append(box, m.renderBoxTitle(titles[i], innerW, i))
 		for _, vl := range visible {
 			lineW := lipgloss.Width(vl)
 			if lineW > innerW {
@@ -3250,7 +3210,7 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 			}
 			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
 		}
-		box = append(box, m.renderBoxBottom(innerW, paneIdx, visibleH, totalLines))
+		box = append(box, m.renderBoxBottom(innerW, i, visibleH, totalLines))
 		cols = append(cols, strings.Join(box, "\n"))
 	}
 
@@ -3327,9 +3287,17 @@ func (m *tuiModel) renderBoxBottom(innerW int, pane int, visibleH int, totalLine
 }
 
 var hintTexts = [3][]string{
-	{ // Global (pane 0)
+	{ // Bundles (pane 0)
+		"Enabled and available bundles.",
+		"",
+		"Click items to cycle inheritance policy:",
+		"  ○ off       — excluded from projection",
+		"  ◐ defer     — included, project can override",
+		"  ● overwrite — included, overrides project",
+	},
+	{ // Global (pane 1)
 		"Rules, skills, and agents from the",
-		"global directory and active bundle.",
+		"global directory.",
 		"",
 		"Click items to cycle inheritance policy:",
 		"  ○ off       — excluded from projection",
@@ -3339,19 +3307,16 @@ var hintTexts = [3][]string{
 		"LORE.md — prose instructions accumulated",
 		"from all layers. Edit the file directly.",
 	},
-	{ // Project (pane 1)
+	{ // Project + Projections (pane 2)
 		"Your project-local agentic content",
-		"from .lore/.",
+		"from .lore/ and file tree preview of",
+		"what lore generate will produce.",
 		"",
-		"Only items on disk are shown here.",
 		"Conflict indicators:",
 		"  yellow — shadows a deferred global item",
 		"  struck — overridden by global ● overwrite",
-	},
-	{ // Projections (pane 2)
-		"File tree preview of what lore generate",
-		"will produce for the selected platforms.",
 		"",
+		"Projection colors:",
 		"  green  — new file (does not exist yet)",
 		"  yellow — overwrites an existing file",
 		"  red    — orphan to delete (clean mode)",
@@ -3360,7 +3325,7 @@ var hintTexts = [3][]string{
 
 // overlayHint renders a centered full-screen hint dialog for the given pane.
 func (m *tuiModel) overlayHint(lines []string, w int, _ int, pane int) []string {
-	titles := [3]string{"Global Catalog", "Project Agentics", "Projection Preview"}
+	titles := [3]string{"Bundle Catalog", "Global Catalog", "Project & Projections"}
 	title := bold.Render(titles[pane])
 
 	inner := title + "\n\n" + strings.Join(hintTexts[pane], "\n") + "\n\n" +
@@ -3445,211 +3410,6 @@ func (m *tuiModel) overlayLoreHint(lines []string, w int) []string {
 }
 
 // ── Pane Content Renderers ──────────────────────────────────────────
-
-// renderCatalogColumn renders the full pane 0 column with two stacked boxes (Global + Bundle).
-func (m *tuiModel) renderCatalogColumn(innerW int, colMaxH int, hasBundle bool, hasDiscovery bool) string {
-	// Always show bundle box (it shows enabled + available bundles)
-	showBottom := len(m.enabledBundles) > 0 || len(m.availableBundles) > 0
-	var globalH, pkgH int
-	if showBottom {
-		globalH = colMaxH / 2
-		pkgH = colMaxH - globalH
-		if globalH < 5 {
-			globalH = 5
-		}
-		if pkgH < 5 {
-			pkgH = 5
-		}
-	} else {
-		globalH = colMaxH
-		pkgH = 0
-	}
-
-	globalVisH := globalH - 2 // title + bottom border
-	if globalVisH < 3 {
-		globalVisH = 3
-	}
-
-	// Render global content
-	globalContent := m.renderGlobalList(innerW)
-	globalLines := strings.Split(globalContent, "\n")
-	if globalContent == "" {
-		globalLines = nil
-	}
-	globalTotal := len(globalLines)
-
-	// Clamp global scroll
-	m.clampCatalogScroll(0, globalTotal, globalVisH)
-
-	gStart := m.catalogScroll[0]
-	if gStart > globalTotal {
-		gStart = globalTotal
-	}
-	gEnd := gStart + globalVisH
-	if gEnd > globalTotal {
-		gEnd = globalTotal
-	}
-	gVisible := globalLines[gStart:gEnd]
-	for len(gVisible) < globalVisH {
-		gVisible = append(gVisible, "")
-	}
-
-	var box []string
-	box = append(box, m.renderCatalogBoxTitle("Global", innerW, 0, true))
-	for _, vl := range gVisible {
-		lineW := lipgloss.Width(vl)
-		if lineW > innerW {
-			vl = ansi.Truncate(vl, innerW, "")
-			lineW = lipgloss.Width(vl)
-		}
-		pad := innerW - lineW
-		if pad < 0 {
-			pad = 0
-		}
-		box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
-	}
-	box = append(box, m.renderCatalogBoxBottom(innerW, 0, globalVisH, globalTotal))
-
-	// Record global box height for mouse scroll targeting
-	m.catalogGlobalH = globalH
-
-	if showBottom {
-		pkgVisH := pkgH - 2
-		if pkgVisH < 3 {
-			pkgVisH = 3
-		}
-
-		pkgContent := m.renderBundleContent(innerW)
-		pkgLines := strings.Split(pkgContent, "\n")
-		if pkgContent == "" {
-			pkgLines = nil
-		}
-		pkgTotal := len(pkgLines)
-
-		m.clampCatalogScroll(1, pkgTotal, pkgVisH)
-
-		pStart := m.catalogScroll[1]
-		if pStart > pkgTotal {
-			pStart = pkgTotal
-		}
-		pEnd := pStart + pkgVisH
-		if pEnd > pkgTotal {
-			pEnd = pkgTotal
-		}
-		pVisible := pkgLines[pStart:pEnd]
-		for len(pVisible) < pkgVisH {
-			pVisible = append(pVisible, "")
-		}
-
-		box = append(box, m.renderCatalogBoxTitle("Bundles", innerW, 1, false))
-		for _, vl := range pVisible {
-			lineW := lipgloss.Width(vl)
-			if lineW > innerW {
-				vl = ansi.Truncate(vl, innerW, "")
-				lineW = lipgloss.Width(vl)
-			}
-			pad := innerW - lineW
-			if pad < 0 {
-				pad = 0
-			}
-			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
-		}
-		box = append(box, m.renderCatalogBoxBottom(innerW, 1, pkgVisH, pkgTotal))
-	}
-
-	return strings.Join(box, "\n")
-}
-
-// renderCatalogBoxTitle renders a title bar for a catalog sub-box.
-// sub: 0=global, 1=bundle. showHint: whether to show the ? button.
-func (m *tuiModel) renderCatalogBoxTitle(label string, innerW int, sub int, showHint bool) string {
-	isFocused := m.projPane == 0 && m.catalogSub == sub
-
-	var styledLabel string
-	if isFocused {
-		styledLabel = bold.Render(" " + label + " ")
-	} else {
-		styledLabel = dimStyle.Render(" " + label + " ")
-	}
-
-	// Right-side widget: hint (?) for global box
-	var rightWidget string
-	rightW := 0
-	if showHint {
-		rightWidget = zone.Mark("hint-0", dimStyle.Render(" ? "))
-		rightW = 3
-	}
-
-	labelW := lipgloss.Width(styledLabel)
-	fill := innerW - labelW - rightW - 1
-	if fill < 0 {
-		fill = 0
-	}
-
-	var borderFmt lipgloss.Style
-	if isFocused {
-		borderFmt = lipgloss.NewStyle().Bold(true)
-	} else {
-		borderFmt = dimStyle
-	}
-
-	var title string
-	if rightW > 0 {
-		title = borderFmt.Render("╭─") + styledLabel + dimStyle.Render(strings.Repeat("─", fill)) + rightWidget + dimStyle.Render("╮")
-	} else {
-		title = borderFmt.Render("╭─") + styledLabel + dimStyle.Render(strings.Repeat("─", fill)) + dimStyle.Render("╮")
-	}
-
-	zoneID := "row-0"
-	if sub == 1 {
-		zoneID = "row-0p"
-	}
-	return zone.Mark(zoneID, title)
-}
-
-// renderCatalogBoxBottom renders a bottom border with scroll indicators for a catalog sub-box.
-func (m *tuiModel) renderCatalogBoxBottom(innerW int, sub int, visibleH int, totalLines int) string {
-	fill := strings.Repeat("─", innerW)
-
-	if totalLines <= visibleH {
-		return dimStyle.Render("╰" + fill + "╯")
-	}
-
-	hasAbove := m.catalogScroll[sub] > 0
-	hasBelow := m.catalogScroll[sub]+visibleH < totalLines
-
-	indicator := ""
-	if hasAbove && hasBelow {
-		indicator = " ▲▼ "
-	} else if hasAbove {
-		indicator = " ▲ "
-	} else if hasBelow {
-		indicator = " ▼ "
-	}
-	if indicator != "" {
-		indW := lipgloss.Width(indicator)
-		fillW := innerW - indW
-		if fillW < 0 {
-			fillW = 0
-		}
-		return dimStyle.Render("╰"+strings.Repeat("─", fillW)) + dimStyle.Render(indicator) + dimStyle.Render("╯")
-	}
-	return dimStyle.Render("╰" + fill + "╯")
-}
-
-// clampCatalogScroll ensures catalog sub-box scroll offset is within valid range.
-func (m *tuiModel) clampCatalogScroll(sub int, totalLines int, visibleH int) {
-	maxScroll := totalLines - visibleH
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
-	if m.catalogScroll[sub] > maxScroll {
-		m.catalogScroll[sub] = maxScroll
-	}
-	if m.catalogScroll[sub] < 0 {
-		m.catalogScroll[sub] = 0
-	}
-}
 
 // renderGlobalList renders global catalog items with collapsible kind groups.
 func (m *tuiModel) renderGlobalList(w int) string {
