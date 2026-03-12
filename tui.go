@@ -3388,7 +3388,7 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		m.renderGlobalList(innerW),
 		m.renderProjectList(innerW),
 	}
-	titles := [3]string{"Bundles", "Global", "Project"}
+	titles := [3]string{"📦 Bundles", "🌐 Global", "📁 Project"}
 
 	// Clamp scroll offsets for panes 0-2
 	for i := 0; i < 3; i++ {
