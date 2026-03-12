@@ -22,6 +22,7 @@ type RegistryEntry struct {
 	Description string   `json:"description"`
 	Repo        string   `json:"repo"`
 	Path        string   `json:"path,omitempty"`
+	Source      string   `json:"source,omitempty"` // original creator's repo URL
 	Author      string   `json:"author"`
 	Tags        []string `json:"tags"`
 }

@@ -208,6 +208,8 @@ type marketplaceItem struct {
 	author      string
 	repo        string
 	path        string
+	source      string // original creator's repo URL
+	dir         string // installed bundle directory path
 	tags        []string
 	installed   bool
 }
@@ -222,6 +224,12 @@ type mktOpDoneMsg struct {
 	verb string
 	slug string
 	err  error
+}
+
+type mktReadmeMsg struct {
+	slug    string
+	content string
+	err     error
 }
 
 // ── Model ───────────────────────────────────────────────────────────
@@ -375,6 +383,10 @@ type tuiModel struct {
 	mktConfirmVerb        string // "remove" or "install"
 	mktConfirmRepo        string // repo URL for install
 	mktConfirmPath        string // subpath for monorepo install
+	mktDetail             bool
+	mktDetailItem         marketplaceItem
+	mktDetailReadme       string
+	mktDetailScroll       int
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -1363,7 +1375,17 @@ func loadMarketplace() tea.Cmd {
 				slug:      b.Slug,
 				name:      b.Name,
 				version:   b.Version,
+				dir:       b.Dir,
 				installed: true,
+			}
+			// Read description from local manifest as fallback
+			if data, err := os.ReadFile(filepath.Join(b.Dir, "manifest.json")); err == nil {
+				var mf struct {
+					Description string `json:"description"`
+				}
+				if json.Unmarshal(data, &mf) == nil && mf.Description != "" {
+					item.description = mf.Description
+				}
 			}
 			// Enrich from registry if available
 			if registry != nil {
@@ -1373,6 +1395,7 @@ func loadMarketplace() tea.Cmd {
 						item.author = e.Author
 						item.repo = e.Repo
 						item.path = e.Path
+						item.source = e.Source
 						item.tags = e.Tags
 						break
 					}
@@ -1393,6 +1416,7 @@ func loadMarketplace() tea.Cmd {
 						author:      e.Author,
 						repo:        e.Repo,
 						path:        e.Path,
+						source:      e.Source,
 						tags:        e.Tags,
 					})
 				}
@@ -1421,6 +1445,16 @@ func doMktRemove(slug string) tea.Cmd {
 	return func() tea.Msg {
 		err := removeBundleFromDisk(slug)
 		return mktOpDoneMsg{verb: "remove", slug: slug, err: err}
+	}
+}
+
+func loadMktReadme(slug, dir string) tea.Cmd {
+	return func() tea.Msg {
+		data, err := os.ReadFile(filepath.Join(dir, "README.md"))
+		if err != nil {
+			return mktReadmeMsg{slug: slug, err: err}
+		}
+		return mktReadmeMsg{slug: slug, content: string(data)}
 	}
 }
 
@@ -1517,6 +1551,13 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			loadMarketplace(),
 			tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} }),
 		)
+
+	case mktReadmeMsg:
+		if msg.err != nil {
+			m.mktDetailReadme = "(No README available)"
+		} else {
+			m.mktDetailReadme = msg.content
+		}
 
 	case tickMsg:
 		if m.genTick > 0 {
