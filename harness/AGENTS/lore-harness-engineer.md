@@ -5,13 +5,9 @@ skills:
   - lore-repair
   - lore-status
   - lore-setup
+  - lore-create
   - lore-coding
   - lore-prompting
-  - lore-create-rule
-  - lore-create-skill
-  - lore-create-agent
-  - lore-create-mcp
-  - lore-create-hook
 tools:
   - Read
   - Write
