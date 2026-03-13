@@ -59,8 +59,8 @@ func (p *GeminiProjector) Project(root string, ms *MergedSet) error {
 		}
 	}
 
-	// .gemini/settings.json with hooks
-	return p.writeSettings(root)
+	// .gemini/settings.json with hooks + MCP
+	return p.writeSettings(root, ms)
 }
 
 func (p *GeminiProjector) writeGEMINIMD(root string, ms *MergedSet) error {
@@ -96,9 +96,10 @@ func (p *GeminiProjector) writeGEMINIMD(root string, ms *MergedSet) error {
 	return writeFile(filepath.Join(root, "GEMINI.md"), []byte(sb.String()))
 }
 
-// geminiSettings matches .gemini/settings.json hook format.
+// geminiSettings matches .gemini/settings.json format.
 type geminiSettings struct {
-	Hooks map[string][]geminiHookGroup `json:"hooks"`
+	Hooks      map[string][]geminiHookGroup `json:"hooks"`
+	MCPServers map[string]interface{}       `json:"mcpServers,omitempty"`
 }
 
 type geminiHookGroup struct {
@@ -112,7 +113,7 @@ type geminiHook struct {
 	Name    string `json:"name,omitempty"`
 }
 
-func (p *GeminiProjector) writeSettings(root string) error {
+func (p *GeminiProjector) writeSettings(root string, ms *MergedSet) error {
 	loreHook := func(cmd, name string) []geminiHookGroup {
 		return []geminiHookGroup{
 			{Hooks: []geminiHook{{Type: "command", Command: cmd, Name: name}}},
@@ -128,6 +129,21 @@ func (p *GeminiProjector) writeSettings(root string) error {
 			"PreCompress":  loreHook("lore hook pre-compact", "lore-pre-compact"),
 			"SessionEnd":   loreHook("lore hook session-end", "lore-session-end"),
 		},
+	}
+
+	if len(ms.MCP) > 0 {
+		servers := make(map[string]interface{}, len(ms.MCP))
+		for _, s := range ms.MCP {
+			entry := map[string]interface{}{
+				"command": s.Command,
+				"args":    s.Args,
+			}
+			if len(s.Env) > 0 {
+				entry["env"] = s.Env
+			}
+			servers[s.Name] = entry
+		}
+		cfg.MCPServers = servers
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
