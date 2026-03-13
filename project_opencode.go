@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 )
 
@@ -15,6 +17,9 @@ func (p *OpenCodeProjector) Name() string { return "opencode" }
 func (p *OpenCodeProjector) OutputPaths(rules, skills, agents []string, hasMCP bool) []string {
 	// OpenCode shares .claude/ directory + has its own .opencode/
 	paths := []string{"AGENTS.md", ".opencode/plugins/lore-hooks.mjs"}
+	if hasMCP {
+		paths = append(paths, "opencode.json")
+	}
 	for _, n := range rules {
 		paths = append(paths, ".claude/rules/"+n+".md")
 	}
@@ -50,6 +55,13 @@ func (p *OpenCodeProjector) Project(root string, ms *MergedSet) error {
 		return err
 	}
 
+	// MCP: OpenCode expects MCP servers in opencode.json under "mcp".
+	if len(ms.MCP) > 0 {
+		if err := p.writeMCPConfig(root, ms.MCP); err != nil {
+			return err
+		}
+	}
+
 	// User-invocable skills → .opencode/commands/<name>.md (OpenCode slash commands)
 	// $ARGUMENTS is already the native OpenCode convention.
 	for _, skill := range userInvocableSkills(ms) {
@@ -67,6 +79,59 @@ func (p *OpenCodeProjector) Project(root string, ms *MergedSet) error {
 	// Hooks: OpenCode uses JS plugins, not JSON config.
 	// Generate a stub plugin that shells out to `lore hook`.
 	return p.writeHookPlugin(root)
+}
+
+func (p *OpenCodeProjector) writeMCPConfig(root string, servers []MCPServer) error {
+	configPath := filepath.Join(root, "opencode.json")
+
+	config := map[string]interface{}{}
+	if data, err := os.ReadFile(configPath); err == nil {
+		cleaned := stripJSONComments(data)
+		if err := json.Unmarshal(cleaned, &config); err != nil {
+			return fmt.Errorf("parse opencode.json: %w", err)
+		}
+	}
+
+	if _, ok := config["$schema"]; !ok {
+		config["$schema"] = "https://opencode.ai/config.json"
+	}
+
+	merged := map[string]interface{}{}
+	if raw, ok := config["mcp"]; ok {
+		if existing, ok := raw.(map[string]interface{}); ok {
+			for name, entry := range existing {
+				merged[name] = entry
+			}
+		}
+	}
+
+	for _, s := range servers {
+		command := make([]string, 0, 1+len(s.Args))
+		command = append(command, s.Command)
+		command = append(command, s.Args...)
+
+		entry := map[string]interface{}{
+			"type":    "local",
+			"command": command,
+			"enabled": true,
+		}
+		if len(s.Env) > 0 {
+			entry["environment"] = s.Env
+		}
+		merged[s.Name] = entry
+	}
+
+	config["mcp"] = merged
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal opencode.json: %w", err)
+	}
+	if err := writeFile(configPath, append(data, '\n')); err != nil {
+		return fmt.Errorf("write opencode.json: %w", err)
+	}
+
+	return nil
 }
 
 func (p *OpenCodeProjector) writeHookPlugin(root string) error {
