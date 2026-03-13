@@ -1,6 +1,6 @@
 {
   "name": "@lorehq/cli-linux-arm64",
-  "version": "0.1.48",
+  "version": "0.1.49",
   "description": "Lore CLI binary for Linux ARM64",
   "os": ["linux"],
   "cpu": ["arm64"],
