@@ -49,9 +49,8 @@ func (m *tuiModel) renderExploreSubTabs() string {
 	activeStyle := lipgloss.NewStyle().
 		Bold(true).
 		Padding(0, 1).
-		Foreground(lipgloss.Color("12")).
 		Border(lipgloss.RoundedBorder(), true, true, false, true).
-		BorderForeground(lipgloss.Color("12"))
+		BorderForeground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
 
 	inactiveStyle := lipgloss.NewStyle().
 		Faint(true).

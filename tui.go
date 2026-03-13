@@ -3288,7 +3288,7 @@ func (m *tuiModel) renderTabBar() string {
 		Bold(true).
 		Padding(0, 2).
 		Border(lipgloss.RoundedBorder(), true, true, false, true).
-		BorderForeground(borderFg)
+		BorderForeground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
 
 	inactiveTabStyle := lipgloss.NewStyle().
 		Faint(true).
@@ -4795,9 +4795,8 @@ func (m *tuiModel) renderBundlePageSubTabs(subtabs []bundlePageSubtab) string {
 	activeStyle := lipgloss.NewStyle().
 		Bold(true).
 		Padding(0, 1).
-		Foreground(lipgloss.Color("12")).
 		Border(lipgloss.RoundedBorder(), true, true, false, true).
-		BorderForeground(lipgloss.Color("12"))
+		BorderForeground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
 
 	inactiveStyle := lipgloss.NewStyle().
 		Faint(true).
