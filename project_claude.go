@@ -26,7 +26,6 @@ func (p *ClaudeProjector) OutputPaths(rules, skills, agents []string, hasMCP boo
 	}
 	for _, n := range skills {
 		paths = append(paths, ".claude/skills/"+n+"/", ".claude/skills/"+n+"/SKILL.md")
-		paths = append(paths, ".claude/commands/"+n+".md")
 	}
 	for _, n := range agents {
 		paths = append(paths, ".claude/agents/"+n+".md")

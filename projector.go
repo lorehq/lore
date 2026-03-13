@@ -276,25 +276,6 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 		return err
 	}
 
-	// User-invocable skills → .claude/commands/<name>.md (Claude slash commands)
-	for _, name := range sortedKeys(ms.Skills) {
-		skill := ms.Skills[name]
-		if skill.UserInvocable == nil || !*skill.UserInvocable {
-			continue
-		}
-		fm := map[string]interface{}{}
-		if skill.Description != "" {
-			fm["description"] = skill.Description
-		}
-		if len(skill.AllowedTools) > 0 {
-			fm["allowed-tools"] = skill.AllowedTools
-		}
-		content := renderFrontmatter(fm) + "\n" + skill.Body + "\n"
-		path := filepath.Join(claudeDir, "commands", name+".md")
-		if err := writeFile(path, []byte(content)); err != nil {
-			return fmt.Errorf("write command %s: %w", name, err)
-		}
-	}
 	return nil
 }
 
