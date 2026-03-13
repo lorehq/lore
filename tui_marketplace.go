@@ -125,7 +125,7 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 			// Repo links
 			var repoLinks []string
 			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+browsableURL(item.repo, item.path))
+				repoLinks = append(repoLinks, "repo: "+strings.TrimSuffix(item.repo, ".git"))
 			}
 			if item.source != "" {
 				repoLinks = append(repoLinks, "source: "+item.source)
@@ -173,7 +173,7 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 			// Repo links
 			var repoLinks []string
 			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+browsableURL(item.repo, item.path))
+				repoLinks = append(repoLinks, "repo: "+strings.TrimSuffix(item.repo, ".git"))
 			}
 			if item.source != "" {
 				repoLinks = append(repoLinks, "source: "+item.source)
@@ -245,7 +245,7 @@ func (m *tuiModel) handleMarketplaceKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			if m.mktConfirmVerb == "remove" {
 				return m, doMktRemove(m.mktConfirmSlug)
 			}
-			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo, m.mktConfirmPath)
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
 		case "esc":
 			m.mktConfirm = false
 		}
@@ -327,7 +327,6 @@ func (m *tuiModel) handleMarketplaceMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd)
 			m.mktConfirmSlug = item.slug
 			m.mktConfirmVerb = "install"
 			m.mktConfirmRepo = item.repo
-			m.mktConfirmPath = item.path
 			return m, nil
 		}
 	}
@@ -446,7 +445,7 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		}
 		var links []string
 		if item.repo != "" {
-			links = append(links, "repo: "+browsableURL(item.repo, item.path))
+			links = append(links, "repo: "+strings.TrimSuffix(item.repo, ".git"))
 		}
 		if item.source != "" {
 			links = append(links, "source: "+item.source)
@@ -531,19 +530,6 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		Render(rendered)
 }
 
-// browsableURL returns a human-friendly URL for a monorepo bundle.
-// If path is set, it converts "https://github.com/org/repo.git" + "subdir"
-// into "https://github.com/org/repo/tree/main/subdir".
-func browsableURL(repo, path string) string {
-	if repo == "" {
-		return ""
-	}
-	base := strings.TrimSuffix(repo, ".git")
-	if path != "" {
-		return base + "/tree/main/" + path
-	}
-	return base
-}
 
 // capitalize returns s with first letter uppercased.
 func capitalize(s string) string {
