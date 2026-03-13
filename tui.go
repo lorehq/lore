@@ -2005,25 +2005,23 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 	case stepPlatforms:
 		platCount := len(validPlatforms)
+		canContinue := m.selectedPlatformCount() > 0
 		switch key {
 		case "tab":
 			if m.wizBtnFocus == -1 {
-				// From list -> Back
-				m.wizBtnFocus = 0
-			} else if m.wizBtnFocus == 0 {
-				// Back -> Continue
-				m.wizBtnFocus = 1
+				m.wizBtnFocus = 0 // list -> Back
+			} else if m.wizBtnFocus == 0 && canContinue {
+				m.wizBtnFocus = 1 // Back -> Continue (only if enabled)
 			} else {
-				// Continue -> list
-				m.wizBtnFocus = -1
+				m.wizBtnFocus = -1 // wrap back to list
 			}
 		case "shift+tab":
-			if m.wizBtnFocus == -1 {
-				m.wizBtnFocus = 1
+			if m.wizBtnFocus == -1 && canContinue {
+				m.wizBtnFocus = 1 // list -> Continue (only if enabled)
 			} else if m.wizBtnFocus == 1 {
-				m.wizBtnFocus = 0
+				m.wizBtnFocus = 0 // Continue -> Back
 			} else {
-				m.wizBtnFocus = -1
+				m.wizBtnFocus = -1 // Back -> list
 			}
 		case "up":
 			if m.wizBtnFocus == -1 && m.wizCursor > 0 {
@@ -2987,6 +2985,8 @@ func (m *tuiModel) viewWelcome() string {
 	b.WriteString(strings.Join(logoLines, "\n"))
 	b.WriteString("\n\n")
 	b.WriteString(dimStyle.Render("  Agentic coding, unified"))
+	b.WriteString("\n")
+	b.WriteString(dimStyle.Render("  Copyright (c) 2026 Lore HQ"))
 	b.WriteString("\n\n")
 
 	if !m.globalExists {
@@ -2998,10 +2998,12 @@ func (m *tuiModel) viewWelcome() string {
 	switch m.wizStep {
 	case stepChoice:
 		if m.canInitHere {
+			b.WriteString("  ")
 			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", m.wizCursor == 0)))
-			b.WriteString("\n\n")
+			b.WriteString("\n\n  ")
 			b.WriteString(zone.Mark("wiz-choice-0", renderBtn("Initialize current directory →", m.wizCursor == 1)))
 		} else {
+			b.WriteString("  ")
 			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", true)))
 		}
 
@@ -3045,15 +3047,16 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString("\n\n")
 
 		for i, p := range validPlatforms {
-			cursor := "  "
-			if m.wizCursor == i {
-				cursor = bold.Render("> ")
-			}
 			check := "[ ]"
 			if m.wizPlatforms[i] {
-				check = bold.Render("[x]")
+				check = "[x]"
 			}
-			line := fmt.Sprintf("  %s%s %s", cursor, check, p)
+			line := fmt.Sprintf("  %s %s", check, p)
+			if m.wizCursor == i && m.wizBtnFocus == -1 {
+				line = lipgloss.NewStyle().Reverse(true).Bold(true).Render(fmt.Sprintf("  %s %s", check, p))
+			} else if m.wizCursor == i {
+				line = "  > " + check + " " + p
+			}
 			b.WriteString(zone.Mark(fmt.Sprintf("wiz-plat-%d", i), line) + "\n")
 		}
 
