@@ -3456,9 +3456,13 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		m.clampScroll(i, totalLines, fullVisibleH)
 	}
 
-	// Column 3 pane contents
-	composedContent := m.renderComposedList(innerW)
-	outputContent := m.renderOutputContent(innerW)
+	// Column 3 pane contents (2 narrower to nest inside outer Results border)
+	subInnerW := innerW - 2
+	if subInnerW < 4 {
+		subInnerW = 4
+	}
+	composedContent := m.renderComposedList(subInnerW)
+	outputContent := m.renderOutputContent(subInnerW)
 
 	composedTotalLines := strings.Count(composedContent, "\n") + 1
 	if composedContent == "" {
@@ -3533,20 +3537,20 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		}
 
 		var box []string
-		box = append(box, m.renderBoxTitle(title, innerW, pane))
+		box = append(box, m.renderBoxTitle(title, subInnerW, pane))
 		for _, vl := range visible {
 			lineW := lipgloss.Width(vl)
-			if lineW > innerW {
-				vl = ansi.Truncate(vl, innerW, "")
+			if lineW > subInnerW {
+				vl = ansi.Truncate(vl, subInnerW, "")
 				lineW = lipgloss.Width(vl)
 			}
-			pad := innerW - lineW
+			pad := subInnerW - lineW
 			if pad < 0 {
 				pad = 0
 			}
 			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
 		}
-		box = append(box, m.renderBoxBottom(innerW, pane, visH, total))
+		box = append(box, m.renderBoxBottom(subInnerW, pane, visH, total))
 		return box
 	}
 
@@ -3570,10 +3574,25 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	outerTop := dimStyle.Render("┌") + bold.Render(resultsLabel) + dimStyle.Render(strings.Repeat("─", fillW)) + dimStyle.Render(" ") + harnessToggle + dimStyle.Render("┐")
 	outerBot := dimStyle.Render("└") + dimStyle.Render(strings.Repeat("─", innerW)) + dimStyle.Render("┘")
 
+	// Wrap inner box lines with outer │ side borders
 	var col3Lines []string
 	col3Lines = append(col3Lines, outerTop)
-	col3Lines = append(col3Lines, topBox...)
-	col3Lines = append(col3Lines, botBox...)
+	for _, line := range topBox {
+		lineW := lipgloss.Width(line)
+		pad := innerW - lineW
+		if pad < 0 {
+			pad = 0
+		}
+		col3Lines = append(col3Lines, dimStyle.Render("│")+line+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+	}
+	for _, line := range botBox {
+		lineW := lipgloss.Width(line)
+		pad := innerW - lineW
+		if pad < 0 {
+			pad = 0
+		}
+		col3Lines = append(col3Lines, dimStyle.Render("│")+line+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+	}
 	col3Lines = append(col3Lines, outerBot)
 	cols = append(cols, strings.Join(col3Lines, "\n"))
 
