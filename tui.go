@@ -31,16 +31,12 @@ var (
 	btnPrimary = lipgloss.NewStyle().
 			Reverse(true).
 			Bold(true).
-			Padding(0, 3).
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.AdaptiveColor{Light: "255", Dark: "255"})
+			Padding(0, 2)
 	btnSecondary = lipgloss.NewStyle().
-			Padding(0, 3).
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.AdaptiveColor{Light: "240", Dark: "240"})
+			Padding(0, 2)
 	btnDisabled = lipgloss.NewStyle().
 			Faint(true).
-			Padding(0, 3)
+			Padding(0, 2)
 
 	// Semantic colors for projection tree
 	greenStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
@@ -2965,15 +2961,31 @@ const loreLogo = `   _
   | | (_) | | |  __/
   |_|\___/|_|  \___|`
 
+// renderBtn renders a button. Active = reversed/filled. Inactive = bordered frame.
+// Both use the same total width: padding(0,2) active == padding(0,1)+border inactive.
+func renderBtn(label string, active bool) string {
+	if active {
+		return lipgloss.NewStyle().
+			Reverse(true).Bold(true).
+			Padding(0, 2).
+			Render(label)
+	}
+	return lipgloss.NewStyle().
+		Padding(0, 1).
+		Border(lipgloss.NormalBorder(), false, true, false, true).
+		Faint(true).
+		Render(label)
+}
+
 func (m *tuiModel) viewWelcome() string {
 	var b strings.Builder
 
 	// Logo + version + tagline
-	logo := bold.Render(loreLogo)
+	logoLines := strings.Split(bold.Render(loreLogo), "\n")
+	logoLines[len(logoLines)-1] += "  " + dimStyle.Render("v"+version)
 	b.WriteString("\n")
-	b.WriteString(logo)
-	b.WriteString("  " + dimStyle.Render("v"+version))
-	b.WriteString("\n")
+	b.WriteString(strings.Join(logoLines, "\n"))
+	b.WriteString("\n\n")
 	b.WriteString(dimStyle.Render("  Agentic coding, unified"))
 	b.WriteString("\n\n")
 
@@ -2986,20 +2998,11 @@ func (m *tuiModel) viewWelcome() string {
 	switch m.wizStep {
 	case stepChoice:
 		if m.canInitHere {
-			createBtn := btnSecondary.Render("Create new project directory →")
-			initBtn := btnSecondary.Render("Initialize current directory →")
-			if m.wizCursor == 0 {
-				createBtn = btnPrimary.Render("Create new project directory →")
-			} else {
-				initBtn = btnPrimary.Render("Initialize current directory →")
-			}
-			b.WriteString("  ")
-			b.WriteString(zone.Mark("wiz-choice-1", createBtn))
-			b.WriteString("\n\n  ")
-			b.WriteString(zone.Mark("wiz-choice-0", initBtn))
+			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", m.wizCursor == 0)))
+			b.WriteString("\n\n")
+			b.WriteString(zone.Mark("wiz-choice-0", renderBtn("Initialize current directory →", m.wizCursor == 1)))
 		} else {
-			b.WriteString("  ")
-			b.WriteString(zone.Mark("wiz-choice-1", btnPrimary.Render("Create new project directory →")))
+			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", true)))
 		}
 
 	case stepName:
@@ -3023,17 +3026,9 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString(dimStyle.Render("  " + filepath.Join(m.cwd, m.wizNameBuf+"/")))
 		b.WriteString("\n\n")
 		b.WriteString("  ")
-		backBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			backBtn = btnPrimary.Render("Back")
-		}
-		contBtn := btnPrimary.Render("Continue")
-		if m.wizBtnFocus == 0 {
-			contBtn = btnSecondary.Render("Continue")
-		}
-		b.WriteString(zone.Mark("wiz-back", backBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
-		b.WriteString(zone.Mark("wiz-name-continue", contBtn))
+		b.WriteString(zone.Mark("wiz-name-continue", renderBtn("Continue", m.wizBtnFocus != 0)))
 
 	case stepPlatforms:
 		if m.wizChoice == 0 {
@@ -3070,18 +3065,10 @@ func (m *tuiModel) viewWelcome() string {
 			b.WriteString(dimStyle.Render(fmt.Sprintf("  %d platform(s) selected", count)))
 		}
 		b.WriteString("\n\n  ")
-		platBackBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			platBackBtn = btnPrimary.Render("Back")
-		}
-		b.WriteString(zone.Mark("wiz-back", platBackBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
 		if count > 0 {
-			platContBtn := btnPrimary.Render("Continue")
-			if m.wizBtnFocus != 1 {
-				platContBtn = btnSecondary.Render("Continue")
-			}
-			b.WriteString(zone.Mark("wiz-plat-continue", platContBtn))
+			b.WriteString(zone.Mark("wiz-plat-continue", renderBtn("Continue", m.wizBtnFocus == 1)))
 		} else {
 			b.WriteString(btnDisabled.Render("Continue"))
 		}
@@ -3102,17 +3089,9 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString("\n")
 
 		b.WriteString("  ")
-		confBackBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			confBackBtn = btnPrimary.Render("Back")
-		}
-		confBtn := btnPrimary.Render("Confirm")
-		if m.wizBtnFocus == 0 {
-			confBtn = btnSecondary.Render("Confirm")
-		}
-		b.WriteString(zone.Mark("wiz-back", confBackBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
-		b.WriteString(zone.Mark("wiz-confirm", confBtn))
+		b.WriteString(zone.Mark("wiz-confirm", renderBtn("Confirm", m.wizBtnFocus != 0)))
 	}
 
 	return b.String()
