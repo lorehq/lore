@@ -17,22 +17,12 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-// skillsCategories are clickable tags that fire search queries.
-var skillsCategories = []struct {
-	label string
-	query string
-}{
-	{"Popular", "best-practices"},
-	{"React", "react"},
-	{"Testing", "testing"},
-	{"Security", "security"},
-	{"Design", "design"},
-	{"DevOps", "devops"},
-	{"AI", "agent"},
-	{"Database", "database"},
-	{"API", "api"},
-	{"Mobile", "mobile"},
-}
+// Sort tab constants
+const (
+	skillsSortAllTime  = 0
+	skillsSortTrending = 1
+	skillsSortHot      = 2
+)
 
 // ── Explore tab (wrapper with sub-tabs) ────────────────────────────
 
@@ -156,14 +146,13 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	return m, nil
 }
 
-// ensureSkillsLoaded triggers the initial popular skills load if not done yet.
+// ensureSkillsLoaded triggers the initial leaderboard load if not done yet.
 func (m *tuiModel) ensureSkillsLoaded() tea.Cmd {
 	if m.skillsInitLoaded || m.skillsLoading {
 		return nil
 	}
 	m.skillsInitLoaded = true
 	m.skillsLoading = true
-	m.skillsCategory = "Popular"
 	return loadSkillsLeaderboard()
 }
 
@@ -200,96 +189,95 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	var lines []string
 
 	// Header
-	header := " " + bold.Render("SKILLS LEADERBOARD")
-	countLabel := dimStyle.Render("88,000+ skills")
-	headerGap := m.width - lipgloss.Width(header) - lipgloss.Width(countLabel) - 2
-	if headerGap < 1 {
-		headerGap = 1
-	}
-	lines = append(lines, header+strings.Repeat(" ", headerGap)+countLabel+" ")
+	lines = append(lines, " "+bold.Render("SKILLS LEADERBOARD"))
 	lines = append(lines, "")
 
 	// Search bar
-	searchStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.AdaptiveColor{Light: "236", Dark: "240"}).
-		Padding(0, 1)
-	searchW := m.width - 4
-	if searchW < 20 {
-		searchW = 20
-	}
 	var searchContent string
 	if m.skillsSearchActive {
-		searchContent = "🔍 " + m.skillsSearch + "\u2588"
+		searchContent = " 🔍  " + m.skillsSearch + "\u2588"
 	} else if m.skillsSearch != "" {
-		searchContent = "🔍 " + m.skillsSearch + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
+		searchContent = " 🔍  " + m.skillsSearch + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
 	} else {
-		searchContent = dimStyle.Render("🔍 Search skills...")
+		searchContent = dimStyle.Render(" 🔍  Search skills ...")
 	}
-	searchBar := zone.Mark("skills-search-bar", searchStyle.Width(searchW).Render(searchContent))
-	lines = append(lines, " "+searchBar)
+	searchBox := zone.Mark("skills-search-bar", searchContent)
+
+	slashHint := dimStyle.Render("/")
+	searchGap := m.width - lipgloss.Width(searchContent) - lipgloss.Width(slashHint) - 2
+	if searchGap < 1 {
+		searchGap = 1
+	}
+	lines = append(lines, " "+searchBox+strings.Repeat(" ", searchGap)+slashHint+" ")
+
+	// Separator under search
+	lines = append(lines, dimStyle.Render(" "+strings.Repeat("─", m.width-2)))
 	lines = append(lines, "")
 
-	// Category tags
-	var tagParts []string
-	for _, cat := range skillsCategories {
-		zoneID := "skills-cat-" + cat.query
-		if m.skillsCategory == cat.label {
-			tagParts = append(tagParts, zone.Mark(zoneID,
-				lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(cat.label)))
+	// Sort tabs
+	sortTabs := []struct {
+		label  string
+		zoneID string
+		id     int
+	}{
+		{"All Time (88,000+)", "skills-sort-alltime", skillsSortAllTime},
+		{"Trending (24h)", "skills-sort-trending", skillsSortTrending},
+		{"Hot", "skills-sort-hot", skillsSortHot},
+	}
+	var sortParts []string
+	for _, st := range sortTabs {
+		if m.skillsSortTab == st.id {
+			sortParts = append(sortParts, zone.Mark(st.zoneID,
+				lipgloss.NewStyle().Bold(true).Underline(true).Render(st.label)))
 		} else {
-			tagParts = append(tagParts, zone.Mark(zoneID, dimStyle.Render(cat.label)))
+			sortParts = append(sortParts, zone.Mark(st.zoneID, dimStyle.Render(st.label)))
 		}
 	}
-	lines = append(lines, "  "+strings.Join(tagParts, dimStyle.Render("  ·  ")))
+	lines = append(lines, " "+strings.Join(sortParts, "   "))
 	lines = append(lines, "")
 
-	// Leaderboard content
+	// Table content
 	if m.skillsLoading {
 		lines = append(lines, dimStyle.Render("  Loading..."))
 	} else if len(m.skillsResults) == 0 && m.skillsSearch != "" {
-		lines = append(lines, dimStyle.Render("  No results for \""+m.skillsSearch+"\""))
+		lines = append(lines, dimStyle.Render(fmt.Sprintf("  No results for \"%s\"", m.skillsSearch)))
 	} else if len(m.skillsResults) == 0 {
-		lines = append(lines, "")
-		lines = append(lines, dimStyle.Render("  Search or select a category to browse the Agent Skills ecosystem."))
+		lines = append(lines, dimStyle.Render("  Loading leaderboard..."))
 	} else {
-		// Table header
-		rankW := 5
-		installsW := 12
-		nameW := m.width - rankW - installsW - 12
-		if nameW < 20 {
-			nameW = 20
+		// Column header
+		installsLabel := "INSTALLS"
+		if m.skillsSortTab == skillsSortHot {
+			installsLabel = "1H / CHANGE"
 		}
-
-		headerLine := dimStyle.Render(fmt.Sprintf("  %-*s %-*s %*s",
-			rankW, "#", nameW, "SKILL", installsW, "INSTALLS"))
-		lines = append(lines, headerLine)
-		lines = append(lines, dimStyle.Render("  "+strings.Repeat("─", m.width-4)))
+		colHeader := dimStyle.Render(fmt.Sprintf(" %-5s %-30s %*s",
+			"#", "SKILL", m.width-42, installsLabel))
+		lines = append(lines, colHeader)
+		lines = append(lines, "")
 
 		// Skill rows
 		for i, r := range m.skillsResults {
-			rank := fmt.Sprintf("%d", i+1)
+			rank := fmt.Sprintf("%-5d", i+1)
 			installs := formatInstalls(r.Installs)
-			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
 			source := dimStyle.Render(r.Source)
+			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
 
-			// Name + source on first line, installs + add on right
-			skillName := bold.Render(r.Name)
-			nameAndSource := skillName + "  " + source
+			nameStr := bold.Render(r.Name) + "  " + source
 
-			// Truncate if too wide
-			maxNameW := m.width - rankW - installsW - 14
-			if maxNameW > 0 && lipgloss.Width(nameAndSource) > maxNameW {
-				nameAndSource = ansi.Truncate(nameAndSource, maxNameW, "…")
+			rightSide := installs + "  " + addBtn
+			rightW := lipgloss.Width(rightSide)
+
+			maxNameW := m.width - 7 - rightW - 2
+			if maxNameW > 0 && lipgloss.Width(nameStr) > maxNameW {
+				nameStr = ansi.Truncate(nameStr, maxNameW, "…")
 			}
 
-			rightSide := fmt.Sprintf("%8s  ", installs) + addBtn
-			gap := m.width - rankW - lipgloss.Width(nameAndSource) - lipgloss.Width(rightSide) - 4
+			nameW := lipgloss.Width(nameStr)
+			gap := m.width - 7 - nameW - rightW
 			if gap < 1 {
 				gap = 1
 			}
 
-			row := fmt.Sprintf("  %-*s %s%s%s", rankW, rank, nameAndSource, strings.Repeat(" ", gap), rightSide)
+			row := " " + dimStyle.Render(rank) + " " + nameStr + strings.Repeat(" ", gap) + rightSide
 			lines = append(lines, row)
 		}
 	}
@@ -350,8 +338,7 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 			targetDir := m.skillsAddPaths[m.skillsAddCursor]
 			source := m.skillsAddItem.Source
 			skillName := m.skillsAddItem.Name
-			sourceLabel := source
-			return m, doSkillImport(source, skillName, targetDir, sourceLabel)
+			return m, doSkillImport(source, skillName, targetDir, source)
 		}
 		return m, nil
 	}
@@ -362,13 +349,12 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 		case "esc":
 			m.skillsSearchActive = false
 			if m.skillsSearch == "" {
-				// restore category view
+				// no-op, keep current results
 			}
 		case "enter":
 			m.skillsSearchActive = false
 			if m.skillsSearch != "" {
 				m.skillsLoading = true
-				m.skillsCategory = ""
 				m.skillsScroll = 0
 				return m, searchSkills(m.skillsSearch)
 			}
@@ -392,9 +378,32 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 		if m.skillsSearch != "" {
 			m.skillsSearch = ""
 			m.skillsResults = nil
-			m.skillsCategory = "Popular"
 			m.skillsLoading = true
 			m.skillsScroll = 0
+			return m, loadSkillsLeaderboard()
+		}
+	case "1":
+		if m.skillsSortTab != skillsSortAllTime {
+			m.skillsSortTab = skillsSortAllTime
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			m.skillsSearch = ""
+			return m, loadSkillsLeaderboard()
+		}
+	case "2":
+		if m.skillsSortTab != skillsSortTrending {
+			m.skillsSortTab = skillsSortTrending
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			m.skillsSearch = ""
+			return m, loadSkillsLeaderboard()
+		}
+	case "3":
+		if m.skillsSortTab != skillsSortHot {
+			m.skillsSortTab = skillsSortHot
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			m.skillsSearch = ""
 			return m, loadSkillsLeaderboard()
 		}
 	case "j", "down":
@@ -410,7 +419,7 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 
 // handleSkillsExplorerMouse handles mouse clicks on the skills explorer sub-tab.
 func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
-	// Search bar click activates search
+	// Search bar click
 	if zone.Get("skills-search-bar").InBounds(msg) {
 		m.skillsSearchActive = true
 		m.skillsSearch = ""
@@ -422,22 +431,30 @@ func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.C
 		m.skillsSearch = ""
 		m.skillsSearchActive = false
 		m.skillsResults = nil
-		m.skillsCategory = "Popular"
 		m.skillsLoading = true
 		m.skillsScroll = 0
 		return m, loadSkillsLeaderboard()
 	}
 
-	// Category tag clicks
-	for _, cat := range skillsCategories {
-		zoneID := "skills-cat-" + cat.query
-		if zone.Get(zoneID).InBounds(msg) {
-			m.skillsCategory = cat.label
-			m.skillsSearch = ""
-			m.skillsSearchActive = false
-			m.skillsLoading = true
-			m.skillsScroll = 0
-			return m, searchSkills(cat.query)
+	// Sort tab clicks
+	sortTabs := []struct {
+		zoneID string
+		id     int
+	}{
+		{"skills-sort-alltime", skillsSortAllTime},
+		{"skills-sort-trending", skillsSortTrending},
+		{"skills-sort-hot", skillsSortHot},
+	}
+	for _, st := range sortTabs {
+		if zone.Get(st.zoneID).InBounds(msg) {
+			if m.skillsSortTab != st.id {
+				m.skillsSortTab = st.id
+				m.skillsLoading = true
+				m.skillsScroll = 0
+				m.skillsSearch = ""
+				return m, loadSkillsLeaderboard()
+			}
+			return m, nil
 		}
 	}
 
@@ -518,15 +535,12 @@ func (m *tuiModel) buildSkillTargets() {
 	m.skillsAddTargets = nil
 	m.skillsAddPaths = nil
 
-	// Project
 	m.skillsAddTargets = append(m.skillsAddTargets, "Project (.lore/SKILLS/)")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(".lore", "SKILLS"))
 
-	// Global
 	m.skillsAddTargets = append(m.skillsAddTargets, "Global ("+globalPath()+"/SKILLS/)")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(globalPath(), "SKILLS"))
 
-	// Installed bundles
 	bundles := discoverBundles()
 	for _, b := range bundles {
 		m.skillsAddTargets = append(m.skillsAddTargets, fmt.Sprintf("Bundle: %s", b.Name))
@@ -536,10 +550,10 @@ func (m *tuiModel) buildSkillTargets() {
 
 // ── Async commands ─────────────────────────────────────────────────
 
-// loadSkillsLeaderboard fires multiple broad queries to populate the initial leaderboard.
+// loadSkillsLeaderboard fires multiple broad queries to approximate the leaderboard.
 func loadSkillsLeaderboard() tea.Cmd {
 	return func() tea.Msg {
-		queries := []string{"best-practices", "design", "testing", "security", "agent", "database"}
+		queries := []string{"best-practices", "design", "testing", "security", "agent", "database", "react", "api", "mobile", "devops"}
 		seen := map[string]bool{}
 		var all []skillsResult
 
@@ -553,10 +567,7 @@ func loadSkillsLeaderboard() tea.Cmd {
 			}
 			body, err := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			if resp.StatusCode != 200 {
-				continue
-			}
-			if err != nil {
+			if resp.StatusCode != 200 || err != nil {
 				continue
 			}
 
@@ -574,12 +585,10 @@ func loadSkillsLeaderboard() tea.Cmd {
 			}
 		}
 
-		// Sort by installs descending
 		sort.Slice(all, func(i, j int) bool {
 			return all[i].Installs > all[j].Installs
 		})
 
-		// Cap at 100
 		if len(all) > 100 {
 			all = all[:100]
 		}
@@ -616,7 +625,6 @@ func searchSkills(query string) tea.Cmd {
 			return skillsSearchMsg{err: fmt.Errorf("invalid response: %w", err)}
 		}
 
-		// Sort by installs
 		sort.Slice(result.Skills, func(i, j int) bool {
 			return result.Skills[i].Installs > result.Skills[j].Installs
 		})

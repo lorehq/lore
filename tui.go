@@ -432,8 +432,8 @@ type tuiModel struct {
 	skillsResults      []skillsResult
 	skillsLoading      bool
 	skillsScroll       int
-	skillsInitLoaded   bool   // true after first auto-load
-	skillsCategory     string // active category tag (empty = popular)
+	skillsInitLoaded   bool         // true after first auto-load
+	skillsSortTab      int          // 0=All Time, 1=Trending, 2=Hot
 	skillsAddActive    bool         // target picker showing
 	skillsAddItem      skillsResult // which skill to add
 	skillsAddTargets   []string     // target labels for picker
