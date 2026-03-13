@@ -212,7 +212,14 @@ type bundlePage struct {
 	tabID      tabID
 }
 
+type bundlePageSubtab struct {
+	Name     string             `json:"name"`
+	Badge    string             `json:"badge"`
+	Sections []bundlePageSection `json:"sections"`
+}
+
 type bundlePageOutput struct {
+	Subtabs  []bundlePageSubtab  `json:"subtabs"`
 	Sections []bundlePageSection `json:"sections"`
 	Status   string              `json:"status"`
 }
@@ -417,11 +424,13 @@ type tuiModel struct {
 	successPath string
 
 	// bundle TUI pages
-	bundlePages         []bundlePage
-	bundlePageData      map[tabID]*bundlePageOutput
-	bundlePageScroll    map[tabID]int
-	bundlePageCollapsed map[tabID]map[int]bool
-	bundlePageLoading   map[tabID]bool
+	bundlePages            []bundlePage
+	bundlePageData         map[tabID]*bundlePageOutput
+	bundlePageScroll       map[tabID]int
+	bundlePageCollapsed    map[tabID]map[int]bool
+	bundlePageSubCollapsed map[tabID]map[int]map[int]bool
+	bundlePageActiveSub    map[tabID]int
+	bundlePageLoading      map[tabID]bool
 
 	// explore tab sub-tab
 	exploreSub exploreSubTab
@@ -805,6 +814,8 @@ func (m *tuiModel) loadProjection() {
 		m.bundlePageData = make(map[tabID]*bundlePageOutput)
 		m.bundlePageScroll = make(map[tabID]int)
 		m.bundlePageCollapsed = make(map[tabID]map[int]bool)
+		m.bundlePageSubCollapsed = make(map[tabID]map[int]map[int]bool)
+		m.bundlePageActiveSub = make(map[tabID]int)
 		m.bundlePageLoading = make(map[tabID]bool)
 	}
 
@@ -1762,12 +1773,25 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		} else {
 			m.bundlePageData[msg.tabID] = msg.output
-			// Initialize section collapse state from script defaults
-			collapsed := make(map[int]bool)
-			for i, s := range msg.output.Sections {
-				collapsed[i] = s.Collapsed
+			if len(msg.output.Subtabs) > 0 {
+				// Initialize collapse state per sub-tab
+				subCollapsed := make(map[int]map[int]bool)
+				for si, sub := range msg.output.Subtabs {
+					sc := make(map[int]bool)
+					for i, s := range sub.Sections {
+						sc[i] = s.Collapsed
+					}
+					subCollapsed[si] = sc
+				}
+				m.bundlePageSubCollapsed[msg.tabID] = subCollapsed
+			} else {
+				// Initialize section collapse state from script defaults
+				collapsed := make(map[int]bool)
+				for i, s := range msg.output.Sections {
+					collapsed[i] = s.Collapsed
+				}
+				m.bundlePageCollapsed[msg.tabID] = collapsed
 			}
-			m.bundlePageCollapsed[msg.tabID] = collapsed
 		}
 
 	case mktLoadedMsg:
@@ -2009,19 +2033,23 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		switch key {
 		case "tab":
 			if m.wizBtnFocus == -1 {
-				m.wizBtnFocus = 0 // list -> Back
-			} else if m.wizBtnFocus == 0 && canContinue {
-				m.wizBtnFocus = 1 // Back -> Continue (only if enabled)
-			} else {
-				m.wizBtnFocus = -1 // wrap back to list
-			}
-		case "shift+tab":
-			if m.wizBtnFocus == -1 && canContinue {
-				m.wizBtnFocus = 1 // list -> Continue (only if enabled)
+				if canContinue {
+					m.wizBtnFocus = 1 // list -> Continue (skip Back when enabled)
+				} else {
+					m.wizBtnFocus = 0 // list -> Back (Continue disabled)
+				}
 			} else if m.wizBtnFocus == 1 {
 				m.wizBtnFocus = 0 // Continue -> Back
 			} else {
 				m.wizBtnFocus = -1 // Back -> list
+			}
+		case "shift+tab":
+			if m.wizBtnFocus == -1 {
+				m.wizBtnFocus = 0 // list -> Back
+			} else if m.wizBtnFocus == 0 {
+				m.wizBtnFocus = -1 // Back -> list
+			} else {
+				m.wizBtnFocus = 0 // Continue -> Back
 			}
 		case "up":
 			if m.wizBtnFocus == -1 && m.wizCursor > 0 {
@@ -2295,6 +2323,7 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 func (m *tuiModel) handleBundlePageKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
+	output := m.bundlePageData[m.tab]
 
 	switch key {
 	case "r":
@@ -2305,6 +2334,16 @@ func (m *tuiModel) handleBundlePageKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 				m.bundlePageData[m.tab] = nil
 				return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
 			}
+		}
+	case "left":
+		if output != nil && len(output.Subtabs) > 0 && m.bundlePageActiveSub[m.tab] > 0 {
+			m.bundlePageActiveSub[m.tab]--
+			m.bundlePageScroll[m.tab] = 0
+		}
+	case "right":
+		if output != nil && len(output.Subtabs) > 0 && m.bundlePageActiveSub[m.tab] < len(output.Subtabs)-1 {
+			m.bundlePageActiveSub[m.tab]++
+			m.bundlePageScroll[m.tab] = 0
 		}
 	case "j", "down":
 		m.bundlePageScroll[m.tab]++
@@ -2326,23 +2365,43 @@ func (m *tuiModel) toggleBundlePageSection() {
 	if output == nil {
 		return
 	}
-	collapsed := m.bundlePageCollapsed[m.tab]
-	if collapsed == nil {
-		return
-	}
-
-	// Find section under cursor by counting visible lines
 	scroll := m.bundlePageScroll[m.tab]
-	lineIdx := 0
-	for i, section := range output.Sections {
-		if lineIdx-scroll == 0 || lineIdx == scroll {
-			// This is approximate — toggle the first visible section header
+
+	if len(output.Subtabs) > 0 {
+		activeSub := m.bundlePageActiveSub[m.tab]
+		if activeSub >= len(output.Subtabs) {
+			return
+		}
+		subCollapsed := m.bundlePageSubCollapsed[m.tab]
+		if subCollapsed == nil || subCollapsed[activeSub] == nil {
+			return
+		}
+		collapsed := subCollapsed[activeSub]
+		lineIdx := 0
+		for i, section := range output.Subtabs[activeSub].Sections {
 			if lineIdx >= scroll {
 				collapsed[i] = !collapsed[i]
 				return
 			}
+			lineIdx++
+			if !collapsed[i] {
+				lineIdx += len(section.Items)
+			}
 		}
-		lineIdx++ // section header
+		return
+	}
+
+	collapsed := m.bundlePageCollapsed[m.tab]
+	if collapsed == nil {
+		return
+	}
+	lineIdx := 0
+	for i, section := range output.Sections {
+		if lineIdx >= scroll {
+			collapsed[i] = !collapsed[i]
+			return
+		}
+		lineIdx++
 		if !collapsed[i] {
 			lineIdx += len(section.Items)
 		}
@@ -2548,17 +2607,53 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m.handleExploreMouse(msg)
 		}
 
-		// Section collapse clicks on bundle pages
+		// Section collapse and sub-tab clicks on bundle pages
 		if m.tab != tabProjection && m.tab != tabExplore {
 			output := m.bundlePageData[m.tab]
 			if output != nil {
-				for i := range output.Sections {
-					if zone.Get(fmt.Sprintf("bp-section-%d-%d", m.tab, i)).InBounds(msg) {
-						collapsed := m.bundlePageCollapsed[m.tab]
-						if collapsed != nil {
-							collapsed[i] = !collapsed[i]
+				// Refresh button
+				if zone.Get(fmt.Sprintf("bp-refresh-%d", m.tab)).InBounds(msg) {
+					for _, page := range m.bundlePages {
+						if page.tabID == m.tab {
+							m.bundlePageLoading[m.tab] = true
+							m.bundlePageData[m.tab] = nil
+							return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
 						}
-						return m, nil
+					}
+					return m, nil
+				}
+				if len(output.Subtabs) > 0 {
+					// Sub-tab bar clicks
+					for i := range output.Subtabs {
+						if zone.Get(fmt.Sprintf("bp-sub-%d-%d", m.tab, i)).InBounds(msg) {
+							m.bundlePageActiveSub[m.tab] = i
+							m.bundlePageScroll[m.tab] = 0
+							return m, nil
+						}
+					}
+					// Section collapse clicks within active sub-tab
+					activeSub := m.bundlePageActiveSub[m.tab]
+					if activeSub < len(output.Subtabs) {
+						subCollapsed := m.bundlePageSubCollapsed[m.tab]
+						for i := range output.Subtabs[activeSub].Sections {
+							if zone.Get(fmt.Sprintf("bp-section-%d-%d-%d", m.tab, activeSub, i)).InBounds(msg) {
+								if subCollapsed != nil && subCollapsed[activeSub] != nil {
+									subCollapsed[activeSub][i] = !subCollapsed[activeSub][i]
+								}
+								return m, nil
+							}
+						}
+					}
+				} else {
+					// Flat mode section collapse
+					for i := range output.Sections {
+						if zone.Get(fmt.Sprintf("bp-section-%d-%d", m.tab, i)).InBounds(msg) {
+							collapsed := m.bundlePageCollapsed[m.tab]
+							if collapsed != nil {
+								collapsed[i] = !collapsed[i]
+							}
+							return m, nil
+						}
 					}
 				}
 			}
@@ -3051,11 +3146,12 @@ func (m *tuiModel) viewWelcome() string {
 			if m.wizPlatforms[i] {
 				check = "[x]"
 			}
-			line := fmt.Sprintf("  %s %s", check, p)
+			label := fmt.Sprintf("%s %s", check, p)
+			var line string
 			if m.wizCursor == i && m.wizBtnFocus == -1 {
-				line = lipgloss.NewStyle().Reverse(true).Bold(true).Render(fmt.Sprintf("  %s %s", check, p))
-			} else if m.wizCursor == i {
-				line = "  > " + check + " " + p
+				line = "  " + lipgloss.NewStyle().Reverse(true).Bold(true).Render(label)
+			} else {
+				line = "  " + label
 			}
 			b.WriteString(zone.Mark(fmt.Sprintf("wiz-plat-%d", i), line) + "\n")
 		}
@@ -4653,25 +4749,97 @@ func (m *tuiModel) viewBundlePage(maxH int) string {
 			Render("Press r to load")
 	}
 
+	if len(output.Subtabs) > 0 {
+		subTabBar := m.renderBundlePageSubTabs(output.Subtabs)
+		subTabH := strings.Count(subTabBar, "\n") + 1
+		contentH := maxH - subTabH
+		if contentH < 1 {
+			contentH = 1
+		}
+		activeSub := m.bundlePageActiveSub[m.tab]
+		if activeSub >= len(output.Subtabs) {
+			activeSub = 0
+		}
+		if m.bundlePageSubCollapsed[m.tab] == nil {
+			m.bundlePageSubCollapsed[m.tab] = make(map[int]map[int]bool)
+		}
+		collapsed := m.bundlePageSubCollapsed[m.tab][activeSub]
+		if collapsed == nil {
+			collapsed = make(map[int]bool)
+			m.bundlePageSubCollapsed[m.tab][activeSub] = collapsed
+		}
+		zonePrefix := fmt.Sprintf("bp-section-%d-%d", m.tab, activeSub)
+		content := m.renderBundlePageSections(output.Subtabs[activeSub].Sections, output.Status, collapsed, zonePrefix, contentH)
+		return subTabBar + "\n" + content
+	}
+
 	collapsed := m.bundlePageCollapsed[m.tab]
 	if collapsed == nil {
 		collapsed = make(map[int]bool)
 		m.bundlePageCollapsed[m.tab] = collapsed
 	}
+	zonePrefix := fmt.Sprintf("bp-section-%d", m.tab)
+	return m.renderBundlePageSections(output.Sections, output.Status, collapsed, zonePrefix, maxH)
+}
 
+func (m *tuiModel) renderBundlePageSubTabs(subtabs []bundlePageSubtab) string {
+	borderFg := lipgloss.AdaptiveColor{Light: "236", Dark: "248"}
+
+	activeStyle := lipgloss.NewStyle().
+		Bold(true).
+		Padding(0, 1).
+		Foreground(lipgloss.Color("12")).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(lipgloss.Color("12"))
+
+	inactiveStyle := lipgloss.NewStyle().
+		Faint(true).
+		Padding(0, 1).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(borderFg)
+
+	activeSub := m.bundlePageActiveSub[m.tab]
+	var parts []string
+	for i, sub := range subtabs {
+		label := sub.Name
+		if sub.Badge != "" {
+			label += " " + sub.Badge
+		}
+		zoneID := fmt.Sprintf("bp-sub-%d-%d", m.tab, i)
+		var rendered string
+		if activeSub == i {
+			rendered = activeStyle.Render(label)
+		} else {
+			rendered = inactiveStyle.Render(label)
+		}
+		parts = append(parts, zone.Mark(zoneID, rendered))
+	}
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
+
+	refreshBtn := zone.Mark(fmt.Sprintf("bp-refresh-%d", m.tab), dimStyle.Render(" ↻ "))
+	barW := lipgloss.Width(tabBar)
+	btnW := lipgloss.Width(refreshBtn)
+	gap := m.width - barW - btnW
+	if gap < 1 {
+		gap = 1
+	}
+	filler := lipgloss.NewStyle().Foreground(borderFg).Render(strings.Repeat("─", gap))
+	return lipgloss.JoinHorizontal(lipgloss.Bottom, tabBar, filler, refreshBtn)
+}
+
+func (m *tuiModel) renderBundlePageSections(sections []bundlePageSection, status string, collapsed map[int]bool, zonePrefix string, maxH int) string {
 	var lines []string
 
-	for i, section := range output.Sections {
+	for i, section := range sections {
 		arrow := "▾"
 		if collapsed[i] {
 			arrow = "▸"
 		}
-
 		header := fmt.Sprintf(" %s %s", arrow, bold.Render(section.Name))
 		if section.Badge != "" {
 			header += " " + dimStyle.Render("("+section.Badge+")")
 		}
-		lines = append(lines, zone.Mark(fmt.Sprintf("bp-section-%d-%d", m.tab, i), header))
+		lines = append(lines, zone.Mark(fmt.Sprintf("%s-%d", zonePrefix, i), header))
 
 		if !collapsed[i] {
 			for _, item := range section.Items {
@@ -4685,13 +4853,11 @@ func (m *tuiModel) viewBundlePage(maxH int) string {
 				lines = append(lines, line)
 			}
 		}
-
 		lines = append(lines, "") // spacer between sections
 	}
 
-	// Status line at bottom
-	if output.Status != "" {
-		lines = append(lines, dimStyle.Render(" "+output.Status))
+	if status != "" {
+		lines = append(lines, dimStyle.Render(" "+status))
 	}
 
 	// Apply scroll
@@ -4704,7 +4870,6 @@ func (m *tuiModel) viewBundlePage(maxH int) string {
 		scroll = 0
 		m.bundlePageScroll[m.tab] = 0
 	}
-
 	visible := lines
 	if scroll < len(visible) {
 		visible = visible[scroll:]
@@ -4714,19 +4879,14 @@ func (m *tuiModel) viewBundlePage(maxH int) string {
 	if len(visible) > maxH {
 		visible = visible[:maxH]
 	}
-
-	// Pad to fill height
 	for len(visible) < maxH {
 		visible = append(visible, "")
 	}
-
-	// Truncate lines to terminal width
 	for i, line := range visible {
 		if lipgloss.Width(line) > m.width {
 			visible[i] = ansi.Truncate(line, m.width, "…")
 		}
 	}
-
 	return strings.Join(visible, "\n")
 }
 
