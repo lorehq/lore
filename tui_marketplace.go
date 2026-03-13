@@ -57,12 +57,14 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 
 	var lines []string
 
-	// Top bar: refresh button + search
-	topBar := " " + zone.Mark("mkt-refresh", btnSecondary.Render("Refresh"))
+	// Top bar: search
+	topBar := " "
 	if m.mktSearchActive {
-		topBar += "  / " + m.mktSearch + "\u2588"
+		topBar += "/ " + m.mktSearch + "\u2588"
 	} else if m.mktSearch != "" {
-		topBar += "  " + dimStyle.Render("filter: "+m.mktSearch) + "  " + zone.Mark("mkt-clear-search", dimStyle.Render("[clear]"))
+		topBar += dimStyle.Render("filter: "+m.mktSearch) + "  " + zone.Mark("mkt-clear-search", dimStyle.Render("[clear]"))
+	} else {
+		topBar += dimStyle.Render("Press / to search bundles")
 	}
 	lines = append(lines, topBar)
 	lines = append(lines, "")

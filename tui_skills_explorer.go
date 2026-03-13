@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,12 +17,29 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
+// skillsCategories are clickable tags that fire search queries.
+var skillsCategories = []struct {
+	label string
+	query string
+}{
+	{"Popular", "best-practices"},
+	{"React", "react"},
+	{"Testing", "testing"},
+	{"Security", "security"},
+	{"Design", "design"},
+	{"DevOps", "devops"},
+	{"AI", "agent"},
+	{"Database", "database"},
+	{"API", "api"},
+	{"Mobile", "mobile"},
+}
+
 // ── Explore tab (wrapper with sub-tabs) ────────────────────────────
 
 // viewExplore renders the Explore tab with a sub-tab bar and dispatches to the active sub-tab.
 func (m *tuiModel) viewExplore(maxH int) string {
 	subTabBar := m.renderExploreSubTabs()
-	subTabH := 1
+	subTabH := strings.Count(subTabBar, "\n") + 1
 	contentH := maxH - subTabH
 	if contentH < 1 {
 		contentH = 1
@@ -40,8 +58,20 @@ func (m *tuiModel) viewExplore(maxH int) string {
 
 // renderExploreSubTabs renders the sub-tab bar within the Explore tab.
 func (m *tuiModel) renderExploreSubTabs() string {
-	activeStyle := lipgloss.NewStyle().Bold(true).Underline(true).Padding(0, 1)
-	inactiveStyle := lipgloss.NewStyle().Faint(true).Padding(0, 1)
+	borderFg := lipgloss.AdaptiveColor{Light: "236", Dark: "248"}
+
+	activeStyle := lipgloss.NewStyle().
+		Bold(true).
+		Padding(0, 1).
+		Foreground(lipgloss.Color("12")).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(lipgloss.Color("12"))
+
+	inactiveStyle := lipgloss.NewStyle().
+		Faint(true).
+		Padding(0, 1).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(borderFg)
 
 	tabs := []struct {
 		label  string
@@ -63,7 +93,19 @@ func (m *tuiModel) renderExploreSubTabs() string {
 		parts = append(parts, zone.Mark(t.zoneID, rendered))
 	}
 
-	return " " + strings.Join(parts, dimStyle.Render(" | "))
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
+
+	// Refresh button on the right
+	refreshBtn := zone.Mark("mkt-refresh", dimStyle.Render(" ↻ "))
+	barW := lipgloss.Width(tabBar)
+	btnW := lipgloss.Width(refreshBtn)
+	gap := m.width - barW - btnW
+	if gap < 1 {
+		gap = 1
+	}
+	filler := lipgloss.NewStyle().Foreground(borderFg).Render(strings.Repeat("─", gap))
+
+	return lipgloss.JoinHorizontal(lipgloss.Bottom, tabBar, filler, refreshBtn)
 }
 
 // handleExploreKey dispatches keyboard input to the active Explore sub-tab.
@@ -74,9 +116,9 @@ func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	if key == "tab" {
 		if m.exploreSub == exploreSubBundles {
 			m.exploreSub = exploreSubSkills
-		} else {
-			m.exploreSub = exploreSubBundles
+			return m, m.ensureSkillsLoaded()
 		}
+		m.exploreSub = exploreSubBundles
 		return m, nil
 	}
 
@@ -102,7 +144,7 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	}
 	if zone.Get("explore-sub-skills").InBounds(msg) {
 		m.exploreSub = exploreSubSkills
-		return m, nil
+		return m, m.ensureSkillsLoaded()
 	}
 
 	switch m.exploreSub {
@@ -114,9 +156,31 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	return m, nil
 }
 
+// ensureSkillsLoaded triggers the initial popular skills load if not done yet.
+func (m *tuiModel) ensureSkillsLoaded() tea.Cmd {
+	if m.skillsInitLoaded || m.skillsLoading {
+		return nil
+	}
+	m.skillsInitLoaded = true
+	m.skillsLoading = true
+	m.skillsCategory = "Popular"
+	return loadSkillsLeaderboard()
+}
+
 // ── Skills Explorer sub-tab ────────────────────────────────────────
 
-// viewSkillsExplorer renders the skills search and results view.
+// formatInstalls formats install counts with K/M suffixes.
+func formatInstalls(n int) string {
+	if n >= 1_000_000 {
+		return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+	}
+	if n >= 1_000 {
+		return fmt.Sprintf("%.1fK", float64(n)/1_000)
+	}
+	return fmt.Sprintf("%d", n)
+}
+
+// viewSkillsExplorer renders the skills leaderboard view.
 func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	// Target picker overlay
 	if m.skillsAddActive {
@@ -135,37 +199,98 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 
 	var lines []string
 
-	// Search bar
-	searchBar := " "
-	if m.skillsSearchActive {
-		searchBar += "Search: " + m.skillsSearch + "\u2588"
-	} else if m.skillsSearch != "" {
-		searchBar += dimStyle.Render("search: "+m.skillsSearch) + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
-	} else {
-		searchBar += dimStyle.Render("Press / to search skills.sh (88,000+ skills)")
+	// Header
+	header := " " + bold.Render("SKILLS LEADERBOARD")
+	countLabel := dimStyle.Render("88,000+ skills")
+	headerGap := m.width - lipgloss.Width(header) - lipgloss.Width(countLabel) - 2
+	if headerGap < 1 {
+		headerGap = 1
 	}
-	lines = append(lines, searchBar)
+	lines = append(lines, header+strings.Repeat(" ", headerGap)+countLabel+" ")
 	lines = append(lines, "")
 
+	// Search bar
+	searchStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.AdaptiveColor{Light: "236", Dark: "240"}).
+		Padding(0, 1)
+	searchW := m.width - 4
+	if searchW < 20 {
+		searchW = 20
+	}
+	var searchContent string
+	if m.skillsSearchActive {
+		searchContent = "🔍 " + m.skillsSearch + "\u2588"
+	} else if m.skillsSearch != "" {
+		searchContent = "🔍 " + m.skillsSearch + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
+	} else {
+		searchContent = dimStyle.Render("🔍 Search skills...")
+	}
+	searchBar := zone.Mark("skills-search-bar", searchStyle.Width(searchW).Render(searchContent))
+	lines = append(lines, " "+searchBar)
+	lines = append(lines, "")
+
+	// Category tags
+	var tagParts []string
+	for _, cat := range skillsCategories {
+		zoneID := "skills-cat-" + cat.query
+		if m.skillsCategory == cat.label {
+			tagParts = append(tagParts, zone.Mark(zoneID,
+				lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(cat.label)))
+		} else {
+			tagParts = append(tagParts, zone.Mark(zoneID, dimStyle.Render(cat.label)))
+		}
+	}
+	lines = append(lines, "  "+strings.Join(tagParts, dimStyle.Render("  ·  ")))
+	lines = append(lines, "")
+
+	// Leaderboard content
 	if m.skillsLoading {
-		lines = append(lines, dimStyle.Render("   Searching..."))
+		lines = append(lines, dimStyle.Render("  Loading..."))
 	} else if len(m.skillsResults) == 0 && m.skillsSearch != "" {
-		lines = append(lines, dimStyle.Render("   No results"))
+		lines = append(lines, dimStyle.Render("  No results for \""+m.skillsSearch+"\""))
 	} else if len(m.skillsResults) == 0 {
 		lines = append(lines, "")
-		lines = append(lines, dimStyle.Render("   Search the Agent Skills ecosystem to find and import skills."))
-		lines = append(lines, dimStyle.Render("   Skills are imported into your project, global config, or a bundle."))
+		lines = append(lines, dimStyle.Render("  Search or select a category to browse the Agent Skills ecosystem."))
 	} else {
-		// Results
-		for _, r := range m.skillsResults {
+		// Table header
+		rankW := 5
+		installsW := 12
+		nameW := m.width - rankW - installsW - 12
+		if nameW < 20 {
+			nameW = 20
+		}
+
+		headerLine := dimStyle.Render(fmt.Sprintf("  %-*s %-*s %*s",
+			rankW, "#", nameW, "SKILL", installsW, "INSTALLS"))
+		lines = append(lines, headerLine)
+		lines = append(lines, dimStyle.Render("  "+strings.Repeat("─", m.width-4)))
+
+		// Skill rows
+		for i, r := range m.skillsResults {
+			rank := fmt.Sprintf("%d", i+1)
+			installs := formatInstalls(r.Installs)
 			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
-			installs := dimStyle.Render(fmt.Sprintf("%d installs", r.Installs))
 			source := dimStyle.Render(r.Source)
 
-			nameLine := "   " + bold.Render(r.Name) + "  " + addBtn + "  " + installs
-			lines = append(lines, nameLine)
-			lines = append(lines, dimStyle.Render("   "+source))
-			lines = append(lines, "")
+			// Name + source on first line, installs + add on right
+			skillName := bold.Render(r.Name)
+			nameAndSource := skillName + "  " + source
+
+			// Truncate if too wide
+			maxNameW := m.width - rankW - installsW - 14
+			if maxNameW > 0 && lipgloss.Width(nameAndSource) > maxNameW {
+				nameAndSource = ansi.Truncate(nameAndSource, maxNameW, "…")
+			}
+
+			rightSide := fmt.Sprintf("%8s  ", installs) + addBtn
+			gap := m.width - rankW - lipgloss.Width(nameAndSource) - lipgloss.Width(rightSide) - 4
+			if gap < 1 {
+				gap = 1
+			}
+
+			row := fmt.Sprintf("  %-*s %s%s%s", rankW, rank, nameAndSource, strings.Repeat(" ", gap), rightSide)
+			lines = append(lines, row)
 		}
 	}
 
@@ -194,7 +319,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	}
 	for i, line := range visible {
 		if lipgloss.Width(line) > m.width {
-			visible[i] = ansi.Truncate(line, m.width, "\u2026")
+			visible[i] = ansi.Truncate(line, m.width, "…")
 		}
 	}
 
@@ -236,11 +361,15 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 		switch key {
 		case "esc":
 			m.skillsSearchActive = false
-			m.skillsSearch = ""
+			if m.skillsSearch == "" {
+				// restore category view
+			}
 		case "enter":
 			m.skillsSearchActive = false
 			if m.skillsSearch != "" {
 				m.skillsLoading = true
+				m.skillsCategory = ""
+				m.skillsScroll = 0
 				return m, searchSkills(m.skillsSearch)
 			}
 		case "backspace":
@@ -263,6 +392,10 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 		if m.skillsSearch != "" {
 			m.skillsSearch = ""
 			m.skillsResults = nil
+			m.skillsCategory = "Popular"
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			return m, loadSkillsLeaderboard()
 		}
 	case "j", "down":
 		m.skillsScroll++
@@ -277,11 +410,35 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 
 // handleSkillsExplorerMouse handles mouse clicks on the skills explorer sub-tab.
 func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
+	// Search bar click activates search
+	if zone.Get("skills-search-bar").InBounds(msg) {
+		m.skillsSearchActive = true
+		m.skillsSearch = ""
+		return m, nil
+	}
+
 	// Clear search
 	if zone.Get("skills-clear-search").InBounds(msg) {
 		m.skillsSearch = ""
+		m.skillsSearchActive = false
 		m.skillsResults = nil
-		return m, nil
+		m.skillsCategory = "Popular"
+		m.skillsLoading = true
+		m.skillsScroll = 0
+		return m, loadSkillsLeaderboard()
+	}
+
+	// Category tag clicks
+	for _, cat := range skillsCategories {
+		zoneID := "skills-cat-" + cat.query
+		if zone.Get(zoneID).InBounds(msg) {
+			m.skillsCategory = cat.label
+			m.skillsSearch = ""
+			m.skillsSearchActive = false
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			return m, searchSkills(cat.query)
+		}
 	}
 
 	// Target picker clicks
@@ -379,10 +536,62 @@ func (m *tuiModel) buildSkillTargets() {
 
 // ── Async commands ─────────────────────────────────────────────────
 
+// loadSkillsLeaderboard fires multiple broad queries to populate the initial leaderboard.
+func loadSkillsLeaderboard() tea.Cmd {
+	return func() tea.Msg {
+		queries := []string{"best-practices", "design", "testing", "security", "agent", "database"}
+		seen := map[string]bool{}
+		var all []skillsResult
+
+		client := &http.Client{Timeout: 10 * time.Second}
+
+		for _, q := range queries {
+			apiURL := fmt.Sprintf("https://skills.sh/api/search?q=%s&limit=30", url.QueryEscape(q))
+			resp, err := client.Get(apiURL)
+			if err != nil {
+				continue
+			}
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if resp.StatusCode != 200 {
+				continue
+			}
+			if err != nil {
+				continue
+			}
+
+			var result struct {
+				Skills []skillsResult `json:"skills"`
+			}
+			if err := json.Unmarshal(body, &result); err != nil {
+				continue
+			}
+			for _, s := range result.Skills {
+				if !seen[s.ID] {
+					seen[s.ID] = true
+					all = append(all, s)
+				}
+			}
+		}
+
+		// Sort by installs descending
+		sort.Slice(all, func(i, j int) bool {
+			return all[i].Installs > all[j].Installs
+		})
+
+		// Cap at 100
+		if len(all) > 100 {
+			all = all[:100]
+		}
+
+		return skillsSearchMsg{results: all}
+	}
+}
+
 // searchSkills fetches skill search results from skills.sh.
 func searchSkills(query string) tea.Cmd {
 	return func() tea.Msg {
-		apiURL := fmt.Sprintf("https://skills.sh/api/search?q=%s&limit=20", url.QueryEscape(query))
+		apiURL := fmt.Sprintf("https://skills.sh/api/search?q=%s&limit=50", url.QueryEscape(query))
 
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Get(apiURL)
@@ -406,6 +615,11 @@ func searchSkills(query string) tea.Cmd {
 		if err := json.Unmarshal(body, &result); err != nil {
 			return skillsSearchMsg{err: fmt.Errorf("invalid response: %w", err)}
 		}
+
+		// Sort by installs
+		sort.Slice(result.Skills, func(i, j int) bool {
+			return result.Skills[i].Installs > result.Skills[j].Installs
+		})
 
 		return skillsSearchMsg{results: result.Skills}
 	}

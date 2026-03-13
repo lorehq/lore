@@ -427,18 +427,20 @@ type tuiModel struct {
 	exploreSub exploreSubTab
 
 	// skills explorer sub-tab state
-	skillsSearch      string
+	skillsSearch       string
 	skillsSearchActive bool
-	skillsResults     []skillsResult
-	skillsLoading     bool
-	skillsScroll      int
-	skillsAddActive   bool         // target picker showing
-	skillsAddItem     skillsResult // which skill to add
-	skillsAddTargets  []string     // target labels for picker
-	skillsAddPaths    []string     // target SKILLS/ paths
-	skillsAddCursor   int
-	skillsImporting   bool
-	skillsImportName  string
+	skillsResults      []skillsResult
+	skillsLoading      bool
+	skillsScroll       int
+	skillsInitLoaded   bool   // true after first auto-load
+	skillsCategory     string // active category tag (empty = popular)
+	skillsAddActive    bool         // target picker showing
+	skillsAddItem      skillsResult // which skill to add
+	skillsAddTargets   []string     // target labels for picker
+	skillsAddPaths     []string     // target SKILLS/ paths
+	skillsAddCursor    int
+	skillsImporting    bool
+	skillsImportName   string
 
 	// bundles sub-tab state (formerly marketplace)
 	mktLoaded             bool
