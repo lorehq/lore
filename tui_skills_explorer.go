@@ -175,9 +175,16 @@ func formatInstalls(n int) string {
 	return fmt.Sprintf("%d", n)
 }
 
-// skillGitHubURL returns the GitHub URL for a skill result.
+// skillGitHubURL returns the display text for a skill's GitHub URL.
 func skillGitHubURL(r skillsResult) string {
 	return "github.com/" + r.Source
+}
+
+// skillHyperlink returns an OSC 8 terminal hyperlink for a skill's source.
+func skillHyperlink(r skillsResult) string {
+	display := "github.com/" + r.Source
+	url := "https://" + display
+	return fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", url, display)
 }
 
 // viewSkillsExplorer renders the skills.sh leaderboard view.
@@ -243,7 +250,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 		for i, r := range m.skillsResults {
 			rank := fmt.Sprintf("%-5d", i+1)
 			installs := formatInstalls(r.Installs)
-			source := dimStyle.Render(skillGitHubURL(r))
+			source := dimStyle.Render(skillHyperlink(r))
 			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
 
 			// Row 1: rank + bold name + installs + add button
