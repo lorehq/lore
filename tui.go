@@ -31,11 +31,13 @@ var (
 	btnPrimary = lipgloss.NewStyle().
 			Reverse(true).
 			Bold(true).
-			Padding(0, 3)
+			Padding(0, 3).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.AdaptiveColor{Light: "255", Dark: "255"})
 	btnSecondary = lipgloss.NewStyle().
 			Padding(0, 3).
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(lipgloss.AdaptiveColor{Light: "240", Dark: "245"})
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.AdaptiveColor{Light: "240", Dark: "240"})
 	btnDisabled = lipgloss.NewStyle().
 			Faint(true).
 			Padding(0, 3)
