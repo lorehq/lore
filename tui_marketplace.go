@@ -461,17 +461,6 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		contentLines = append(contentLines, dimStyle.Render("Install the bundle to view the full README."))
 	}
 
-	// Apply scroll
-	scroll := m.mktDetailScroll
-	if scroll > len(contentLines) {
-		scroll = len(contentLines)
-		m.mktDetailScroll = scroll
-	}
-	if scroll < 0 {
-		scroll = 0
-		m.mktDetailScroll = 0
-	}
-
 	dialogW := m.width - 6
 	if dialogW > 100 {
 		dialogW = 100
@@ -480,10 +469,56 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		dialogW = m.width - 2
 	}
 
+	// Word-wrap long lines to fit dialog width (account for border + padding)
+	contentW := dialogW - 4
+	if contentW < 20 {
+		contentW = 20
+	}
+	var wrappedLines []string
+	for _, line := range contentLines {
+		if lipgloss.Width(line) <= contentW {
+			wrappedLines = append(wrappedLines, line)
+		} else {
+			// Simple word wrap
+			words := strings.Fields(line)
+			if len(words) == 0 {
+				wrappedLines = append(wrappedLines, line)
+				continue
+			}
+			cur := words[0]
+			for _, w := range words[1:] {
+				test := cur + " " + w
+				if lipgloss.Width(test) > contentW {
+					wrappedLines = append(wrappedLines, cur)
+					cur = w
+				} else {
+					cur = test
+				}
+			}
+			wrappedLines = append(wrappedLines, cur)
+		}
+	}
+	contentLines = wrappedLines
+
 	// Available height inside the dialog box (account for border + padding + close button)
 	innerH := maxH - 8
 	if innerH < 5 {
 		innerH = 5
+	}
+
+	// Apply scroll (clamp to max scrollable position)
+	maxScroll := len(contentLines) - innerH
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	scroll := m.mktDetailScroll
+	if scroll > maxScroll {
+		scroll = maxScroll
+		m.mktDetailScroll = scroll
+	}
+	if scroll < 0 {
+		scroll = 0
+		m.mktDetailScroll = 0
 	}
 
 	visible := contentLines
@@ -496,20 +531,12 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		visible = visible[:innerH]
 	}
 
-	// Truncate long lines to dialog width (account for padding)
-	contentW := dialogW - 4
-	for i, line := range visible {
-		if lipgloss.Width(line) > contentW {
-			visible[i] = ansi.Truncate(line, contentW, "\u2026")
-		}
-	}
-
 	bodyText := strings.Join(visible, "\n")
 
 	// Scroll indicator
 	scrollInfo := ""
-	if len(contentLines) > innerH {
-		scrollInfo = dimStyle.Render(fmt.Sprintf(" (%d/%d)", scroll+1, len(contentLines)-innerH+1))
+	if maxScroll > 0 {
+		scrollInfo = dimStyle.Render(fmt.Sprintf(" (%d/%d)", scroll+1, maxScroll+1))
 	}
 
 	content := bodyText + "\n\n" + closeBtn + scrollInfo
