@@ -1,6 +1,6 @@
 {
   "name": "@lorehq/cli",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "description": "Lore CLI — agentic coding, unified",
   "bin": {
     "lore": "bin/lore.js"
