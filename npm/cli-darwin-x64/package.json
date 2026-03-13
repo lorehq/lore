@@ -1,6 +1,6 @@
 {
   "name": "@lorehq/cli-darwin-x64",
-  "version": "0.1.41",
+  "version": "0.1.42",
   "description": "Lore CLI binary for macOS x64",
   "os": ["darwin"],
   "cpu": ["x64"],
