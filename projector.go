@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -27,6 +28,7 @@ var projectorRegistry = map[string]Projector{
 	"gemini":   &GeminiProjector{},
 	"windsurf": &WindsurfProjector{},
 	"opencode": &OpenCodeProjector{},
+	"cline":    &ClineProjector{},
 }
 
 // writeFile is a helper that creates parent dirs and writes content.
@@ -152,7 +154,7 @@ func stripJSONComments(data []byte) []byte {
 }
 
 // projectSkills writes skills to <baseDir>/skills/<name>/SKILL.md.
-// Universal SKILL.md format — all 6 platforms support this.
+// Universal SKILL.md format — all 7 platforms support this.
 // Frontmatter includes `name` and `description` (the universal common denominator).
 func projectSkills(baseDir string, ms *MergedSet) error {
 	for _, name := range sortedKeys(ms.Skills) {
@@ -381,6 +383,63 @@ func writeMCPConfig(path string, servers []MCPServer) error {
 		return fmt.Errorf("marshal MCP config: %w", err)
 	}
 	return writeFile(path, append(data, '\n'))
+}
+
+// writeMCPConfigMerge merges Lore's MCP servers into an existing global config file.
+// Unlike writeMCPConfig, this does NOT fully own the file — it reads existing servers,
+// merges Lore's servers on top by name, and writes back. Used for global config paths
+// (Cline, Windsurf) that other tools also write to.
+func writeMCPConfigMerge(path string, servers []MCPServer) error {
+	existing := make(map[string]json.RawMessage)
+
+	if data, err := os.ReadFile(path); err == nil {
+		var cfg struct {
+			MCPServers map[string]json.RawMessage `json:"mcpServers"`
+		}
+		cleaned := stripJSONComments(data)
+		if json.Unmarshal(cleaned, &cfg) == nil && cfg.MCPServers != nil {
+			existing = cfg.MCPServers
+		}
+	}
+
+	// Overwrite with Lore's servers
+	for _, s := range servers {
+		entry := map[string]interface{}{
+			"command": s.Command,
+			"args":    s.Args,
+		}
+		if len(s.Env) > 0 {
+			entry["env"] = s.Env
+		}
+		raw, err := json.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("marshal MCP server %s: %w", s.Name, err)
+		}
+		existing[s.Name] = json.RawMessage(raw)
+	}
+
+	// Build stable JSON with sorted keys (Go maps are non-deterministic)
+	names := sortedKeys(existing)
+	var sb strings.Builder
+	sb.WriteString("{\n  \"mcpServers\": {")
+	for i, name := range names {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		keyJSON, _ := json.Marshal(name)
+		var indented bytes.Buffer
+		if err := json.Indent(&indented, existing[name], "    ", "  "); err != nil {
+			sb.WriteString(fmt.Sprintf("\n    %s: %s", keyJSON, string(existing[name])))
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("\n    %s: %s", keyJSON, indented.String()))
+	}
+	if len(names) > 0 {
+		sb.WriteString("\n  ")
+	}
+	sb.WriteString("}\n}\n")
+
+	return writeFile(path, []byte(sb.String()))
 }
 
 // sortedKeys returns map keys in a stable order (sorted).

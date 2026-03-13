@@ -1,6 +1,6 @@
 # Platform Portability Guide
 
-Lore projects content to 6 platforms. Content in bundles must work on ALL of them — not just the platform the source was written for.
+Lore projects content to 7 platforms. Content in bundles must work on ALL of them — not just the platform the source was written for.
 
 ## Platform Matrix
 
@@ -9,9 +9,10 @@ Lore projects content to 6 platforms. Content in bundles must work on ALL of the
 | Claude Code | `.claude/rules/` | `.claude/skills/` | `.claude/agents/` | `.claude/settings.json` | `.claude/settings.json` |
 | Copilot | `.github/instructions/` | `.github/skills/` | `.github/agents/` | `.github/hooks/` | — |
 | Cursor | `.cursor/rules/` (`.mdc`) | `.cursor/skills/` | `.cursor/agents/` | `.cursor/hooks.json` | — |
-| Gemini CLI | inline in `GEMINI.md` | `.gemini/skills/` | `.gemini/agents/` | `.gemini/settings.json` | — |
-| Windsurf | `.windsurf/rules/` | `.windsurf/skills/` | inline in `AGENTS.md` | `.windsurf/hooks.json` | — |
-| OpenCode | `.claude/rules/` | `.opencode/skills/` | `.opencode/agents/` | `.opencode/plugins/` | — |
+| Gemini CLI | inline in `GEMINI.md` | `.gemini/skills/` | `.gemini/agents/` | `.gemini/settings.json` | `.gemini/settings.json` |
+| Windsurf | `.windsurf/rules/` | `.windsurf/skills/` | inline in `AGENTS.md` | `.windsurf/hooks.json` | `~/.codeium/windsurf/mcp_config.json` |
+| OpenCode | `.claude/rules/` | `.opencode/skills/` | `.opencode/agents/` | `.opencode/plugins/` | `.mcp.json` |
+| Cline | `.clinerules/` | `.cline/skills/` | inline in `AGENTS.md` | `.clinerules/hooks/` | `~/.cline/data/settings/cline_mcp_settings.json` |
 
 ## Common Source Formats and Portability
 

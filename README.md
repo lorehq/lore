@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/github/v/release/lorehq/lore)](https://github.com/lorehq/lore/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Go](https://img.shields.io/badge/go-%3E%3D1.24-00ADD8)](https://go.dev/)
-[![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Gemini%20CLI%20%7C%20Windsurf%20%7C%20OpenCode-purple)]()
+[![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Gemini%20CLI%20%7C%20Windsurf%20%7C%20OpenCode%20%7C%20Cline-purple)]()
 
 Lore manages rules, skills, and agents, then projects them into every platform's native format. Write once, works everywhere. A single Go binary with zero runtime dependencies.
 
@@ -36,7 +36,7 @@ Set `"platforms"` in `.lore/config.json` to control which platforms are active. 
 
 **Sessions accelerate instead of resetting.** The harness loads your project identity, rules, active work, available agents, and a map of everything your agent knows at session start. No re-explaining.
 
-**One knowledge base, every platform.** Capture a fieldnote in Claude Code -- it's available in Cursor, Copilot, and OpenCode. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
+**One knowledge base, every platform.** Capture a fieldnote in Claude Code -- it's available in Cursor, Copilot, OpenCode, and Cline. No copying, no drift. [See it in action.](https://youtu.be/u2rkR1XeHZk)
 
 **Rules are enforced, not just documented.** Your coding standards and security policies are injected before every file write via hooks. The agent sees the relevant rules right when it matters.
 
@@ -102,6 +102,7 @@ When `lore generate` runs, three layers merge: bundle content, global operator c
 | **Gemini CLI** | `GEMINI.md`, `.gemini/skills/`, `.gemini/agents/`, `.gemini/settings.json` |
 | **Windsurf** | `.windsurfrules`, `.windsurf/rules/`, `.windsurf/skills/`, `.windsurf/hooks.json`, `AGENTS.md` |
 | **OpenCode** | `.claude/rules/`, `.claude/skills/`, `.opencode/skills/`, `.opencode/agents/`, `.opencode/plugins/`, `AGENTS.md` |
+| **Cline** | `.clinerules/`, `.cline/skills/`, `.clinerules/hooks/`, `AGENTS.md` |
 
 All platforms share the same knowledge base. Rules, skills, agents, and fieldnotes written once are projected into platform-specific formats automatically.
 

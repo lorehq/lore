@@ -23,11 +23,11 @@ Lore uses YAML frontmatter in markdown files for rules, skills, and agents. This
 
 **Platform projection of frontmatter:**
 
-| Lore field | Claude Code | Cursor | Windsurf | Copilot | Gemini | OpenCode |
-|-----------|------------|--------|----------|---------|--------|----------|
-| `globs` | `paths:` | `globs:` | `globs:` | `applyTo:` | (inlined, no scoping) | `paths:` |
-| `description` | `description:` | `description:` | `description:` | `description:` | (inlined) | `description:` |
-| (no globs) | `alwaysApply: true` | `alwaysApply: true` | `alwaysApply: true` | (no field) | (inlined) | `alwaysApply: true` |
+| Lore field | Claude Code | Cursor | Windsurf | Copilot | Gemini | OpenCode | Cline |
+|-----------|------------|--------|----------|---------|--------|----------|-------|
+| `globs` | `paths:` | `globs:` | `globs:` | `applyTo:` | (inlined, no scoping) | `paths:` | `globs:` |
+| `description` | `description:` | `description:` | `description:` | `description:` | (inlined) | `description:` | `description:` |
+| (no globs) | `alwaysApply: true` | `alwaysApply: true` | `alwaysApply: true` | (no field) | (inlined) | `alwaysApply: true` | (no field) |
 
 **File extensions per platform:**
 
@@ -39,6 +39,7 @@ Lore uses YAML frontmatter in markdown files for rules, skills, and agents. This
 | Copilot | `.instructions.md` | `.github/instructions/<name>.instructions.md` |
 | Gemini | (inlined) | Rules embedded in `GEMINI.md` |
 | OpenCode | `.md` | `.claude/rules/<name>.md` (shared with Claude) |
+| Cline | `.md` | `.clinerules/<name>.md` |
 
 ## Skills
 
@@ -64,7 +65,7 @@ Lore uses YAML frontmatter in markdown files for rules, skills, and agents. This
 2. **Instructions** (<5000 tokens): SKILL.md body — loaded when skill is activated
 3. **Resources** (unlimited): supporting files — loaded on demand by the skill's instructions
 
-**Projection:** All 6 platforms use `<platform-dir>/skills/<name>/SKILL.md` with supporting files copied verbatim.
+**Projection:** All 7 platforms use `<platform-dir>/skills/<name>/SKILL.md` with supporting files copied verbatim.
 
 ## Agents
 
@@ -94,6 +95,7 @@ Lore uses YAML frontmatter in markdown files for rules, skills, and agents. This
 | Gemini | `.gemini/agents/<name>.md` | Full frontmatter preserved |
 | Windsurf | `AGENTS.md` only | Flat listing, no per-agent files |
 | OpenCode | `.opencode/agents/<name>.md` + `.claude/agents/<name>.md` | Both locations |
+| Cline | `AGENTS.md` only | Flat listing, no per-agent files |
 
 ## MCP Servers
 

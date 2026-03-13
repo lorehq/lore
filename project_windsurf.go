@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -69,7 +70,23 @@ func (p *WindsurfProjector) Project(root string, ms *MergedSet) error {
 	}
 
 	// .windsurf/hooks.json
-	return p.writeHooks(root)
+	if err := p.writeHooks(root); err != nil {
+		return err
+	}
+
+	// MCP → ~/.codeium/windsurf/mcp_config.json (global, merge not overwrite)
+	if len(ms.MCP) > 0 {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("windsurf MCP: get home dir: %w", err)
+		}
+		mcpPath := filepath.Join(home, ".codeium", "windsurf", "mcp_config.json")
+		if err := writeMCPConfigMerge(mcpPath, ms.MCP); err != nil {
+			return fmt.Errorf("windsurf MCP: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (p *WindsurfProjector) writeRule(windsurfDir, name string, rule *AgenticFile) error {

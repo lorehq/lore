@@ -73,7 +73,7 @@ Key frontmatter fields for skills:
 
 ### `projectSkills(baseDir, ms)`
 
-Writes skills to `<baseDir>/skills/<name>/SKILL.md`. Universal format — all 6
+Writes skills to `<baseDir>/skills/<name>/SKILL.md`. Universal format — all 7
 platforms use identical SKILL.md structure.
 
 For each skill:
@@ -108,6 +108,7 @@ Platform-specific differences:
 - **Gemini** — rules inlined into `GEMINI.md`
 - **Windsurf** — agents only in flat `AGENTS.md` (no per-agent files)
 - **OpenCode** — writes to both `.opencode/` and `.claude/` directories
+- **Cline** — rules in `.clinerules/<name>.md`, agents in flat `AGENTS.md`, hooks as executable scripts in `.clinerules/hooks/`
 
 ## Staleness Detection (`cmd_generate.go`)
 

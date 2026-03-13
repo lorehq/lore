@@ -209,7 +209,7 @@ Use --platforms to override.
 
 Options:
   -p, --platforms <list>   Comma-separated platforms (reads config if omitted).
-                           Valid: claude, copilot, cursor, gemini, windsurf, opencode
+                           Valid: claude, copilot, cursor, gemini, windsurf, opencode, cline
   --help, -h               Print this help
 
 Examples:
