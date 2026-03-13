@@ -29,10 +29,12 @@ var (
 	errStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 
 	btnPrimary = lipgloss.NewStyle().
-			Reverse(true).
 			Bold(true).
+			Foreground(lipgloss.Color("0")).
+			Background(lipgloss.Color("12")).
 			Padding(0, 3)
 	btnSecondary = lipgloss.NewStyle().
+			Faint(true).
 			Reverse(true).
 			Padding(0, 3)
 	btnDisabled = lipgloss.NewStyle().
@@ -2965,10 +2967,13 @@ const loreLogo = `   _
 func (m *tuiModel) viewWelcome() string {
 	var b strings.Builder
 
-	// Logo
+	// Logo + version + tagline
 	logo := bold.Render(loreLogo)
 	b.WriteString("\n")
 	b.WriteString(logo)
+	b.WriteString("  " + dimStyle.Render("v"+version))
+	b.WriteString("\n")
+	b.WriteString(dimStyle.Render("  Agentic coding, unified"))
 	b.WriteString("\n\n")
 
 	if !m.globalExists {
