@@ -362,6 +362,9 @@ func (m *tuiModel) handleMarketplaceMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd)
 			if item.dir != "" {
 				return m, loadMktReadme(item.slug, item.dir)
 			}
+			if item.repo != "" {
+				return m, fetchMktReadme(item.slug, item.repo)
+			}
 			return m, nil
 		}
 	}

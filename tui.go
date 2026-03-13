@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,8 +68,34 @@ type tabID int
 
 const (
 	tabProjection  tabID = iota
-	tabMarketplace
+	tabExplore
 )
+
+type exploreSubTab int
+
+const (
+	exploreSubBundles exploreSubTab = iota
+	exploreSubSkills
+)
+
+// skillsResult represents a skill from the skills.sh search API.
+type skillsResult struct {
+	ID       string `json:"id"`
+	SkillID  string `json:"skillId"`
+	Name     string `json:"name"`
+	Installs int    `json:"installs"`
+	Source   string `json:"source"`
+}
+
+type skillsSearchMsg struct {
+	results []skillsResult
+	err     error
+}
+
+type skillsImportDoneMsg struct {
+	skill string
+	err   error
+}
 
 // projItem represents an item in the catalog or project content listing.
 type projItem struct {
@@ -395,7 +423,24 @@ type tuiModel struct {
 	bundlePageCollapsed map[tabID]map[int]bool
 	bundlePageLoading   map[tabID]bool
 
-	// marketplace tab state
+	// explore tab sub-tab
+	exploreSub exploreSubTab
+
+	// skills explorer sub-tab state
+	skillsSearch      string
+	skillsSearchActive bool
+	skillsResults     []skillsResult
+	skillsLoading     bool
+	skillsScroll      int
+	skillsAddActive   bool         // target picker showing
+	skillsAddItem     skillsResult // which skill to add
+	skillsAddTargets  []string     // target labels for picker
+	skillsAddPaths    []string     // target SKILLS/ paths
+	skillsAddCursor   int
+	skillsImporting   bool
+	skillsImportName  string
+
+	// bundles sub-tab state (formerly marketplace)
 	mktLoaded             bool
 	mktLoading            bool
 	mktInstalled          []marketplaceItem
@@ -751,7 +796,7 @@ func (m *tuiModel) loadProjection() {
 			name:       p.Name,
 			script:     p.Script,
 			bundleSlug: p.BundleSlug,
-			tabID:      tabID(i + 2), // 0=tabProjection, 1=tabMarketplace
+			tabID:      tabID(i + 2), // 0=tabProjection, 1=tabExplore
 		})
 	}
 	if m.bundlePageData == nil {
@@ -1641,6 +1686,30 @@ func loadMktReadme(slug, dir string) tea.Cmd {
 	}
 }
 
+func fetchMktReadme(slug, repo string) tea.Cmd {
+	return func() tea.Msg {
+		// Convert git URL to raw content URL
+		// e.g. https://github.com/lorehq/bundle-stack-skills.git → https://raw.githubusercontent.com/lorehq/bundle-stack-skills/main/README.md
+		raw := strings.TrimSuffix(repo, ".git")
+		raw = strings.Replace(raw, "github.com", "raw.githubusercontent.com", 1)
+		for _, branch := range []string{"main", "master"} {
+			resp, err := http.Get(raw + "/" + branch + "/README.md")
+			if err != nil {
+				continue
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode == 200 {
+				data, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return mktReadmeMsg{slug: slug, err: err}
+				}
+				return mktReadmeMsg{slug: slug, content: string(data)}
+			}
+		}
+		return mktReadmeMsg{slug: slug, err: fmt.Errorf("README not found")}
+	}
+}
+
 // ── Init ────────────────────────────────────────────────────────────
 
 func (m *tuiModel) Init() tea.Cmd {
@@ -1734,6 +1803,31 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			loadMarketplace(),
 			tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} }),
 		)
+
+	case skillsSearchMsg:
+		m.skillsLoading = false
+		if msg.err != nil {
+			m.genMessage = "Skills search: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.skillsResults = msg.results
+			m.skillsScroll = 0
+		}
+
+	case skillsImportDoneMsg:
+		m.skillsImporting = false
+		m.skillsImportName = ""
+		if msg.err != nil {
+			m.genMessage = "Import failed: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.genMessage = fmt.Sprintf("Imported %s", msg.skill)
+			m.genIsError = false
+			m.genTick = 3
+			m.projLoaded = false // refresh projection tab
+		}
 
 	case mktReadmeMsg:
 		if msg.err != nil {
@@ -2011,7 +2105,7 @@ func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 		if idx == 1 {
-			m.tab = tabMarketplace
+			m.tab = tabExplore
 			if !m.mktLoaded && !m.mktLoading {
 				m.mktLoading = true
 				return m, loadMarketplace()
@@ -2051,8 +2145,8 @@ func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	switch m.tab {
 	case tabProjection:
 		return m.handleProjectionKey(msg)
-	case tabMarketplace:
-		return m.handleMarketplaceKey(msg)
+	case tabExplore:
+		return m.handleExploreKey(msg)
 	default:
 		return m.handleBundlePageKey(msg)
 	}
@@ -2290,10 +2384,17 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
-			if m.tab == tabMarketplace {
-				m.mktScroll += delta
-				if m.mktScroll < 0 {
-					m.mktScroll = 0
+			if m.tab == tabExplore {
+				if m.exploreSub == exploreSubSkills {
+					m.skillsScroll += delta
+					if m.skillsScroll < 0 {
+						m.skillsScroll = 0
+					}
+				} else {
+					m.mktScroll += delta
+					if m.mktScroll < 0 {
+						m.mktScroll = 0
+					}
 				}
 				return m, nil
 			}
@@ -2421,8 +2522,8 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			m.tab = tabProjection
 			return m, nil
 		}
-		if zone.Get("tab-marketplace").InBounds(msg) {
-			m.tab = tabMarketplace
+		if zone.Get("tab-explore").InBounds(msg) {
+			m.tab = tabExplore
 			if !m.mktLoaded && !m.mktLoading {
 				m.mktLoading = true
 				return m, loadMarketplace()
@@ -2442,13 +2543,13 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			}
 		}
 
-		// Marketplace item clicks
-		if m.tab == tabMarketplace {
-			return m.handleMarketplaceMouse(msg)
+		// Explore tab item clicks
+		if m.tab == tabExplore {
+			return m.handleExploreMouse(msg)
 		}
 
 		// Section collapse clicks on bundle pages
-		if m.tab != tabProjection && m.tab != tabMarketplace {
+		if m.tab != tabProjection && m.tab != tabExplore {
 			output := m.bundlePageData[m.tab]
 			if output != nil {
 				for i := range output.Sections {
@@ -3046,8 +3147,8 @@ func (m *tuiModel) viewDashboardShell() string {
 		platBarH := strings.Count(platBar, "\n") + 1
 		m.colStartY = headerH + tabH + platBarH
 		content = m.viewProjectionPlanner(contentH)
-	case tabMarketplace:
-		content = m.viewMarketplace(contentH)
+	case tabExplore:
+		content = m.viewExplore(contentH)
 	default:
 		content = m.viewBundlePage(contentH)
 	}
@@ -3107,7 +3208,7 @@ func (m *tuiModel) renderTabBar() string {
 		id     tabID
 	}{
 		{"Projections", "tab-projection", tabProjection},
-		{"Marketplace", "tab-marketplace", tabMarketplace},
+		{"Explore", "tab-explore", tabExplore},
 	}
 	for _, page := range m.bundlePages {
 		tabs = append(tabs, struct {
@@ -3143,8 +3244,12 @@ func (m *tuiModel) renderTabBar() string {
 
 func (m *tuiModel) renderStatusBar() string {
 	var left string
-	if m.tab == tabMarketplace {
-		left = dimStyle.Render(" Marketplace: install and manage bundles")
+	if m.tab == tabExplore {
+		if m.exploreSub == exploreSubSkills {
+			left = dimStyle.Render(" Skills: search and import from the Agent Skills ecosystem")
+		} else {
+			left = dimStyle.Render(" Bundles: install and manage composable behavioral units")
+		}
 	} else {
 		left = dimStyle.Render(" Inheritance: ○ off  ◐ defer  ● overwrite")
 	}
