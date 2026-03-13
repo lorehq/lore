@@ -298,6 +298,18 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 	return nil
 }
 
+// userInvocableSkills returns skills with user-invocable: true, sorted by name.
+func userInvocableSkills(ms *MergedSet) []*AgenticFile {
+	var out []*AgenticFile
+	for _, name := range sortedKeys(ms.Skills) {
+		skill := ms.Skills[name]
+		if skill.UserInvocable != nil && *skill.UserInvocable {
+			out = append(out, skill)
+		}
+	}
+	return out
+}
+
 // writeAGENTSMD generates AGENTS.md at the project root from the agents template.
 func writeAGENTSMD(root string, ms *MergedSet) error {
 	tmplData, err := templateFS.ReadFile("templates/agents.md.tmpl")

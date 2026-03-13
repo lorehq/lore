@@ -19,6 +19,7 @@ func (p *WindsurfProjector) OutputPaths(rules, skills, agents []string, hasMCP b
 	}
 	for _, n := range skills {
 		paths = append(paths, ".windsurf/skills/"+n+"/", ".windsurf/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".windsurf/workflows/"+n+".md")
 	}
 	return paths
 }
@@ -47,6 +48,24 @@ func (p *WindsurfProjector) Project(root string, ms *MergedSet) error {
 	// Agents → AGENTS.md (flat markdown, Windsurf has no structured agents dir)
 	if err := writeAGENTSMD(root, ms); err != nil {
 		return err
+	}
+
+	// User-invocable skills → .windsurf/workflows/<name>.md (Windsurf slash commands)
+	// Windsurf uses [arguments] placeholder syntax; translate from $ARGUMENTS.
+	for _, skill := range userInvocableSkills(ms) {
+		var sb strings.Builder
+		sb.WriteString("---\n")
+		if skill.Description != "" {
+			sb.WriteString(fmt.Sprintf("description: %s\n", skill.Description))
+		}
+		sb.WriteString("---\n\n")
+		body := strings.ReplaceAll(skill.Body, "$ARGUMENTS", "[arguments]")
+		sb.WriteString(body)
+		sb.WriteString("\n")
+		path := filepath.Join(root, ".windsurf", "workflows", skill.Name+".md")
+		if err := writeFile(path, []byte(sb.String())); err != nil {
+			return fmt.Errorf("write windsurf workflow %s: %w", skill.Name, err)
+		}
 	}
 
 	// .windsurf/hooks.json

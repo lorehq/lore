@@ -18,6 +18,7 @@ func (p *GeminiProjector) OutputPaths(rules, skills, agents []string, hasMCP boo
 	paths := []string{"GEMINI.md", ".gemini/settings.json"}
 	for _, n := range skills {
 		paths = append(paths, ".gemini/skills/"+n+"/", ".gemini/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".gemini/commands/"+n+".toml")
 	}
 	for _, n := range agents {
 		paths = append(paths, ".gemini/agents/"+n+".md")
@@ -41,6 +42,21 @@ func (p *GeminiProjector) Project(root string, ms *MergedSet) error {
 	// GEMINI.md — rules inline (Gemini has no dedicated rules directory)
 	if err := p.writeGEMINIMD(root, ms); err != nil {
 		return err
+	}
+
+	// User-invocable skills → .gemini/commands/<name>.toml (Gemini slash commands)
+	// Gemini uses TOML format with {{args}} placeholder for arguments.
+	for _, skill := range userInvocableSkills(ms) {
+		body := strings.ReplaceAll(skill.Body, "$ARGUMENTS", "{{args}}")
+		var sb strings.Builder
+		if skill.Description != "" {
+			sb.WriteString(fmt.Sprintf("description = %q\n", skill.Description))
+		}
+		sb.WriteString(fmt.Sprintf("prompt = %q\n", body))
+		path := filepath.Join(root, ".gemini", "commands", skill.Name+".toml")
+		if err := writeFile(path, []byte(sb.String())); err != nil {
+			return fmt.Errorf("write gemini command %s: %w", skill.Name, err)
+		}
 	}
 
 	// .gemini/settings.json with hooks

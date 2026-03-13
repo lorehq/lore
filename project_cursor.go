@@ -22,6 +22,7 @@ func (p *CursorProjector) OutputPaths(rules, skills, agents []string, hasMCP boo
 	}
 	for _, n := range skills {
 		paths = append(paths, ".cursor/skills/"+n+"/", ".cursor/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".cursor/commands/"+n+".md")
 	}
 	for _, n := range agents {
 		paths = append(paths, ".cursor/agents/"+n+".md")
@@ -64,6 +65,15 @@ func (p *CursorProjector) Project(root string, ms *MergedSet) error {
 	if len(ms.MCP) > 0 {
 		if err := writeMCPConfig(filepath.Join(root, ".cursor", "mcp.json"), ms.MCP); err != nil {
 			return err
+		}
+	}
+
+	// User-invocable skills → .cursor/commands/<name>.md (Cursor slash commands)
+	// Cursor commands are plain markdown — no frontmatter, no argument support.
+	for _, skill := range userInvocableSkills(ms) {
+		path := filepath.Join(root, ".cursor", "commands", skill.Name+".md")
+		if err := writeFile(path, []byte(skill.Body+"\n")); err != nil {
+			return fmt.Errorf("write cursor command %s: %w", skill.Name, err)
 		}
 	}
 

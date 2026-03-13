@@ -21,6 +21,7 @@ func (p *OpenCodeProjector) OutputPaths(rules, skills, agents []string, hasMCP b
 	for _, n := range skills {
 		paths = append(paths, ".claude/skills/"+n+"/", ".claude/skills/"+n+"/SKILL.md")
 		paths = append(paths, ".opencode/skills/"+n+"/", ".opencode/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".opencode/commands/"+n+".md")
 	}
 	for _, n := range agents {
 		paths = append(paths, ".claude/agents/"+n+".md")
@@ -47,6 +48,20 @@ func (p *OpenCodeProjector) Project(root string, ms *MergedSet) error {
 	// AGENTS.md at root (OpenCode mandate file)
 	if err := writeAGENTSMD(root, ms); err != nil {
 		return err
+	}
+
+	// User-invocable skills → .opencode/commands/<name>.md (OpenCode slash commands)
+	// $ARGUMENTS is already the native OpenCode convention.
+	for _, skill := range userInvocableSkills(ms) {
+		fm := map[string]interface{}{}
+		if skill.Description != "" {
+			fm["description"] = skill.Description
+		}
+		content := renderFrontmatter(fm) + "\n" + skill.Body + "\n"
+		path := filepath.Join(root, ".opencode", "commands", skill.Name+".md")
+		if err := writeFile(path, []byte(content)); err != nil {
+			return fmt.Errorf("write opencode command %s: %w", skill.Name, err)
+		}
 	}
 
 	// Hooks: OpenCode uses JS plugins, not JSON config.
