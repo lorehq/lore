@@ -3008,7 +3008,7 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString(bold.Render("  Project name: "))
 		b.WriteString(m.wizNameBuf)
 		if m.wizBtnFocus == -1 {
-			b.WriteString(bold.Render("_"))
+			b.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render("█"))
 		} else {
 			b.WriteString(dimStyle.Render("_"))
 		}
