@@ -74,8 +74,9 @@ const (
 type exploreSubTab int
 
 const (
-	exploreSubBundles exploreSubTab = iota
-	exploreSubSkills
+	exploreSubBundles  exploreSubTab = iota
+	exploreSubSkillsSh               // skills.sh
+	exploreSubSkillsMP               // SkillsMP (placeholder)
 )
 
 // skillsResult represents a skill from the skills.sh search API.
@@ -433,7 +434,6 @@ type tuiModel struct {
 	skillsLoading      bool
 	skillsScroll       int
 	skillsInitLoaded   bool         // true after first auto-load
-	skillsSortTab      int          // 0=All Time, 1=Trending, 2=Hot
 	skillsAddActive    bool         // target picker showing
 	skillsAddItem      skillsResult // which skill to add
 	skillsAddTargets   []string     // target labels for picker
@@ -2387,7 +2387,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
 			if m.tab == tabExplore {
-				if m.exploreSub == exploreSubSkills {
+				if m.exploreSub == exploreSubSkillsSh {
 					m.skillsScroll += delta
 					if m.skillsScroll < 0 {
 						m.skillsScroll = 0
@@ -3247,7 +3247,7 @@ func (m *tuiModel) renderTabBar() string {
 func (m *tuiModel) renderStatusBar() string {
 	var left string
 	if m.tab == tabExplore {
-		if m.exploreSub == exploreSubSkills {
+		if m.exploreSub == exploreSubSkillsSh {
 			left = dimStyle.Render(" Skills: search and import from the Agent Skills ecosystem")
 		} else {
 			left = dimStyle.Render(" Bundles: install and manage composable behavioral units")

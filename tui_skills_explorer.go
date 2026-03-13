@@ -17,13 +17,6 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-// Sort tab constants
-const (
-	skillsSortAllTime  = 0
-	skillsSortTrending = 1
-	skillsSortHot      = 2
-)
-
 // ── Explore tab (wrapper with sub-tabs) ────────────────────────────
 
 // viewExplore renders the Explore tab with a sub-tab bar and dispatches to the active sub-tab.
@@ -39,8 +32,10 @@ func (m *tuiModel) viewExplore(maxH int) string {
 	switch m.exploreSub {
 	case exploreSubBundles:
 		content = m.viewMarketplace(contentH)
-	case exploreSubSkills:
+	case exploreSubSkillsSh:
 		content = m.viewSkillsExplorer(contentH)
+	case exploreSubSkillsMP:
+		content = m.viewSkillsMPPlaceholder(contentH)
 	}
 
 	return subTabBar + "\n" + content
@@ -69,7 +64,8 @@ func (m *tuiModel) renderExploreSubTabs() string {
 		id     exploreSubTab
 	}{
 		{"Bundles", "explore-sub-bundles", exploreSubBundles},
-		{"Skills", "explore-sub-skills", exploreSubSkills},
+		{"skills.sh", "explore-sub-skillssh", exploreSubSkillsSh},
+		{"SkillsMP", "explore-sub-skillsmp", exploreSubSkillsMP},
 	}
 
 	var parts []string
@@ -102,20 +98,25 @@ func (m *tuiModel) renderExploreSubTabs() string {
 func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
-	// Tab/shift-tab switches sub-tabs
+	// Tab/shift-tab cycles sub-tabs
 	if key == "tab" {
-		if m.exploreSub == exploreSubBundles {
-			m.exploreSub = exploreSubSkills
+		switch m.exploreSub {
+		case exploreSubBundles:
+			m.exploreSub = exploreSubSkillsSh
 			return m, m.ensureSkillsLoaded()
+		case exploreSubSkillsSh:
+			m.exploreSub = exploreSubSkillsMP
+			return m, nil
+		case exploreSubSkillsMP:
+			m.exploreSub = exploreSubBundles
+			return m, nil
 		}
-		m.exploreSub = exploreSubBundles
-		return m, nil
 	}
 
 	switch m.exploreSub {
 	case exploreSubBundles:
 		return m.handleMarketplaceKey(msg)
-	case exploreSubSkills:
+	case exploreSubSkillsSh:
 		return m.handleSkillsExplorerKey(msg)
 	}
 	return m, nil
@@ -132,15 +133,19 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 		return m, nil
 	}
-	if zone.Get("explore-sub-skills").InBounds(msg) {
-		m.exploreSub = exploreSubSkills
+	if zone.Get("explore-sub-skillssh").InBounds(msg) {
+		m.exploreSub = exploreSubSkillsSh
 		return m, m.ensureSkillsLoaded()
+	}
+	if zone.Get("explore-sub-skillsmp").InBounds(msg) {
+		m.exploreSub = exploreSubSkillsMP
+		return m, nil
 	}
 
 	switch m.exploreSub {
 	case exploreSubBundles:
 		return m.handleMarketplaceMouse(msg)
-	case exploreSubSkills:
+	case exploreSubSkillsSh:
 		return m.handleSkillsExplorerMouse(msg)
 	}
 	return m, nil
@@ -156,7 +161,7 @@ func (m *tuiModel) ensureSkillsLoaded() tea.Cmd {
 	return loadSkillsLeaderboard()
 }
 
-// ── Skills Explorer sub-tab ────────────────────────────────────────
+// ── skills.sh sub-tab ──────────────────────────────────────────────
 
 // formatInstalls formats install counts with K/M suffixes.
 func formatInstalls(n int) string {
@@ -169,7 +174,12 @@ func formatInstalls(n int) string {
 	return fmt.Sprintf("%d", n)
 }
 
-// viewSkillsExplorer renders the skills leaderboard view.
+// skillGitHubURL returns the GitHub URL for a skill result.
+func skillGitHubURL(r skillsResult) string {
+	return "github.com/" + r.Source
+}
+
+// viewSkillsExplorer renders the skills.sh leaderboard view.
 func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	// Target picker overlay
 	if m.skillsAddActive {
@@ -189,7 +199,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	var lines []string
 
 	// Header
-	lines = append(lines, " "+bold.Render("SKILLS LEADERBOARD"))
+	lines = append(lines, " "+bold.Render("SKILLS LEADERBOARD")+"  "+dimStyle.Render("skills.sh"))
 	lines = append(lines, "")
 
 	// Search bar
@@ -210,30 +220,8 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	}
 	lines = append(lines, " "+searchBox+strings.Repeat(" ", searchGap)+slashHint+" ")
 
-	// Separator under search
+	// Separator
 	lines = append(lines, dimStyle.Render(" "+strings.Repeat("─", m.width-2)))
-	lines = append(lines, "")
-
-	// Sort tabs
-	sortTabs := []struct {
-		label  string
-		zoneID string
-		id     int
-	}{
-		{"All Time (88,000+)", "skills-sort-alltime", skillsSortAllTime},
-		{"Trending (24h)", "skills-sort-trending", skillsSortTrending},
-		{"Hot", "skills-sort-hot", skillsSortHot},
-	}
-	var sortParts []string
-	for _, st := range sortTabs {
-		if m.skillsSortTab == st.id {
-			sortParts = append(sortParts, zone.Mark(st.zoneID,
-				lipgloss.NewStyle().Bold(true).Underline(true).Render(st.label)))
-		} else {
-			sortParts = append(sortParts, zone.Mark(st.zoneID, dimStyle.Render(st.label)))
-		}
-	}
-	lines = append(lines, " "+strings.Join(sortParts, "   "))
 	lines = append(lines, "")
 
 	// Table content
@@ -245,12 +233,8 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 		lines = append(lines, dimStyle.Render("  Loading leaderboard..."))
 	} else {
 		// Column header
-		installsLabel := "INSTALLS"
-		if m.skillsSortTab == skillsSortHot {
-			installsLabel = "1H / CHANGE"
-		}
 		colHeader := dimStyle.Render(fmt.Sprintf(" %-5s %-30s %*s",
-			"#", "SKILL", m.width-42, installsLabel))
+			"#", "SKILL", m.width-42, "INSTALLS"))
 		lines = append(lines, colHeader)
 		lines = append(lines, "")
 
@@ -258,27 +242,23 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 		for i, r := range m.skillsResults {
 			rank := fmt.Sprintf("%-5d", i+1)
 			installs := formatInstalls(r.Installs)
-			source := dimStyle.Render(r.Source)
+			source := dimStyle.Render(skillGitHubURL(r))
 			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
 
-			nameStr := bold.Render(r.Name) + "  " + source
-
+			// Row 1: rank + bold name + installs + add button
+			nameStr := bold.Render(r.Name)
 			rightSide := installs + "  " + addBtn
 			rightW := lipgloss.Width(rightSide)
-
-			maxNameW := m.width - 7 - rightW - 2
-			if maxNameW > 0 && lipgloss.Width(nameStr) > maxNameW {
-				nameStr = ansi.Truncate(nameStr, maxNameW, "…")
-			}
-
 			nameW := lipgloss.Width(nameStr)
 			gap := m.width - 7 - nameW - rightW
 			if gap < 1 {
 				gap = 1
 			}
-
 			row := " " + dimStyle.Render(rank) + " " + nameStr + strings.Repeat(" ", gap) + rightSide
 			lines = append(lines, row)
+
+			// Row 2: source URL (indented under name)
+			lines = append(lines, "       "+source)
 		}
 	}
 
@@ -314,7 +294,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	return strings.Join(visible, "\n")
 }
 
-// handleSkillsExplorerKey handles keyboard input on the skills explorer sub-tab.
+// handleSkillsExplorerKey handles keyboard input on the skills.sh sub-tab.
 func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
@@ -348,9 +328,6 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 		switch key {
 		case "esc":
 			m.skillsSearchActive = false
-			if m.skillsSearch == "" {
-				// no-op, keep current results
-			}
 		case "enter":
 			m.skillsSearchActive = false
 			if m.skillsSearch != "" {
@@ -382,30 +359,6 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 			m.skillsScroll = 0
 			return m, loadSkillsLeaderboard()
 		}
-	case "1":
-		if m.skillsSortTab != skillsSortAllTime {
-			m.skillsSortTab = skillsSortAllTime
-			m.skillsLoading = true
-			m.skillsScroll = 0
-			m.skillsSearch = ""
-			return m, loadSkillsLeaderboard()
-		}
-	case "2":
-		if m.skillsSortTab != skillsSortTrending {
-			m.skillsSortTab = skillsSortTrending
-			m.skillsLoading = true
-			m.skillsScroll = 0
-			m.skillsSearch = ""
-			return m, loadSkillsLeaderboard()
-		}
-	case "3":
-		if m.skillsSortTab != skillsSortHot {
-			m.skillsSortTab = skillsSortHot
-			m.skillsLoading = true
-			m.skillsScroll = 0
-			m.skillsSearch = ""
-			return m, loadSkillsLeaderboard()
-		}
 	case "j", "down":
 		m.skillsScroll++
 	case "k", "up":
@@ -417,7 +370,7 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 	return m, nil
 }
 
-// handleSkillsExplorerMouse handles mouse clicks on the skills explorer sub-tab.
+// handleSkillsExplorerMouse handles mouse clicks on the skills.sh sub-tab.
 func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	// Search bar click
 	if zone.Get("skills-search-bar").InBounds(msg) {
@@ -434,28 +387,6 @@ func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.C
 		m.skillsLoading = true
 		m.skillsScroll = 0
 		return m, loadSkillsLeaderboard()
-	}
-
-	// Sort tab clicks
-	sortTabs := []struct {
-		zoneID string
-		id     int
-	}{
-		{"skills-sort-alltime", skillsSortAllTime},
-		{"skills-sort-trending", skillsSortTrending},
-		{"skills-sort-hot", skillsSortHot},
-	}
-	for _, st := range sortTabs {
-		if zone.Get(st.zoneID).InBounds(msg) {
-			if m.skillsSortTab != st.id {
-				m.skillsSortTab = st.id
-				m.skillsLoading = true
-				m.skillsScroll = 0
-				m.skillsSearch = ""
-				return m, loadSkillsLeaderboard()
-			}
-			return m, nil
-		}
 	}
 
 	// Target picker clicks
@@ -491,6 +422,29 @@ func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.C
 
 	return m, nil
 }
+
+// ── SkillsMP placeholder sub-tab ───────────────────────────────────
+
+func (m *tuiModel) viewSkillsMPPlaceholder(maxH int) string {
+	var lines []string
+	lines = append(lines, " "+bold.Render("SkillsMP")+"  "+dimStyle.Render("skillsmp.com"))
+	lines = append(lines, "")
+	lines = append(lines, dimStyle.Render("  400,000+ agent skills with category filtering and semantic search."))
+	lines = append(lines, dimStyle.Render("  Requires API key — integration coming soon."))
+	lines = append(lines, "")
+	lines = append(lines, dimStyle.Render("  Visit https://skillsmp.com to browse skills."))
+
+	for len(lines) < maxH {
+		lines = append(lines, "")
+	}
+	if len(lines) > maxH {
+		lines = lines[:maxH]
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// ── Target picker ──────────────────────────────────────────────────
 
 // overlaySkillsTargetPicker renders a centered target picker dialog.
 func (m *tuiModel) overlaySkillsTargetPicker(maxH int) string {
