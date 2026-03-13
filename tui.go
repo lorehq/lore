@@ -2102,9 +2102,17 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	case stepConfirm:
 		switch key {
 		case "tab", "right", "down":
-			m.wizBtnFocus = (m.wizBtnFocus + 2) % 3 - 1
+			if m.wizBtnFocus == 0 {
+				m.wizBtnFocus = 1
+			} else {
+				m.wizBtnFocus = 0
+			}
 		case "shift+tab", "left", "up":
-			m.wizBtnFocus = (m.wizBtnFocus + 3) % 3 - 1
+			if m.wizBtnFocus == 1 {
+				m.wizBtnFocus = 0
+			} else {
+				m.wizBtnFocus = 1
+			}
 		case "enter":
 			if m.wizBtnFocus == 0 {
 				m.goToWizStep(stepPlatforms)
@@ -3279,9 +3287,8 @@ func (m *tuiModel) renderTabBar() string {
 	activeTabStyle := lipgloss.NewStyle().
 		Bold(true).
 		Padding(0, 2).
-		Foreground(lipgloss.Color("12")).
 		Border(lipgloss.RoundedBorder(), true, true, false, true).
-		BorderForeground(lipgloss.Color("12"))
+		BorderForeground(borderFg)
 
 	inactiveTabStyle := lipgloss.NewStyle().
 		Faint(true).
