@@ -458,7 +458,7 @@ func (m *tuiModel) viewSkillsMPPlaceholder(maxH int) string {
 func (m *tuiModel) overlaySkillsTargetPicker(maxH int) string {
 	title := bold.Render(fmt.Sprintf("Add %s to:", m.skillsAddItem.Name))
 
-	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Reverse(true)
 
 	var targetLines []string
 	for i, label := range m.skillsAddTargets {

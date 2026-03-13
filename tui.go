@@ -29,14 +29,13 @@ var (
 	errStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 
 	btnPrimary = lipgloss.NewStyle().
+			Reverse(true).
 			Bold(true).
-			Foreground(lipgloss.Color("0")).
-			Background(lipgloss.Color("12")).
 			Padding(0, 3)
 	btnSecondary = lipgloss.NewStyle().
-			Faint(true).
-			Reverse(true).
-			Padding(0, 3)
+			Padding(0, 3).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.AdaptiveColor{Light: "240", Dark: "245"})
 	btnDisabled = lipgloss.NewStyle().
 			Faint(true).
 			Padding(0, 3)
@@ -3008,7 +3007,7 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString(bold.Render("  Project name: "))
 		b.WriteString(m.wizNameBuf)
 		if m.wizBtnFocus == -1 {
-			b.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render("█"))
+			b.WriteString(bold.Render("█"))
 		} else {
 			b.WriteString(dimStyle.Render("_"))
 		}
