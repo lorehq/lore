@@ -229,7 +229,6 @@ type marketplaceItem struct {
 	version     string
 	author      string
 	repo        string
-	path        string
 	source      string // original creator's repo URL
 	dir         string // installed bundle directory path
 	tags        []string
@@ -413,7 +412,6 @@ type tuiModel struct {
 	mktConfirmSlug        string
 	mktConfirmVerb        string // "remove" or "install"
 	mktConfirmRepo        string // repo URL for install
-	mktConfirmPath        string // subpath for monorepo install
 	mktDetail             bool
 	mktDetailItem         marketplaceItem
 	mktDetailReadme       string
@@ -1581,7 +1579,6 @@ func loadMarketplace() tea.Cmd {
 						item.description = e.Description
 						item.author = e.Author
 						item.repo = e.Repo
-						item.path = e.Path
 						item.source = e.Source
 						item.tags = e.Tags
 						break
@@ -1602,7 +1599,6 @@ func loadMarketplace() tea.Cmd {
 						description: e.Description,
 						author:      e.Author,
 						repo:        e.Repo,
-						path:        e.Path,
 						source:      e.Source,
 						tags:        e.Tags,
 					})
@@ -1614,9 +1610,9 @@ func loadMarketplace() tea.Cmd {
 	}
 }
 
-func doMktInstall(slug, repo, path string) tea.Cmd {
+func doMktInstall(slug, repo string) tea.Cmd {
 	return func() tea.Msg {
-		err := installBundleFromRepo(slug, repo, path)
+		err := installBundleFromRepo(slug, repo)
 		return mktOpDoneMsg{verb: "install", slug: slug, err: err}
 	}
 }
@@ -2410,7 +2406,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if m.mktConfirmVerb == "remove" {
 				return m, doMktRemove(m.mktConfirmSlug)
 			}
-			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo, m.mktConfirmPath)
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
 		}
 		if zone.Get("mkt-cancel").InBounds(msg) {
 			m.mktConfirm = false
@@ -3571,8 +3567,8 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	if fillW < 1 {
 		fillW = 1
 	}
-	outerTop := dimStyle.Render("┌") + bold.Render(resultsLabel) + dimStyle.Render(strings.Repeat("─", fillW)) + dimStyle.Render(" ") + harnessToggle + dimStyle.Render("┐")
-	outerBot := dimStyle.Render("└") + dimStyle.Render(strings.Repeat("─", innerW)) + dimStyle.Render("┘")
+	outerTop := dimStyle.Render("╭") + bold.Render(resultsLabel) + dimStyle.Render(strings.Repeat("─", fillW)) + dimStyle.Render(" ") + harnessToggle + dimStyle.Render("╮")
+	outerBot := dimStyle.Render("╰") + dimStyle.Render(strings.Repeat("─", innerW)) + dimStyle.Render("╯")
 
 	// Wrap inner box lines with outer │ side borders
 	var col3Lines []string
