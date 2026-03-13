@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -448,22 +449,26 @@ func (m *tuiModel) viewSkillsMPPlaceholder(maxH int) string {
 
 // overlaySkillsTargetPicker renders a centered target picker dialog.
 func (m *tuiModel) overlaySkillsTargetPicker(maxH int) string {
-	title := bold.Render(fmt.Sprintf(" Add %s to: ", m.skillsAddItem.Name))
+	title := bold.Render(fmt.Sprintf("Add %s to:", m.skillsAddItem.Name))
+
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
 
 	var targetLines []string
 	for i, label := range m.skillsAddTargets {
-		prefix := "  "
+		icon := m.skillsAddIcons[i]
 		if i == m.skillsAddCursor {
-			prefix = "> "
+			line := selectedStyle.Render("▸ " + icon + "  " + label)
+			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("skills-target-%d", i), line))
+		} else {
+			line := "  " + icon + "  " + label
+			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("skills-target-%d", i), line))
 		}
-		line := prefix + label
-		targetLines = append(targetLines, zone.Mark(fmt.Sprintf("skills-target-%d", i), line))
 	}
 
-	cancelBtn := zone.Mark("skills-target-cancel", btnSecondary.Render("Cancel"))
+	cancelBtn := zone.Mark("skills-target-cancel", btnSecondary.Render(" Cancel "))
 
-	dialogW := 50
-	if m.width < 60 {
+	dialogW := 44
+	if m.width < 54 {
 		dialogW = m.width - 6
 	}
 
@@ -488,17 +493,26 @@ func (m *tuiModel) overlaySkillsTargetPicker(maxH int) string {
 func (m *tuiModel) buildSkillTargets() {
 	m.skillsAddTargets = nil
 	m.skillsAddPaths = nil
+	m.skillsAddIcons = nil
 
-	m.skillsAddTargets = append(m.skillsAddTargets, "Project (.lore/SKILLS/)")
+	m.skillsAddTargets = append(m.skillsAddTargets, "Project")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(".lore", "SKILLS"))
+	m.skillsAddIcons = append(m.skillsAddIcons, "📁")
 
-	m.skillsAddTargets = append(m.skillsAddTargets, "Global ("+globalPath()+"/SKILLS/)")
+	m.skillsAddTargets = append(m.skillsAddTargets, "Global")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(globalPath(), "SKILLS"))
+	m.skillsAddIcons = append(m.skillsAddIcons, "🌐")
 
+	// Only show user-created bundles (no .git = not installed from registry)
 	bundles := discoverBundles()
 	for _, b := range bundles {
-		m.skillsAddTargets = append(m.skillsAddTargets, fmt.Sprintf("Bundle: %s", b.Name))
+		gitDir := filepath.Join(b.Dir, ".git")
+		if _, err := os.Stat(gitDir); err == nil {
+			continue // skip registry-installed bundles
+		}
+		m.skillsAddTargets = append(m.skillsAddTargets, b.Name)
 		m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(b.Dir, "SKILLS"))
+		m.skillsAddIcons = append(m.skillsAddIcons, "📦")
 	}
 }
 

@@ -438,6 +438,7 @@ type tuiModel struct {
 	skillsAddItem      skillsResult // which skill to add
 	skillsAddTargets   []string     // target labels for picker
 	skillsAddPaths     []string     // target SKILLS/ paths
+	skillsAddIcons     []string     // target icons (📁/🌐/📦)
 	skillsAddCursor    int
 	skillsImporting    bool
 	skillsImportName   string
