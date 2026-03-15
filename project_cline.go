@@ -29,6 +29,7 @@ func (p *ClineProjector) OutputPaths(rules, skills, agents []string, hasMCP bool
 	}
 	for _, n := range skills {
 		paths = append(paths, ".cline/skills/"+n+"/", ".cline/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".clinerules/workflows/"+n+".md")
 	}
 	for _, hs := range clineHookScripts {
 		paths = append(paths, ".clinerules/hooks/"+hs.clineEvent)
@@ -69,6 +70,15 @@ func (p *ClineProjector) Project(root string, ms *MergedSet) error {
 	// Hooks → .clinerules/hooks/<ClineEvent> (executable scripts)
 	if err := p.writeHooks(root); err != nil {
 		return err
+	}
+
+	// User-invocable skills → .clinerules/workflows/<name>.md (Cline slash commands)
+	// Cline workflows are plain markdown, no frontmatter. Invoked as /<name>.md
+	for _, skill := range userInvocableSkills(ms) {
+		path := filepath.Join(root, ".clinerules", "workflows", skill.Name+".md")
+		if err := writeFile(path, []byte(skill.Body+"\n")); err != nil {
+			return fmt.Errorf("write cline workflow %s: %w", skill.Name, err)
+		}
 	}
 
 	// MCP → ~/.cline/data/settings/cline_mcp_settings.json (global, merge)
