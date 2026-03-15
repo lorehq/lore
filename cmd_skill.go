@@ -259,12 +259,33 @@ func resolveSkillSource(source string) (string, func(), error) {
 
 	// Git URL or GitHub shorthand
 	repoURL := source
+	subPath := ""
 	if !strings.Contains(source, "://") {
 		// GitHub shorthand: owner/repo
 		if !strings.Contains(source, "/") {
 			return "", nil, fmt.Errorf("invalid source: %s (expected owner/repo, URL, or local path)", source)
 		}
 		repoURL = "https://github.com/" + source
+	}
+
+	// Parse GitHub tree/blob URLs: extract repo root and subdirectory path.
+	// e.g. https://github.com/owner/repo/tree/main/path/to/skill
+	//   → repo: https://github.com/owner/repo
+	//   → subPath: path/to/skill
+	if strings.Contains(repoURL, "github.com/") {
+		parts := strings.SplitN(repoURL, "github.com/", 2)
+		if len(parts) == 2 {
+			segments := strings.Split(parts[1], "/")
+			if len(segments) >= 4 && (segments[2] == "tree" || segments[2] == "blob") {
+				// owner/repo/tree/branch/path...
+				repoURL = "https://github.com/" + segments[0] + "/" + segments[1]
+				if len(segments) > 4 {
+					subPath = strings.Join(segments[4:], "/")
+				}
+			} else if len(segments) == 2 {
+				repoURL = "https://github.com/" + segments[0] + "/" + segments[1]
+			}
+		}
 	}
 
 	tmpDir, err := os.MkdirTemp("", "lore-skill-*")
@@ -278,6 +299,19 @@ func resolveSkillSource(source string) (string, func(), error) {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		cleanup()
 		return "", nil, fmt.Errorf("git clone failed: %v\n%s", err, out)
+	}
+
+	// If the URL pointed to a subdirectory, return that subdirectory
+	if subPath != "" {
+		resolved := filepath.Join(tmpDir, subPath)
+		if info, err := os.Stat(resolved); err == nil && info.IsDir() {
+			return resolved, cleanup, nil
+		}
+		// subPath might point to the skill dir's parent — try the parent too
+		parent := filepath.Dir(resolved)
+		if info, err := os.Stat(parent); err == nil && info.IsDir() {
+			return parent, cleanup, nil
+		}
 	}
 
 	return tmpDir, cleanup, nil
