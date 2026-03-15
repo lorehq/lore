@@ -669,9 +669,9 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 			row := " " + nameStr + strings.Repeat(" ", gap) + rightSide
 			lines = append(lines, row)
 
-			// Row 2: description (truncated)
+			// Row 2: description (truncated, newlines stripped)
 			if r.Description != "" {
-				desc := r.Description
+				desc := strings.ReplaceAll(strings.ReplaceAll(r.Description, "\n", " "), "\r", "")
 				maxDescW := m.width - 8
 				if maxDescW > 0 && len(desc) > maxDescW {
 					desc = desc[:maxDescW-1] + "\u2026"
@@ -888,6 +888,8 @@ func (m *tuiModel) handleSkillsMPMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			m.skillsMPQuery = q
 			m.skillsMPSearchMode = false
 			m.skillsMPScroll = 0
+			m.skillsMPLoading = true
+			m.skillsMPResults = nil
 			return m, searchSkillsMP(q, m.skillsMPAPIKey)
 		}
 	}
