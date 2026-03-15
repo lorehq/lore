@@ -36,7 +36,7 @@ func (m *tuiModel) viewExplore(maxH int) string {
 	case exploreSubSkillsSh:
 		content = m.viewSkillsExplorer(contentH)
 	case exploreSubSkillsMP:
-		content = m.viewSkillsMPPlaceholder(contentH)
+		content = m.viewSkillsMP(contentH)
 	}
 
 	return subTabBar + "\n" + content
@@ -106,7 +106,7 @@ func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			return m, m.ensureSkillsLoaded()
 		case exploreSubSkillsSh:
 			m.exploreSub = exploreSubSkillsMP
-			return m, nil
+			return m, m.ensureSkillsMPLoaded()
 		case exploreSubSkillsMP:
 			m.exploreSub = exploreSubBundles
 			return m, nil
@@ -118,6 +118,8 @@ func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		return m.handleMarketplaceKey(msg)
 	case exploreSubSkillsSh:
 		return m.handleSkillsExplorerKey(msg)
+	case exploreSubSkillsMP:
+		return m.handleSkillsMPKey(msg)
 	}
 	return m, nil
 }
@@ -139,7 +141,7 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	}
 	if zone.Get("explore-sub-skillsmp").InBounds(msg) {
 		m.exploreSub = exploreSubSkillsMP
-		return m, nil
+		return m, m.ensureSkillsMPLoaded()
 	}
 
 	switch m.exploreSub {
@@ -147,6 +149,8 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		return m.handleMarketplaceMouse(msg)
 	case exploreSubSkillsSh:
 		return m.handleSkillsExplorerMouse(msg)
+	case exploreSubSkillsMP:
+		return m.handleSkillsMPMouse(msg)
 	}
 	return m, nil
 }
@@ -430,16 +434,121 @@ func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.C
 	return m, nil
 }
 
-// ── SkillsMP placeholder sub-tab ───────────────────────────────────
+// ── SkillsMP sub-tab ────────────────────────────────────────────────
 
-func (m *tuiModel) viewSkillsMPPlaceholder(maxH int) string {
+// resolveSkillsMPKey checks env var then global config for the API key.
+func resolveSkillsMPKey() string {
+	if key := os.Getenv("SKILLSMP_API_KEY"); key != "" {
+		return key
+	}
+	configPath := filepath.Join(globalPath(), "config.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return ""
+	}
+	data = stripJSONComments(data)
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return ""
+	}
+	if key, ok := cfg["skillsmp_api_key"].(string); ok {
+		return key
+	}
+	return ""
+}
+
+// saveSkillsMPKey writes the API key to global config.
+func saveSkillsMPKey(key string) tea.Cmd {
+	return func() tea.Msg {
+		configPath := filepath.Join(globalPath(), "config.json")
+
+		var cfg map[string]interface{}
+
+		data, err := os.ReadFile(configPath)
+		if err == nil {
+			data = stripJSONComments(data)
+			if err := json.Unmarshal(data, &cfg); err != nil {
+				cfg = make(map[string]interface{})
+			}
+		} else {
+			cfg = make(map[string]interface{})
+		}
+
+		cfg["skillsmp_api_key"] = key
+
+		out, err := json.MarshalIndent(cfg, "", "  ")
+		if err != nil {
+			return skillsMPKeySavedMsg{err: err}
+		}
+		if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+			return skillsMPKeySavedMsg{err: err}
+		}
+		if err := os.WriteFile(configPath, out, 0644); err != nil {
+			return skillsMPKeySavedMsg{err: err}
+		}
+		return skillsMPKeySavedMsg{}
+	}
+}
+
+// ensureSkillsMPLoaded resolves the API key on first access.
+func (m *tuiModel) ensureSkillsMPLoaded() tea.Cmd {
+	if m.skillsMPAPIKey == "" {
+		m.skillsMPAPIKey = resolveSkillsMPKey()
+	}
+	return nil
+}
+
+// skillsMPHyperlink returns an OSC 8 terminal hyperlink.
+func skillsMPHyperlink(url, display string) string {
+	return fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", url, display)
+}
+
+// viewSkillsMP renders the SkillsMP sub-tab.
+func (m *tuiModel) viewSkillsMP(maxH int) string {
+	if m.skillsMPAPIKey == "" {
+		return m.viewSkillsMPAuth(maxH)
+	}
+	return m.viewSkillsMPSearch(maxH)
+}
+
+// viewSkillsMPAuth renders the API key setup screen.
+func (m *tuiModel) viewSkillsMPAuth(maxH int) string {
 	var lines []string
-	lines = append(lines, " "+bold.Render("SkillsMP")+"  "+dimStyle.Render("skillsmp.com"))
 	lines = append(lines, "")
-	lines = append(lines, dimStyle.Render("  400,000+ agent skills with category filtering and semantic search."))
-	lines = append(lines, dimStyle.Render("  Requires API key — integration coming soon."))
+	lines = append(lines, " "+bold.Render("SkillsMP")+"   "+dimStyle.Render("skillsmp.com"))
 	lines = append(lines, "")
-	lines = append(lines, dimStyle.Render("  Visit https://skillsmp.com to browse skills."))
+	lines = append(lines, dimStyle.Render("  API key required to search 66,500+ agent skills."))
+	lines = append(lines, "")
+
+	// Clickable hyperlink
+	linkURL := "https://skillsmp.com/docs/api"
+	linkDisplay := "Get your free key"
+	hyperlink := skillsMPHyperlink(linkURL, linkDisplay)
+	lines = append(lines, "  "+hyperlink+" \u2192 "+dimStyle.Render(linkURL))
+	lines = append(lines, "")
+
+	// Key input
+	var inputLine string
+	if m.skillsMPKeyFocus {
+		displayed := m.skillsMPKeyBuf
+		if len(displayed) > 12 {
+			displayed = displayed[:12] + strings.Repeat("*", len(displayed)-12)
+		}
+		inputLine = "  Paste key: " + displayed + "\u2588"
+	} else {
+		inputLine = zone.Mark("smp-key-input", dimStyle.Render("  Paste key: click to enter"))
+	}
+	lines = append(lines, inputLine)
+	lines = append(lines, "")
+
+	// Save button
+	var saveBtn string
+	if m.skillsMPKeyBuf != "" {
+		saveBtn = zone.Mark("smp-key-save", btnPrimary.Render(" Save "))
+	} else {
+		saveBtn = btnDisabled.Render(" Save ")
+	}
+	lines = append(lines, strings.Repeat(" ", 40)+saveBtn)
 
 	for len(lines) < maxH {
 		lines = append(lines, "")
@@ -449,6 +558,458 @@ func (m *tuiModel) viewSkillsMPPlaceholder(maxH int) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// viewSkillsMPSearch renders the search view with results.
+func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
+	// Target picker overlay
+	if m.skillsMPAddActive {
+		return m.overlaySkillsMPTargetPicker(maxH)
+	}
+
+	// Importing overlay
+	if m.skillsMPImporting {
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(maxH).
+			Align(lipgloss.Center, lipgloss.Center).
+			Faint(true).
+			Render(fmt.Sprintf("Importing %s...", m.skillsMPImportName))
+	}
+
+	var lines []string
+
+	// Header
+	lines = append(lines, " "+bold.Render("SKILLSMP SEARCH")+"  "+dimStyle.Render("skillsmp.com"))
+	lines = append(lines, "")
+
+	// Search bar
+	var searchContent string
+	if m.skillsMPSearchMode {
+		searchContent = " /  " + m.skillsMPSearchBuf + "\u2588"
+	} else if m.skillsMPQuery != "" {
+		searchContent = " /  " + m.skillsMPQuery + "  " + zone.Mark("smp-clear-search", dimStyle.Render("[clear]"))
+	} else {
+		searchContent = dimStyle.Render(" /  Press / to search skills")
+	}
+	searchBox := zone.Mark("smp-search-bar", searchContent)
+
+	slashHint := dimStyle.Render("/")
+	searchGap := m.width - lipgloss.Width(searchContent) - lipgloss.Width(slashHint) - 2
+	if searchGap < 1 {
+		searchGap = 1
+	}
+	lines = append(lines, " "+searchBox+strings.Repeat(" ", searchGap)+slashHint+" ")
+
+	// Separator
+	lines = append(lines, dimStyle.Render(" "+strings.Repeat("\u2500", m.width-2)))
+	lines = append(lines, "")
+
+	// Content
+	if m.skillsMPLoading {
+		lines = append(lines, dimStyle.Render("  Loading..."))
+	} else if m.skillsMPError != "" {
+		lines = append(lines, errStyle.Render("  Error: "+m.skillsMPError))
+	} else if len(m.skillsMPResults) == 0 && m.skillsMPQuery != "" {
+		lines = append(lines, dimStyle.Render(fmt.Sprintf("  No results for \"%s\"", m.skillsMPQuery)))
+	} else if len(m.skillsMPResults) == 0 {
+		lines = append(lines, dimStyle.Render("  Search to discover 66,500+ agent skills"))
+	} else {
+		// Column header
+		colHeader := dimStyle.Render(fmt.Sprintf(" %-30s %*s",
+			"SKILL", m.width-36, "STARS"))
+		lines = append(lines, colHeader)
+		lines = append(lines, "")
+
+		// Result rows
+		for _, r := range m.skillsMPResults {
+			stars := formatStars(r.Stars)
+			addBtn := zone.Mark("smp-add-"+r.Name, greenStyle.Render("[+ Add]"))
+
+			// Row 1: bold name + stars + add button
+			nameStr := bold.Render(r.Name)
+			rightSide := stars + "  " + addBtn
+			rightW := lipgloss.Width(rightSide)
+			nameW := lipgloss.Width(nameStr)
+			gap := m.width - 2 - nameW - rightW
+			if gap < 1 {
+				gap = 1
+			}
+			row := " " + nameStr + strings.Repeat(" ", gap) + rightSide
+			lines = append(lines, row)
+
+			// Row 2: description (truncated)
+			if r.Description != "" {
+				desc := r.Description
+				maxDescW := m.width - 8
+				if maxDescW > 0 && len(desc) > maxDescW {
+					desc = desc[:maxDescW-1] + "\u2026"
+				}
+				lines = append(lines, "  "+dimStyle.Render(desc))
+			}
+
+			// Row 3: author + source link
+			var metaParts []string
+			if r.Author != "" {
+				metaParts = append(metaParts, "by "+r.Author)
+			}
+			if r.GithubURL != "" {
+				display := r.GithubURL
+				if strings.HasPrefix(display, "https://") {
+					display = display[8:]
+				}
+				metaParts = append(metaParts, skillsMPHyperlink(r.GithubURL, display))
+			}
+			if len(metaParts) > 0 {
+				lines = append(lines, "  "+dimStyle.Render(strings.Join(metaParts, "  ")))
+			}
+			lines = append(lines, "")
+		}
+	}
+
+	// Apply scroll
+	scroll := m.skillsMPScroll
+	if scroll > len(lines) {
+		scroll = len(lines)
+		m.skillsMPScroll = scroll
+	}
+	if scroll < 0 {
+		scroll = 0
+		m.skillsMPScroll = 0
+	}
+
+	visible := lines
+	if scroll < len(visible) {
+		visible = visible[scroll:]
+	} else {
+		visible = nil
+	}
+	if len(visible) > maxH {
+		visible = visible[:maxH]
+	}
+	for len(visible) < maxH {
+		visible = append(visible, "")
+	}
+	for i, line := range visible {
+		if lipgloss.Width(line) > m.width {
+			visible[i] = ansi.Truncate(line, m.width, "\u2026")
+		}
+	}
+
+	return strings.Join(visible, "\n")
+}
+
+// formatStars formats star counts with K/M suffixes.
+func formatStars(n int) string {
+	if n >= 1_000_000 {
+		return fmt.Sprintf("%.1fM \u2605", float64(n)/1_000_000)
+	}
+	if n >= 1_000 {
+		return fmt.Sprintf("%.1fK \u2605", float64(n)/1_000)
+	}
+	return fmt.Sprintf("%d \u2605", n)
+}
+
+// handleSkillsMPKey handles keyboard input on the SkillsMP sub-tab.
+func (m *tuiModel) handleSkillsMPKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
+	key := msg.String()
+
+	// Auth screen: key input mode
+	if m.skillsMPAPIKey == "" {
+		if m.skillsMPKeyFocus {
+			switch key {
+			case "esc":
+				m.skillsMPKeyFocus = false
+			case "enter":
+				if m.skillsMPKeyBuf != "" {
+					m.skillsMPAPIKey = m.skillsMPKeyBuf
+					m.skillsMPKeyFocus = false
+					return m, saveSkillsMPKey(m.skillsMPKeyBuf)
+				}
+			case "backspace":
+				if len(m.skillsMPKeyBuf) > 0 {
+					m.skillsMPKeyBuf = m.skillsMPKeyBuf[:len(m.skillsMPKeyBuf)-1]
+				}
+			default:
+				if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
+					m.skillsMPKeyBuf += key
+				}
+			}
+			return m, nil
+		}
+		// Not focused on key input
+		switch key {
+		case "/", "enter", "i":
+			m.skillsMPKeyFocus = true
+			m.skillsMPKeyBuf = ""
+		}
+		return m, nil
+	}
+
+	// Target picker intercepts
+	if m.skillsMPAddActive {
+		switch key {
+		case "esc":
+			m.skillsMPAddActive = false
+		case "j", "down":
+			if m.skillsMPAddCursor < len(m.skillsMPAddTargets)-1 {
+				m.skillsMPAddCursor++
+			}
+		case "k", "up":
+			if m.skillsMPAddCursor > 0 {
+				m.skillsMPAddCursor--
+			}
+		case "enter":
+			m.skillsMPAddActive = false
+			m.skillsMPImporting = true
+			m.skillsMPImportName = m.skillsMPAddItem.Name
+			targetDir := m.skillsMPAddPaths[m.skillsMPAddCursor]
+			source := m.skillsMPAddItem.GithubURL
+			if source == "" {
+				source = m.skillsMPAddItem.SkillURL
+			}
+			skillName := m.skillsMPAddItem.Name
+			return m, doSkillsMPImport(source, skillName, targetDir)
+		}
+		return m, nil
+	}
+
+	// Search mode
+	if m.skillsMPSearchMode {
+		switch key {
+		case "esc":
+			m.skillsMPSearchMode = false
+		case "enter":
+			m.skillsMPSearchMode = false
+			if m.skillsMPSearchBuf != "" {
+				m.skillsMPQuery = m.skillsMPSearchBuf
+				m.skillsMPLoading = true
+				m.skillsMPScroll = 0
+				return m, searchSkillsMP(m.skillsMPQuery, m.skillsMPAPIKey)
+			}
+		case "backspace":
+			if len(m.skillsMPSearchBuf) > 0 {
+				m.skillsMPSearchBuf = m.skillsMPSearchBuf[:len(m.skillsMPSearchBuf)-1]
+			}
+		default:
+			if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
+				m.skillsMPSearchBuf += key
+			}
+		}
+		return m, nil
+	}
+
+	switch key {
+	case "/":
+		m.skillsMPSearchMode = true
+		m.skillsMPSearchBuf = ""
+	case "esc":
+		if m.skillsMPQuery != "" {
+			m.skillsMPQuery = ""
+			m.skillsMPResults = nil
+			m.skillsMPScroll = 0
+		}
+	case "j", "down":
+		m.skillsMPScroll++
+	case "k", "up":
+		if m.skillsMPScroll > 0 {
+			m.skillsMPScroll--
+		}
+	}
+
+	return m, nil
+}
+
+// handleSkillsMPMouse handles mouse clicks on the SkillsMP sub-tab.
+func (m *tuiModel) handleSkillsMPMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
+	// Auth screen clicks
+	if m.skillsMPAPIKey == "" {
+		if zone.Get("smp-key-input").InBounds(msg) {
+			m.skillsMPKeyFocus = true
+			m.skillsMPKeyBuf = ""
+			return m, nil
+		}
+		if zone.Get("smp-key-save").InBounds(msg) && m.skillsMPKeyBuf != "" {
+			m.skillsMPAPIKey = m.skillsMPKeyBuf
+			m.skillsMPKeyFocus = false
+			return m, saveSkillsMPKey(m.skillsMPKeyBuf)
+		}
+		return m, nil
+	}
+
+	// Search bar click
+	if zone.Get("smp-search-bar").InBounds(msg) {
+		m.skillsMPSearchMode = true
+		m.skillsMPSearchBuf = ""
+		return m, nil
+	}
+
+	// Clear search
+	if zone.Get("smp-clear-search").InBounds(msg) {
+		m.skillsMPQuery = ""
+		m.skillsMPSearchMode = false
+		m.skillsMPResults = nil
+		m.skillsMPScroll = 0
+		return m, nil
+	}
+
+	// Target picker clicks
+	if m.skillsMPAddActive {
+		for i := range m.skillsMPAddTargets {
+			if zone.Get(fmt.Sprintf("smp-target-%d", i)).InBounds(msg) {
+				m.skillsMPAddActive = false
+				m.skillsMPImporting = true
+				m.skillsMPImportName = m.skillsMPAddItem.Name
+				targetDir := m.skillsMPAddPaths[i]
+				source := m.skillsMPAddItem.GithubURL
+				if source == "" {
+					source = m.skillsMPAddItem.SkillURL
+				}
+				skillName := m.skillsMPAddItem.Name
+				return m, doSkillsMPImport(source, skillName, targetDir)
+			}
+		}
+		if zone.Get("smp-target-cancel").InBounds(msg) {
+			m.skillsMPAddActive = false
+			return m, nil
+		}
+		return m, nil
+	}
+
+	// Add buttons
+	for _, r := range m.skillsMPResults {
+		if zone.Get("smp-add-"+r.Name).InBounds(msg) {
+			m.skillsMPAddActive = true
+			m.skillsMPAddItem = r
+			m.skillsMPAddCursor = 0
+			m.buildSkillsMPTargets()
+			return m, nil
+		}
+	}
+
+	return m, nil
+}
+
+// overlaySkillsMPTargetPicker renders a centered target picker dialog for SkillsMP.
+func (m *tuiModel) overlaySkillsMPTargetPicker(maxH int) string {
+	title := bold.Render(fmt.Sprintf("Add %s to:", m.skillsMPAddItem.Name))
+
+	selectedStyle := lipgloss.NewStyle().Bold(true).Reverse(true)
+
+	var targetLines []string
+	for i, label := range m.skillsMPAddTargets {
+		icon := m.skillsMPAddIcons[i]
+		if i == m.skillsMPAddCursor {
+			line := selectedStyle.Render("\u25b8 " + icon + "  " + label)
+			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("smp-target-%d", i), line))
+		} else {
+			line := "  " + icon + "  " + label
+			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("smp-target-%d", i), line))
+		}
+	}
+
+	cancelBtn := zone.Mark("smp-target-cancel", btnSecondary.Render(" Cancel "))
+
+	dialogW := 44
+	if m.width < 54 {
+		dialogW = m.width - 6
+	}
+
+	borderFg := lipgloss.AdaptiveColor{Light: "236", Dark: "248"}
+	dialogBox := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderFg).
+		Padding(1, 2).
+		Width(dialogW)
+
+	content := title + "\n\n" + strings.Join(targetLines, "\n") + "\n\n" + cancelBtn
+	rendered := dialogBox.Render(content)
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(maxH).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(rendered)
+}
+
+// buildSkillsMPTargets populates the target picker with available destinations.
+func (m *tuiModel) buildSkillsMPTargets() {
+	m.skillsMPAddTargets = nil
+	m.skillsMPAddPaths = nil
+	m.skillsMPAddIcons = nil
+
+	m.skillsMPAddTargets = append(m.skillsMPAddTargets, "Project")
+	m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(".lore", "SKILLS"))
+	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f4c1")
+
+	m.skillsMPAddTargets = append(m.skillsMPAddTargets, "Global")
+	m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(globalPath(), "SKILLS"))
+	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f310")
+
+	bundles := discoverBundles()
+	for _, b := range bundles {
+		gitDir := filepath.Join(b.Dir, ".git")
+		if _, err := os.Stat(gitDir); err == nil {
+			continue
+		}
+		m.skillsMPAddTargets = append(m.skillsMPAddTargets, b.Name)
+		m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(b.Dir, "SKILLS"))
+		m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f4e6")
+	}
+}
+
+// ── SkillsMP async commands ─────────────────────────────────────────
+
+// searchSkillsMP fetches skill search results from the SkillsMP API.
+func searchSkillsMP(query, apiKey string) tea.Cmd {
+	return func() tea.Msg {
+		apiURL := fmt.Sprintf("https://skillsmp.com/api/v1/skills/search?q=%s&limit=20&sortBy=stars",
+			url.QueryEscape(query))
+
+		req, err := http.NewRequest("GET", apiURL, nil)
+		if err != nil {
+			return skillsMPSearchMsg{err: fmt.Errorf("request failed: %w", err)}
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return skillsMPSearchMsg{err: fmt.Errorf("search failed: %w", err)}
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			return skillsMPSearchMsg{err: fmt.Errorf("invalid API key (HTTP %d)", resp.StatusCode)}
+		}
+		if resp.StatusCode != 200 {
+			return skillsMPSearchMsg{err: fmt.Errorf("search returned HTTP %d", resp.StatusCode)}
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return skillsMPSearchMsg{err: err}
+		}
+
+		var result struct {
+			Data struct {
+				Skills []skillsMPResult `json:"skills"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &result); err != nil {
+			return skillsMPSearchMsg{err: fmt.Errorf("invalid response: %w", err)}
+		}
+
+		return skillsMPSearchMsg{results: result.Data.Skills}
+	}
+}
+
+// doSkillsMPImport runs a skill import for a SkillsMP skill.
+func doSkillsMPImport(source, skillName, targetDir string) tea.Cmd {
+	return func() tea.Msg {
+		err := importSkillToTarget(source, skillName, targetDir, source)
+		return skillsImportDoneMsg{skill: skillName, err: err}
+	}
 }
 
 // ── Target picker ──────────────────────────────────────────────────

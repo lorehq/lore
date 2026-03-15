@@ -97,6 +97,25 @@ type skillsImportDoneMsg struct {
 	err   error
 }
 
+// skillsMPResult represents a skill from the SkillsMP search API.
+type skillsMPResult struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Author      string `json:"author"`
+	Stars       int    `json:"stars"`
+	SkillURL    string `json:"skillUrl"`
+	GithubURL   string `json:"githubUrl"`
+}
+
+type skillsMPSearchMsg struct {
+	results []skillsMPResult
+	err     error
+}
+
+type skillsMPKeySavedMsg struct {
+	err error
+}
+
 // projItem represents an item in the catalog or project content listing.
 type projItem struct {
 	kind     string   // "rule", "skill", "agent"
@@ -450,6 +469,27 @@ type tuiModel struct {
 	skillsAddCursor    int
 	skillsImporting    bool
 	skillsImportName   string
+
+	// SkillsMP sub-tab state
+	skillsMPResults    []skillsMPResult
+	skillsMPQuery      string
+	skillsMPSearchBuf  string
+	skillsMPSearchMode bool
+	skillsMPCursor     int
+	skillsMPLoading    bool
+	skillsMPError      string
+	skillsMPAPIKey     string // resolved key (env or config)
+	skillsMPKeyBuf     string // text input for key entry
+	skillsMPKeyFocus   bool   // true when key input is focused
+	skillsMPScroll     int
+	skillsMPAddActive  bool         // target picker showing
+	skillsMPAddItem    skillsMPResult // which skill to add
+	skillsMPAddTargets []string     // target labels for picker
+	skillsMPAddPaths   []string     // target SKILLS/ paths
+	skillsMPAddIcons   []string     // target icons
+	skillsMPAddCursor  int
+	skillsMPImporting  bool
+	skillsMPImportName string
 
 	// bundles sub-tab state (formerly marketplace)
 	mktLoaded             bool
@@ -1844,6 +1884,8 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case skillsImportDoneMsg:
 		m.skillsImporting = false
 		m.skillsImportName = ""
+		m.skillsMPImporting = false
+		m.skillsMPImportName = ""
 		if msg.err != nil {
 			m.genMessage = "Import failed: " + msg.err.Error()
 			m.genIsError = true
@@ -1861,6 +1903,28 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.mktDetailReadme = msg.content
 		}
+
+	case skillsMPSearchMsg:
+		m.skillsMPLoading = false
+		if msg.err != nil {
+			m.skillsMPError = msg.err.Error()
+		} else {
+			m.skillsMPError = ""
+			m.skillsMPResults = msg.results
+			m.skillsMPScroll = 0
+		}
+
+	case skillsMPKeySavedMsg:
+		if msg.err != nil {
+			m.genMessage = "Failed to save API key: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.genMessage = "SkillsMP API key saved"
+			m.genIsError = false
+			m.genTick = 3
+		}
+		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 
 	case tickMsg:
 		if m.genTick > 0 {
@@ -2456,6 +2520,11 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 					m.skillsScroll += delta
 					if m.skillsScroll < 0 {
 						m.skillsScroll = 0
+					}
+				} else if m.exploreSub == exploreSubSkillsMP {
+					m.skillsMPScroll += delta
+					if m.skillsMPScroll < 0 {
+						m.skillsMPScroll = 0
 					}
 				} else {
 					m.mktScroll += delta
