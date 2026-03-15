@@ -527,17 +527,12 @@ func (m *tuiModel) viewSkillsMPAuth(maxH int) string {
 	lines = append(lines, "  "+hyperlink+" \u2192 "+dimStyle.Render(linkURL))
 	lines = append(lines, "")
 
-	// Key input
-	var inputLine string
-	if m.skillsMPKeyFocus {
-		displayed := m.skillsMPKeyBuf
-		if len(displayed) > 12 {
-			displayed = displayed[:12] + strings.Repeat("*", len(displayed)-12)
-		}
-		inputLine = "  Paste key: " + displayed + "\u2588"
-	} else {
-		inputLine = zone.Mark("smp-key-input", dimStyle.Render("  Paste key: click to enter"))
+	// Key input (always focused on auth screen)
+	displayed := m.skillsMPKeyBuf
+	if len(displayed) > 12 {
+		displayed = displayed[:12] + strings.Repeat("*", len(displayed)-12)
 	}
+	inputLine := "  Paste key: " + displayed + "\u2588"
 	lines = append(lines, inputLine)
 	lines = append(lines, "")
 
@@ -714,34 +709,31 @@ func formatStars(n int) string {
 func (m *tuiModel) handleSkillsMPKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
-	// Auth screen: key input mode
+	// Auth screen: key input is always focused (nothing else to do here)
 	if m.skillsMPAPIKey == "" {
-		if m.skillsMPKeyFocus {
-			switch key {
-			case "esc":
+		if !m.skillsMPKeyFocus {
+			m.skillsMPKeyFocus = true
+		}
+		switch key {
+		case "esc":
+			m.skillsMPKeyFocus = false
+		case "enter":
+			if m.skillsMPKeyBuf != "" {
+				m.skillsMPAPIKey = m.skillsMPKeyBuf
 				m.skillsMPKeyFocus = false
-			case "enter":
-				if m.skillsMPKeyBuf != "" {
-					m.skillsMPAPIKey = m.skillsMPKeyBuf
-					m.skillsMPKeyFocus = false
-					return m, saveSkillsMPKey(m.skillsMPKeyBuf)
-				}
-			case "backspace":
-				if len(m.skillsMPKeyBuf) > 0 {
-					m.skillsMPKeyBuf = m.skillsMPKeyBuf[:len(m.skillsMPKeyBuf)-1]
-				}
-			default:
-				if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
-					m.skillsMPKeyBuf += key
+				return m, saveSkillsMPKey(m.skillsMPKeyBuf)
+			}
+		case "backspace":
+			if len(m.skillsMPKeyBuf) > 0 {
+				m.skillsMPKeyBuf = m.skillsMPKeyBuf[:len(m.skillsMPKeyBuf)-1]
+			}
+		default:
+			// Accept all printable characters (supports paste)
+			for _, r := range key {
+				if r >= 32 && r < 127 {
+					m.skillsMPKeyBuf += string(r)
 				}
 			}
-			return m, nil
-		}
-		// Not focused on key input
-		switch key {
-		case "/", "enter", "i":
-			m.skillsMPKeyFocus = true
-			m.skillsMPKeyBuf = ""
 		}
 		return m, nil
 	}
