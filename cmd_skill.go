@@ -602,11 +602,12 @@ func transformSkillFrontmatter(path, source, today string) error {
 		}
 	}
 
-	// Add user-invocable: false if missing
+	// Add user-invocable: true if missing — imported skills are user-invocable by default.
+	// Authors can set user-invocable: false in their SKILL.md if it's agent-only.
 	if !hasUserInvocable {
 		mapping.Content = append(mapping.Content,
 			&yaml.Node{Kind: yaml.ScalarNode, Value: "user-invocable"},
-			&yaml.Node{Kind: yaml.ScalarNode, Value: "false", Tag: "!!bool"},
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "true", Tag: "!!bool"},
 		)
 	}
 

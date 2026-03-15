@@ -169,8 +169,6 @@ func projectSkills(baseDir string, ms *MergedSet) error {
 		}
 		if skill.UserInvocable != nil {
 			fm["user-invocable"] = *skill.UserInvocable
-		} else {
-			fm["user-invocable"] = false
 		}
 		if len(skill.AllowedTools) > 0 {
 			fm["allowed-tools"] = skill.AllowedTools
@@ -281,14 +279,16 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 	return nil
 }
 
-// userInvocableSkills returns skills with user-invocable: true, sorted by name.
+// userInvocableSkills returns user-invocable skills, sorted by name.
+// Skills are user-invocable by default — only excluded if explicitly set to false.
 func userInvocableSkills(ms *MergedSet) []*AgenticFile {
 	var out []*AgenticFile
 	for _, name := range sortedKeys(ms.Skills) {
 		skill := ms.Skills[name]
-		if skill.UserInvocable != nil && *skill.UserInvocable {
-			out = append(out, skill)
+		if skill.UserInvocable != nil && !*skill.UserInvocable {
+			continue
 		}
+		out = append(out, skill)
 	}
 	return out
 }
