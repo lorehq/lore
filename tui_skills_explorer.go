@@ -474,6 +474,9 @@ func saveSkillsMPKey(key string) tea.Cmd {
 			cfg = make(map[string]interface{})
 		}
 
+		// Strip brackets/whitespace that may be copied from the website
+		key = strings.TrimSpace(key)
+		key = strings.Trim(key, "[]")
 		cfg["skillsmp_api_key"] = key
 
 		out, err := json.MarshalIndent(cfg, "", "  ")
@@ -608,7 +611,40 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 	} else if len(m.skillsMPResults) == 0 && m.skillsMPQuery != "" {
 		lines = append(lines, dimStyle.Render(fmt.Sprintf("  No results for \"%s\"", m.skillsMPQuery)))
 	} else if len(m.skillsMPResults) == 0 {
-		lines = append(lines, dimStyle.Render("  Search to discover 66,500+ agent skills"))
+		// Category chips as search shortcuts
+		categories := []struct{ name, query string }{
+			{"Tools", "tools"},
+			{"Development", "development"},
+			{"Business", "business"},
+			{"Data & AI", "data ai"},
+			{"DevOps", "devops"},
+			{"Test & Security", "testing security"},
+			{"Documentation", "documentation"},
+			{"Content & Media", "content media"},
+		}
+		chipStyle := lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.NormalBorder(), false, true, false, true).BorderForeground(lipgloss.AdaptiveColor{Light: "236", Dark: "248"})
+		lines = append(lines, dimStyle.Render("  Browse by category"))
+		lines = append(lines, "")
+
+		// Lay out chips in rows that fit terminal width
+		var row []string
+		rowW := 2 // indent
+		for i, cat := range categories {
+			chip := zone.Mark(fmt.Sprintf("smp-cat-%d", i), chipStyle.Render(cat.name))
+			chipW := lipgloss.Width(chip) + 1
+			if rowW+chipW > m.width-2 && len(row) > 0 {
+				lines = append(lines, "  "+strings.Join(row, " "))
+				row = nil
+				rowW = 2
+			}
+			row = append(row, chip)
+			rowW += chipW
+		}
+		if len(row) > 0 {
+			lines = append(lines, "  "+strings.Join(row, " "))
+		}
+		lines = append(lines, "")
+		lines = append(lines, dimStyle.Render("  400,000+ agent skills  \u2022  Press / to search"))
 	} else {
 		// Column header
 		colHeader := dimStyle.Render(fmt.Sprintf(" %-30s %*s",
@@ -845,6 +881,17 @@ func (m *tuiModel) handleSkillsMPMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		return m, nil
 	}
 
+	// Category chip clicks
+	categoryQueries := []string{"tools", "development", "business", "data ai", "devops", "testing security", "documentation", "content media"}
+	for i, q := range categoryQueries {
+		if zone.Get(fmt.Sprintf("smp-cat-%d", i)).InBounds(msg) {
+			m.skillsMPQuery = q
+			m.skillsMPSearchMode = false
+			m.skillsMPScroll = 0
+			return m, searchSkillsMP(q, m.skillsMPAPIKey)
+		}
+	}
+
 	// Target picker clicks
 	if m.skillsMPAddActive {
 		for i := range m.skillsMPAddTargets {
@@ -963,6 +1010,7 @@ func searchSkillsMP(query, apiKey string) tea.Cmd {
 			return skillsMPSearchMsg{err: fmt.Errorf("request failed: %w", err)}
 		}
 		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Accept", "application/json")
 
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
