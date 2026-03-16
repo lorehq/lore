@@ -18,6 +18,7 @@ func (p *GeminiProjector) OutputPaths(rules, skills, agents []string, hasMCP boo
 	paths := []string{"GEMINI.md", ".gemini/settings.json"}
 	for _, n := range skills {
 		paths = append(paths, ".gemini/skills/"+n+"/", ".gemini/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".gemini/commands/"+n+".toml")
 	}
 	for _, n := range agents {
 		paths = append(paths, ".gemini/agents/"+n+".md")
@@ -43,8 +44,23 @@ func (p *GeminiProjector) Project(root string, ms *MergedSet) error {
 		return err
 	}
 
-	// .gemini/settings.json with hooks
-	return p.writeSettings(root)
+	// User-invocable skills → .gemini/commands/<name>.toml (Gemini slash commands)
+	// Gemini uses TOML format with {{args}} placeholder for arguments.
+	for _, skill := range userInvocableSkills(ms) {
+		body := strings.ReplaceAll(skill.Body, "$ARGUMENTS", "{{args}}")
+		var sb strings.Builder
+		if skill.Description != "" {
+			sb.WriteString(fmt.Sprintf("description = %q\n", skill.Description))
+		}
+		sb.WriteString(fmt.Sprintf("prompt = %q\n", body))
+		path := filepath.Join(root, ".gemini", "commands", skill.Name+".toml")
+		if err := writeFile(path, []byte(sb.String())); err != nil {
+			return fmt.Errorf("write gemini command %s: %w", skill.Name, err)
+		}
+	}
+
+	// .gemini/settings.json with hooks + MCP
+	return p.writeSettings(root, ms)
 }
 
 func (p *GeminiProjector) writeGEMINIMD(root string, ms *MergedSet) error {
@@ -80,9 +96,10 @@ func (p *GeminiProjector) writeGEMINIMD(root string, ms *MergedSet) error {
 	return writeFile(filepath.Join(root, "GEMINI.md"), []byte(sb.String()))
 }
 
-// geminiSettings matches .gemini/settings.json hook format.
+// geminiSettings matches .gemini/settings.json format.
 type geminiSettings struct {
-	Hooks map[string][]geminiHookGroup `json:"hooks"`
+	Hooks      map[string][]geminiHookGroup `json:"hooks"`
+	MCPServers map[string]interface{}       `json:"mcpServers,omitempty"`
 }
 
 type geminiHookGroup struct {
@@ -96,31 +113,37 @@ type geminiHook struct {
 	Name    string `json:"name,omitempty"`
 }
 
-func (p *GeminiProjector) writeSettings(root string) error {
+func (p *GeminiProjector) writeSettings(root string, ms *MergedSet) error {
+	loreHook := func(cmd, name string) []geminiHookGroup {
+		return []geminiHookGroup{
+			{Hooks: []geminiHook{{Type: "command", Command: cmd, Name: name}}},
+		}
+	}
 	cfg := geminiSettings{
 		Hooks: map[string][]geminiHookGroup{
-			"BeforeTool": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook pre-tool-use",
-					Name:    "lore-pre-tool",
-				}}},
-			},
-			"AfterTool": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook post-tool-use",
-					Name:    "lore-post-tool",
-				}}},
-			},
-			"BeforeAgent": {
-				{Hooks: []geminiHook{{
-					Type:    "command",
-					Command: "lore hook prompt-submit",
-					Name:    "lore-prompt",
-				}}},
-			},
+			"BeforeTool":   loreHook("lore hook pre-tool-use", "lore-pre-tool"),
+			"AfterTool":    loreHook("lore hook post-tool-use", "lore-post-tool"),
+			"BeforeAgent":  loreHook("lore hook prompt-submit", "lore-prompt"),
+			"SessionStart": loreHook("lore hook session-start", "lore-session-start"),
+			"AfterAgent":   loreHook("lore hook stop", "lore-stop"),
+			"PreCompress":  loreHook("lore hook pre-compact", "lore-pre-compact"),
+			"SessionEnd":   loreHook("lore hook session-end", "lore-session-end"),
 		},
+	}
+
+	if len(ms.MCP) > 0 {
+		servers := make(map[string]interface{}, len(ms.MCP))
+		for _, s := range ms.MCP {
+			entry := map[string]interface{}{
+				"command": s.Command,
+				"args":    s.Args,
+			}
+			if len(s.Env) > 0 {
+				entry["env"] = s.Env
+			}
+			servers[s.Name] = entry
+		}
+		cfg.MCPServers = servers
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")

@@ -7,7 +7,7 @@ import (
 
 // Set via ldflags at build time.
 var (
-	version = "0.1.5"
+	version = "0.1.52"
 	commit  = "none"
 )
 
@@ -18,8 +18,9 @@ Usage: lore [command]
 Commands:
   (no args)                           Launch interactive TUI
   init [name] [--platforms <list>]    Initialize Lore (current dir or new dir)
-  generate [--platforms <list>]       Generate platform files from AGENTIC content
+  generate [--platforms <list>]       Generate platform files from rules, skills, and agents
   bundle <subcommand>                 Manage bundles (install, list, enable, disable, update, remove)
+  skill <subcommand>                  Import skills from the Agent Skills ecosystem
   hook <name>                         Hook handler (called by platforms)
   version                             Print version
   help                                Print this help
@@ -49,6 +50,8 @@ func main() {
 		cmdGenerate(os.Args[2:])
 	case "bundle":
 		cmdBundle(os.Args[2:])
+	case "skill":
+		cmdSkill(os.Args[2:])
 	case "hook":
 		cmdHook(os.Args[2:])
 	case "version", "--version", "-v":

@@ -98,17 +98,14 @@ func (p *ClaudeProjector) writeCLAUDEMD(root string, ms *MergedSet) error {
 	}
 
 	// Separate bundle/global vs project rules for template
-	globalAgenticDir := filepath.Join(globalPath(), "AGENTIC")
-	var bundleAgenticDirs []string
-	for _, d := range activeBundleDirs() {
-		bundleAgenticDirs = append(bundleAgenticDirs, filepath.Join(d, "AGENTIC"))
-	}
+	globalDir := globalPath()
+	bundleDirs := activeBundleDirs()
 	isNonProject := func(path string) bool {
-		if strings.HasPrefix(path, globalAgenticDir) {
+		if strings.HasPrefix(path, globalDir) {
 			return true
 		}
-		for _, pad := range bundleAgenticDirs {
-			if strings.HasPrefix(path, pad) {
+		for _, bd := range bundleDirs {
+			if strings.HasPrefix(path, bd) {
 				return true
 			}
 		}
@@ -155,17 +152,22 @@ type ClaudeHook struct {
 }
 
 func (p *ClaudeProjector) writeSettings(root string) error {
+	loreHook := func(cmd string) []ClaudeHookGroup {
+		return []ClaudeHookGroup{
+			{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: cmd}}},
+		}
+	}
 	settings := ClaudeSettings{
 		Hooks: map[string][]ClaudeHookGroup{
-			"PreToolUse": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook pre-tool-use"}}},
-			},
-			"PostToolUse": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook post-tool-use"}}},
-			},
-			"UserPromptSubmit": {
-				{Matcher: "", Hooks: []ClaudeHook{{Type: "command", Command: "lore hook prompt-submit"}}},
-			},
+			"PreToolUse":       loreHook("lore hook pre-tool-use"),
+			"PostToolUse":      loreHook("lore hook post-tool-use"),
+			"UserPromptSubmit": loreHook("lore hook prompt-submit"),
+			"SessionStart":     loreHook("lore hook session-start"),
+			"Stop":             loreHook("lore hook stop"),
+			"PreCompact":       loreHook("lore hook pre-compact"),
+			"SessionEnd":       loreHook("lore hook session-end"),
+			"SubagentStart":    loreHook("lore hook subagent-start"),
+			"SubagentStop":     loreHook("lore hook subagent-stop"),
 		},
 	}
 

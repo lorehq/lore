@@ -11,15 +11,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// AgenticFile represents a parsed AGENTIC file (rule, skill, or agent).
+// AgenticFile represents a parsed agentic content file (rule, skill, or agent).
 type AgenticFile struct {
-	Kind string // "rule", "skill", "agent"
-	Name string // derived from filename/dirname
-	Path string // source path on disk
+	Kind      string // "rule", "skill", "agent"
+	Name      string // derived from filename/dirname
+	Path      string // source path on disk
+	SourceDir string // for standard-layout skills: directory containing SKILL.md and supporting files
 
 	// Frontmatter fields (passthrough — each projector uses what it needs)
 	Description   string   `yaml:"description"`
-	Paths         []string `yaml:"paths"`          // rules: path/glob scoping
+	Globs         []string `yaml:"globs"`          // rules: path/glob scoping
 	Model         string   `yaml:"model"`          // agents: model preference
 	Tools         []string `yaml:"tools"`          // agents: tool allowlist
 	Skills        []string `yaml:"skills"`         // agents: declared skill dependencies
@@ -40,7 +41,7 @@ type MCPServer struct {
 	Env     map[string]string
 }
 
-// MergedSet holds the result of merging bundle + global + project AGENTIC content.
+// MergedSet holds the result of merging bundle + global + project content.
 // Rules, skills, and agents are independent peers — no ownership hierarchy.
 type MergedSet struct {
 	Rules  map[string]*AgenticFile
@@ -135,18 +136,25 @@ func activeBundleDirsFrom(projectDir string) []string {
 	return dirs
 }
 
-// bundleDirForSlug resolves a bundle slug to its home directory.
+// bundleDirForSlug resolves a bundle slug to its installed directory.
+// Checks XDG data path first, falls back to legacy ~/.<slug>/ for migration.
 func bundleDirForSlug(slug string) string {
 	if slug == "" {
 		return ""
 	}
+	// XDG path: ~/.local/share/lore/bundles/<slug>/
+	dir := filepath.Join(bundlesPath(), slug)
+	if _, err := os.Stat(dir); err == nil {
+		return dir
+	}
+	// Legacy path: ~/.<slug>/
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	dir := filepath.Join(home, "."+slug)
-	if _, err := os.Stat(dir); err == nil {
-		return dir
+	legacy := filepath.Join(home, "."+slug)
+	if _, err := os.Stat(legacy); err == nil {
+		return legacy
 	}
 	return ""
 }
@@ -173,25 +181,112 @@ func readBundleName(pkgDir string) string {
 	return name
 }
 
-// readBundleHookEvents reads hook event names from a bundle's manifest.json.
-// Returns sorted event names (e.g., ["post-tool-use", "pre-tool-use", "prompt-submit"]).
-func readBundleHookEvents(pkgDir string) []string {
+// readBundleHookEntries reads hook behaviors from a bundle's manifest.json.
+// Supports array format [{"name": "...", "script": "..."}] and legacy string format.
+// Returns entries sorted by event then name.
+func readBundleHookEntries(pkgDir string) []hookEntry {
 	data, err := os.ReadFile(filepath.Join(pkgDir, "manifest.json"))
 	if err != nil {
 		return nil
 	}
 	var manifest struct {
-		Hooks map[string]string `json:"hooks"`
+		Hooks map[string]json.RawMessage `json:"hooks"`
 	}
 	if json.Unmarshal(data, &manifest) != nil {
 		return nil
 	}
-	var events []string
-	for event := range manifest.Hooks {
-		events = append(events, event)
+	var entries []hookEntry
+	for event, raw := range manifest.Hooks {
+		// Try array of behavior objects
+		var behaviors []struct {
+			Name   string `json:"name"`
+			Script string `json:"script"`
+		}
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				entries = append(entries, hookEntry{event: event, name: b.Name})
+			}
+			continue
+		}
+		// Legacy: plain string — derive name from filename
+		var scriptPath string
+		if json.Unmarshal(raw, &scriptPath) == nil && scriptPath != "" {
+			base := filepath.Base(scriptPath)
+			entries = append(entries, hookEntry{event: event, name: strings.TrimSuffix(base, ".mjs")})
+		}
 	}
-	sort.Strings(events)
-	return events
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].event != entries[j].event {
+			return entries[i].event < entries[j].event
+		}
+		return entries[i].name < entries[j].name
+	})
+	return entries
+}
+
+// readHookEntriesFromDir scans a HOOKS directory for behavior scripts.
+// New layout: HOOKS/<event>/<name>.mjs. Legacy: HOOKS/<event>.mjs.
+// Returns entries sorted by event then name.
+func readHookEntriesFromDir(dir string) []hookEntry {
+	var entries []hookEntry
+	for _, event := range allHookEvents {
+		// New layout: HOOKS/<event>/*.mjs
+		eventDir := filepath.Join(dir, event)
+		if dirEntries, err := os.ReadDir(eventDir); err == nil {
+			for _, e := range dirEntries {
+				if e.IsDir() || !strings.HasSuffix(e.Name(), ".mjs") {
+					continue
+				}
+				name := strings.TrimSuffix(e.Name(), ".mjs")
+				entries = append(entries, hookEntry{event: event, name: name})
+			}
+			continue
+		}
+		// Legacy: HOOKS/<event>.mjs
+		p := filepath.Join(dir, event+".mjs")
+		if _, err := os.Stat(p); err == nil {
+			entries = append(entries, hookEntry{event: event, name: event})
+		}
+	}
+	return entries
+}
+
+// BundleTUIPage represents a TUI page declared by a bundle.
+type BundleTUIPage struct {
+	Name       string
+	Script     string // absolute path to script
+	BundleSlug string
+}
+
+// readBundleTUIPages reads TUI page declarations from all enabled bundle manifests.
+func readBundleTUIPages() []BundleTUIPage {
+	var pages []BundleTUIPage
+	for _, dir := range activeBundleDirs() {
+		data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+		if err != nil {
+			continue
+		}
+		var manifest struct {
+			Slug string `json:"slug"`
+			TUI  struct {
+				Pages []struct {
+					Name   string `json:"name"`
+					Script string `json:"script"`
+				} `json:"pages"`
+			} `json:"tui"`
+		}
+		if json.Unmarshal(data, &manifest) != nil {
+			continue
+		}
+		for _, p := range manifest.TUI.Pages {
+			pages = append(pages, BundleTUIPage{
+				Name:       p.Name,
+				Script:     filepath.Join(dir, p.Script),
+				BundleSlug: manifest.Slug,
+			})
+		}
+	}
+	return pages
 }
 
 // readMCPDir scans a directory for MCP server JSON declarations.
@@ -272,38 +367,20 @@ type BundleInfo struct {
 	Active  bool   // true if this is the currently active bundle
 }
 
-// discoverBundles scans the home directory for installed bundles.
-// A bundle is any ~/.<name>/ directory containing a valid manifest.json.
+// discoverBundles scans for installed bundles in XDG data path and legacy home dirs.
 func discoverBundles() []BundleInfo {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil
-	}
-
 	activeSlugs := make(map[string]bool)
 	for _, s := range readBundleSlugs() {
 		activeSlugs[s] = true
 	}
 
-	entries, err := os.ReadDir(home)
-	if err != nil {
-		return nil
-	}
-
+	seen := make(map[string]bool)
 	var bundles []BundleInfo
-	for _, e := range entries {
-		if !strings.HasPrefix(e.Name(), ".") {
-			continue
-		}
-		// Follow symlinks: e.IsDir() is false for symlinks, so stat the target
-		dir := filepath.Join(home, e.Name())
-		info, err := os.Stat(dir)
-		if err != nil || !info.IsDir() {
-			continue
-		}
+
+	addBundle := func(dir string) {
 		data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
 		if err != nil {
-			continue
+			return
 		}
 		var manifest struct {
 			Slug    string `json:"slug"`
@@ -311,8 +388,12 @@ func discoverBundles() []BundleInfo {
 			Version string `json:"version"`
 		}
 		if json.Unmarshal(data, &manifest) != nil || manifest.Slug == "" {
-			continue
+			return
 		}
+		if seen[manifest.Slug] {
+			return // XDG takes precedence over legacy
+		}
+		seen[manifest.Slug] = true
 		bundles = append(bundles, BundleInfo{
 			Slug:    manifest.Slug,
 			Name:    manifest.Name,
@@ -320,6 +401,37 @@ func discoverBundles() []BundleInfo {
 			Dir:     dir,
 			Active:  activeSlugs[manifest.Slug],
 		})
+	}
+
+	// XDG path: ~/.local/share/lore/bundles/*/
+	bp := bundlesPath()
+	if entries, err := os.ReadDir(bp); err == nil {
+		for _, e := range entries {
+			dir := filepath.Join(bp, e.Name())
+			info, err := os.Stat(dir)
+			if err != nil || !info.IsDir() {
+				continue
+			}
+			addBundle(dir)
+		}
+	}
+
+	// Legacy path: ~/.<name>/ (for migration)
+	home, _ := os.UserHomeDir()
+	if home != "" {
+		if entries, err := os.ReadDir(home); err == nil {
+			for _, e := range entries {
+				if !strings.HasPrefix(e.Name(), ".") {
+					continue
+				}
+				dir := filepath.Join(home, e.Name())
+				info, err := os.Stat(dir)
+				if err != nil || !info.IsDir() {
+					continue
+				}
+				addBundle(dir)
+			}
+		}
 	}
 
 	sort.Slice(bundles, func(i, j int) bool {
@@ -352,36 +464,27 @@ func scanAgenticDir(baseDir string) (rules, skills, agents map[string]*AgenticFi
 		}
 	}
 
-	// Skills: baseDir/SKILLS/<name>/SKILL.md (standard layout)
-	// Also check: baseDir/SKILLS/<name>.md (flat layout)
+	// Skills: baseDir/SKILLS/<name>/SKILL.md (directory layout only)
 	skillsDir := filepath.Join(baseDir, "SKILLS")
 	if entries, e := os.ReadDir(skillsDir); e == nil {
 		for _, entry := range entries {
-			if entry.IsDir() {
-				// Standard: SKILLS/<name>/SKILL.md
-				skillFile := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
-				if _, e := os.Stat(skillFile); e != nil {
-					continue
-				}
-				name := entry.Name()
-				af, e := parseAgenticFile(skillFile, "skill")
-				if e != nil {
-					fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
-					continue
-				}
-				af.Name = name
-				skills[name] = af
-			} else if strings.HasSuffix(entry.Name(), ".md") {
-				// Flat: SKILLS/<name>.md
-				name := strings.TrimSuffix(entry.Name(), ".md")
-				af, e := parseAgenticFile(filepath.Join(skillsDir, entry.Name()), "skill")
-				if e != nil {
-					fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
-					continue
-				}
-				af.Name = name
-				skills[name] = af
+			if !entry.IsDir() {
+				continue
 			}
+			skillDir := filepath.Join(skillsDir, entry.Name())
+			skillFile := filepath.Join(skillDir, "SKILL.md")
+			if _, e := os.Stat(skillFile); e != nil {
+				continue
+			}
+			name := entry.Name()
+			af, e := parseAgenticFile(skillFile, "skill")
+			if e != nil {
+				fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
+				continue
+			}
+			af.Name = name
+			af.SourceDir = skillDir
+			skills[name] = af
 		}
 	}
 
@@ -436,12 +539,14 @@ func readLoreMD(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
-// mergeAgenticSets merges four layers of AGENTIC content:
+// mergeAgenticSets merges four layers of content:
 //  1. Bundle (lowest) — defaults from the active bundle
-//  2. Global (~/.config/lore/AGENTIC/) — operator preferences
-//  3. Project (.lore/AGENTIC/) — project overrides
+//  2. Global (~/.config/lore/) — operator preferences
+//  3. Project (.lore/) — project overrides
 //  4. Harness (highest) — binary-managed, clobbers everything
 //
+// globalDir is the global config directory (~/.config/lore/).
+// projectDir is the project lore directory (<root>/.lore/).
 // LORE.md is accumulated from all layers (bundle → global → project).
 // Rules, skills, and agents use inherit.json policies with source-dependent
 // defaults: bundle items default to "defer", global items default to "off".
@@ -453,37 +558,34 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Read inheritance config (.lore/inherit.json).
-	projectRoot := filepath.Dir(filepath.Dir(projectDir))
+	projectRoot := filepath.Dir(projectDir)
 	inheritCfg := readInheritConfig(projectRoot)
 
-	nonce := readOrCreateNonce(filepath.Dir(projectDir))
+	nonce := readOrCreateNonce(projectRoot)
 
 	// Accumulate LORE.md from all layers (bundle → global → project)
 	var loreParts []string
 
-	// Harness AGENTIC is injected after all layers merge (see below).
+	// Harness content is injected after all layers merge (see below).
 
-	// Layer 1 (lowest): Bundle AGENTIC — all enabled bundles in priority order.
+	// Layer 1 (lowest): Bundle content — all enabled bundles in priority order.
 	// Later bundles override earlier ones for same-named items.
 	for _, pkgDir := range activeBundleDirs() {
-		pkgAgenticDir := filepath.Join(pkgDir, "AGENTIC")
-		if _, err := os.Stat(pkgAgenticDir); err == nil {
-			pkgRules, pkgSkills, pkgAgents, err := scanAgenticDir(pkgAgenticDir)
-			if err == nil {
-				for k, v := range pkgRules {
-					if p := getPolicy(inheritCfg, "rules", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Rules[k] = v
-					}
+		pkgRules, pkgSkills, pkgAgents, err := scanAgenticDir(pkgDir)
+		if err == nil {
+			for k, v := range pkgRules {
+				if p := getPolicy(inheritCfg, "rules", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Rules[k] = v
 				}
-				for k, v := range pkgSkills {
-					if p := getPolicy(inheritCfg, "skills", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Skills[k] = v
-					}
+			}
+			for k, v := range pkgSkills {
+				if p := getPolicy(inheritCfg, "skills", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Skills[k] = v
 				}
-				for k, v := range pkgAgents {
-					if p := getPolicy(inheritCfg, "agents", k, "defer"); p == "defer" || p == "overwrite" {
-						ms.Agents[k] = v
-					}
+			}
+			for k, v := range pkgAgents {
+				if p := getPolicy(inheritCfg, "agents", k, "defer"); p == "defer" || p == "overwrite" {
+					ms.Agents[k] = v
 				}
 			}
 		}
@@ -499,11 +601,11 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 		}
 	}
 
-	// Layer 2: Global AGENTIC — default policy "off"
+	// Layer 2: Global content — default policy "off"
 	if _, err := os.Stat(globalDir); err == nil {
 		rules, skills, agents, err := scanAgenticDir(globalDir)
 		if err != nil {
-			return nil, fmt.Errorf("scan global AGENTIC: %w", err)
+			return nil, fmt.Errorf("scan global content: %w", err)
 		}
 		for k, v := range rules {
 			if p := getPolicy(inheritCfg, "rules", k, "off"); p == "defer" || p == "overwrite" {
@@ -523,16 +625,16 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Global LORE.md
-	if content := readLoreMD(filepath.Join(filepath.Dir(globalDir), "LORE.md")); content != "" {
+	if content := readLoreMD(filepath.Join(globalDir, "LORE.md")); content != "" {
 		loreParts = append(loreParts, "# Global\n\n"+content)
 	}
 
-	// Layer 3 (highest): Project AGENTIC — always included,
+	// Layer 3 (highest): Project content — always included,
 	// except when a bundle/global item has "overwrite" policy.
 	if _, err := os.Stat(projectDir); err == nil {
 		rules, skills, agents, err := scanAgenticDir(projectDir)
 		if err != nil {
-			return nil, fmt.Errorf("scan project AGENTIC: %w", err)
+			return nil, fmt.Errorf("scan project content: %w", err)
 		}
 		for k, v := range rules {
 			if getPolicy(inheritCfg, "rules", k, "off") == "overwrite" {
@@ -555,7 +657,7 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	}
 
 	// Project LORE.md
-	if content := readLoreMD(filepath.Join(filepath.Dir(projectDir), "LORE.md")); content != "" {
+	if content := readLoreMD(filepath.Join(projectDir, "LORE.md")); content != "" {
 		loreParts = append(loreParts, "# Project\n\n"+content)
 	}
 
@@ -570,16 +672,16 @@ func mergeAgenticSets(globalDir, projectDir string) (*MergedSet, error) {
 	for _, s := range readMCPDir(filepath.Join(globalPath(), "MCP")) {
 		mcpMap[s.Name] = s
 	}
-	for _, s := range readMCPDir(filepath.Join(projectRoot, ".lore", "MCP")) {
+	for _, s := range readMCPDir(filepath.Join(projectDir, "MCP")) {
 		mcpMap[s.Name] = s
 	}
 	ms.MCP = sortedMCP(mcpMap)
 
-	// Harness AGENTIC — injected last, clobbers everything.
+	// Harness content — injected last, clobbers everything.
 	// Binary-managed content that no other layer can override.
-	harnessAgenticDir := filepath.Join(filepath.Dir(globalDir), ".harness", "AGENTIC")
-	if _, err := os.Stat(harnessAgenticDir); err == nil {
-		hRules, hSkills, hAgents, _ := scanAgenticDir(harnessAgenticDir)
+	harnessDir := filepath.Join(globalDir, ".harness")
+	if _, err := os.Stat(harnessDir); err == nil {
+		hRules, hSkills, hAgents, _ := scanAgenticDir(harnessDir)
 		for k, v := range hRules {
 			ms.Rules[k] = v
 		}

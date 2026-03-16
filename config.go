@@ -31,80 +31,121 @@ func readProjectConfig() (platforms map[string]bool, err error) {
 	return platforms, nil
 }
 
-// --- Hook paths (dispatcher model) ---
+// --- Hook scripts (dispatcher model) ---
 
-// HookPaths maps hook event names to file paths of Node.js scripts.
-// The binary invokes the script and forwards stdin/stdout.
-// All decision logic lives in the scripts.
-type HookPaths struct {
-	PreToolUse   string `json:"pre-tool-use,omitempty"`
-	PostToolUse  string `json:"post-tool-use,omitempty"`
-	PromptSubmit string `json:"prompt-submit,omitempty"`
+// HookScripts maps hook event names to accumulated script paths.
+// All scripts for an event run in parallel. Blocking events (pre-tool-use,
+// prompt-submit, stop) fail if any script returns non-zero.
+type HookScripts struct {
+	scripts map[string][]string // event name → ordered list of script paths
 }
 
-// readHookPaths derives hook script paths from all enabled bundles.
-// Iterates bundles in priority order; higher-priority bundles override
-// lower-priority ones per event. Returns empty HookPaths if no bundles enabled.
-func readHookPaths() HookPaths {
-	slugs := readBundleSlugs()
-	var hp HookPaths
-	for _, slug := range slugs {
-		next := hookPathsForSlug(slug)
-		if next.PreToolUse != "" {
-			hp.PreToolUse = next.PreToolUse
+// allHookEvents lists every canonical hook event name.
+var allHookEvents = []string{
+	"pre-tool-use", "post-tool-use", "prompt-submit",
+	"session-start", "stop", "pre-compact", "session-end",
+	"subagent-start", "subagent-stop",
+}
+
+// blockingEvents are hook events where a non-zero exit blocks the action.
+var blockingEvents = map[string]bool{
+	"pre-tool-use":  true,
+	"prompt-submit": true,
+	"stop":          true,
+	"subagent-stop": true,
+}
+
+// readHookScripts resolves hook scripts using three-layer accumulation:
+//
+//	Bundle(s) → Global → Project
+//
+// All layers contribute scripts. They all run in parallel at dispatch time.
+func readHookScripts() HookScripts {
+	hs := HookScripts{scripts: make(map[string][]string)}
+
+	// Layer 1: Bundles (in priority order)
+	for _, slug := range readBundleSlugs() {
+		hs.appendFromBundle(slug)
+	}
+
+	// Layer 2: Global — ~/.config/lore/HOOKS/<event>.mjs
+	hs.appendFromDir(filepath.Join(globalPath(), "HOOKS"))
+
+	// Layer 3: Project — .lore/HOOKS/<event>.mjs
+	hs.appendFromDir(filepath.Join(".lore", "HOOKS"))
+
+	return hs
+}
+
+// ScriptsFor returns all script paths for a given event, or nil.
+func (hs HookScripts) ScriptsFor(event string) []string {
+	return hs.scripts[event]
+}
+
+// appendFromDir scans a HOOKS directory for behavior scripts.
+// New layout: HOOKS/<event>/<name>.mjs (directory per event, file per behavior).
+// Legacy layout: HOOKS/<event>.mjs (single file per event) — still supported.
+func (hs *HookScripts) appendFromDir(dir string) {
+	for _, event := range allHookEvents {
+		// New layout: HOOKS/<event>/*.mjs
+		eventDir := filepath.Join(dir, event)
+		if entries, err := os.ReadDir(eventDir); err == nil {
+			for _, e := range entries {
+				if e.IsDir() || !strings.HasSuffix(e.Name(), ".mjs") {
+					continue
+				}
+				absPath, _ := filepath.Abs(filepath.Join(eventDir, e.Name()))
+				hs.scripts[event] = append(hs.scripts[event], absPath)
+			}
+			continue
 		}
-		if next.PostToolUse != "" {
-			hp.PostToolUse = next.PostToolUse
-		}
-		if next.PromptSubmit != "" {
-			hp.PromptSubmit = next.PromptSubmit
+		// Legacy layout: HOOKS/<event>.mjs
+		p := filepath.Join(dir, event+".mjs")
+		if _, err := os.Stat(p); err == nil {
+			absPath, _ := filepath.Abs(p)
+			hs.scripts[event] = append(hs.scripts[event], absPath)
 		}
 	}
-	return hp
 }
 
-// hookPathsForSlug resolves hook script paths from a bundle's manifest.
-func hookPathsForSlug(slug string) HookPaths {
+// appendFromBundle reads hook behavior paths from a bundle's manifest.
+// Supports array format: [{"name": "...", "script": "..."}]
+// and legacy string format: "SCRIPTS/foo.mjs"
+func (hs *HookScripts) appendFromBundle(slug string) {
 	bundleDir := bundleDirForSlug(slug)
 	if bundleDir == "" {
-		return HookPaths{}
+		return
 	}
 	data, err := os.ReadFile(filepath.Join(bundleDir, "manifest.json"))
 	if err != nil {
-		return HookPaths{}
+		return
 	}
 	var manifest struct {
-		Hooks map[string]string `json:"hooks"`
+		Hooks map[string]json.RawMessage `json:"hooks"`
 	}
 	if json.Unmarshal(data, &manifest) != nil {
-		return HookPaths{}
+		return
 	}
-	var hp HookPaths
-	for event, relPath := range manifest.Hooks {
-		absPath := filepath.Join(bundleDir, relPath)
-		switch event {
-		case "pre-tool-use":
-			hp.PreToolUse = absPath
-		case "post-tool-use":
-			hp.PostToolUse = absPath
-		case "prompt-submit":
-			hp.PromptSubmit = absPath
+	for event, raw := range manifest.Hooks {
+		// Try array of behavior objects
+		var behaviors []struct {
+			Script string `json:"script"`
 		}
-	}
-	return hp
-}
-
-// PathFor returns the file path for a given hook event name, or empty string.
-func (hp HookPaths) PathFor(event string) string {
-	switch event {
-	case "pre-tool-use":
-		return hp.PreToolUse
-	case "post-tool-use":
-		return hp.PostToolUse
-	case "prompt-submit":
-		return hp.PromptSubmit
-	default:
-		return ""
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				if b.Script != "" {
+					absPath := filepath.Join(bundleDir, b.Script)
+					hs.scripts[event] = append(hs.scripts[event], absPath)
+				}
+			}
+			continue
+		}
+		// Legacy: plain string
+		var scriptPath string
+		if json.Unmarshal(raw, &scriptPath) == nil && scriptPath != "" {
+			absPath := filepath.Join(bundleDir, scriptPath)
+			hs.scripts[event] = append(hs.scripts[event], absPath)
+		}
 	}
 }
 
@@ -283,7 +324,7 @@ func writeInheritConfig(projectDir string, config map[string]map[string]string) 
 // The new bundle is added at the end (highest priority).
 func enableBundle(projectDir, slug string) error {
 	if bundleDirForSlug(slug) == "" {
-		return fmt.Errorf("bundle '%s' not found at ~/.%s/", slug, slug)
+		return fmt.Errorf("bundle '%s' is not installed", slug)
 	}
 
 	configPath := filepath.Join(projectDir, ".lore", "config.json")

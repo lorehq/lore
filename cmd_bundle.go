@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const defaultRegistryURL = "https://raw.githubusercontent.com/lorehq/lore-registry/main/registry.json"
+const defaultRegistryURL = "https://raw.githubusercontent.com/lorehq/lore-bundles-registry/main/registry.json"
 const registryCacheTTL = 24 * time.Hour
 
 // RegistryEntry represents a bundle listed in the registry.
@@ -21,6 +21,7 @@ type RegistryEntry struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Repo        string   `json:"repo"`
+	Source      string   `json:"source,omitempty"` // original creator's repo URL
 	Author      string   `json:"author"`
 	Tags        []string `json:"tags"`
 }
@@ -38,12 +39,18 @@ type BundleManifest struct {
 	Name            string            `json:"name"`
 	Version         string            `json:"version"`
 	Description     string            `json:"description"`
-	Hooks           map[string]string `json:"hooks"`
+	Hooks           map[string]json.RawMessage `json:"hooks"`
 	Agentic         string            `json:"agentic"`
 	MCP             map[string]struct {
 		Command string   `json:"command"`
 		Args    []string `json:"args"`
 	} `json:"mcp"`
+	TUI struct {
+		Pages []struct {
+			Name   string `json:"name"`
+			Script string `json:"script"`
+		} `json:"pages"`
+	} `json:"tui"`
 	Setup    string `json:"setup"`
 	Teardown string `json:"teardown"`
 }
@@ -82,6 +89,40 @@ func cmdBundle(args []string) {
 
 // --- install ---
 
+// installBundleFromRepo clones a bundle from a git URL into the XDG bundles directory.
+// Used by both CLI (cmdBundleInstall) and TUI marketplace.
+func installBundleFromRepo(slug, repoURL string) error {
+	if existing := bundleDirForSlug(slug); existing != "" {
+		return fmt.Errorf("bundle '%s' is already installed at %s", slug, existing)
+	}
+
+	bp := bundlesPath()
+	os.MkdirAll(bp, 0755)
+	bundleDir := filepath.Join(bp, slug)
+
+	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, bundleDir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("clone failed: %v\n%s", err, out)
+	}
+
+	manifest, err := readAndValidateManifest(bundleDir)
+	if err != nil {
+		os.RemoveAll(bundleDir)
+		return fmt.Errorf("invalid manifest (rolled back): %v", err)
+	}
+
+	if manifest.Setup != "" {
+		setupPath := filepath.Join(bundleDir, manifest.Setup)
+		if _, err := os.Stat(setupPath); err == nil {
+			setup := exec.Command("node", setupPath, bundleDir)
+			setup.CombinedOutput() // non-fatal
+		}
+	}
+
+	return nil
+}
+
+
 func cmdBundleInstall(args []string) {
 	var slug, url string
 
@@ -107,11 +148,6 @@ func cmdBundleInstall(args []string) {
 		fatal("Usage: lore bundle install <slug> [--url <git-url>]")
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fatal("Cannot determine home directory: %v", err)
-	}
-
 	// Derive slug from URL if only --url was given
 	if slug == "" && url != "" {
 		slug = slugFromURL(url)
@@ -122,13 +158,12 @@ func cmdBundleInstall(args []string) {
 
 	// Guard: already installed (check before network)
 	if slug != "" {
-		bundleDir := filepath.Join(home, "."+slug)
-		if _, err := os.Stat(bundleDir); err == nil {
-			fatal("Bundle '%s' is already installed at %s\nUse 'lore bundle update %s' to update.", slug, bundleDir, slug)
+		if existing := bundleDirForSlug(slug); existing != "" {
+			fatal("Bundle '%s' is already installed at %s\nUse 'lore bundle update %s' to update.", slug, existing, slug)
 		}
 	}
 
-	// Resolve repo URL from registry if not provided directly
+	// Resolve repo URL from registry
 	if url == "" {
 		entry := registryLookup(slug)
 		if entry == nil {
@@ -137,43 +172,18 @@ func cmdBundleInstall(args []string) {
 		url = entry.Repo
 	}
 
-	bundleDir := filepath.Join(home, "."+slug)
-
-	// Clone
 	fmt.Printf("Installing %s...\n", slug)
-	cmd := exec.Command("git", "clone", "--depth", "1", url, bundleDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fatal("Clone failed: %v", err)
+	if err := installBundleFromRepo(slug, url); err != nil {
+		fatal(err.Error())
 	}
 
-	// Validate manifest
-	manifest, err := readAndValidateManifest(bundleDir)
-	if err != nil {
-		os.RemoveAll(bundleDir)
-		fatal("Invalid manifest (rolled back): %v", err)
-	}
-
-	// Run setup script if declared
-	if manifest.Setup != "" {
-		setupPath := filepath.Join(bundleDir, manifest.Setup)
-		if _, err := os.Stat(setupPath); err == nil {
-			fmt.Println("Running setup...")
-			setup := exec.Command("node", setupPath, bundleDir)
-			setup.Stdout = os.Stdout
-			setup.Stderr = os.Stderr
-			if err := setup.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: setup script failed: %v\n", err)
-			}
+	name := slug
+	if dir := bundleDirForSlug(slug); dir != "" {
+		if n := readBundleName(dir); n != "" {
+			name = n
 		}
 	}
-
-	name := manifest.Name
-	if name == "" {
-		name = slug
-	}
-	fmt.Printf("Installed %s (%s) at %s\n", name, manifest.Version, bundleDir)
+	fmt.Printf("Installed %s at %s\n", name, bundleDirForSlug(slug))
 }
 
 // --- list ---
@@ -248,14 +258,49 @@ func cmdBundleEnable(args []string) {
 	}
 
 	name := slug
-	home, _ := os.UserHomeDir()
-	if n := readBundleName(filepath.Join(home, "."+slug)); n != "" {
-		name = n
+	if dir := bundleDirForSlug(slug); dir != "" {
+		if n := readBundleName(dir); n != "" {
+			name = n
+		}
 	}
 	fmt.Printf("Enabled %s. Run 'lore generate' to apply.\n", name)
 }
 
 // --- update ---
+
+// updateBundleInPlace fetches and resets a bundle to the latest remote HEAD.
+// Used by both CLI (cmdBundleUpdate) and TUI marketplace.
+func updateBundleInPlace(slug string) error {
+	bundleDir := bundleDirForSlug(slug)
+	if bundleDir == "" {
+		return fmt.Errorf("bundle '%s' is not installed", slug)
+	}
+
+	fetch := exec.Command("git", "-C", bundleDir, "fetch", "origin")
+	if out, err := fetch.CombinedOutput(); err != nil {
+		return fmt.Errorf("fetch failed: %v\n%s", err, out)
+	}
+
+	reset := exec.Command("git", "-C", bundleDir, "reset", "--hard", "origin/main")
+	if out, err := reset.CombinedOutput(); err != nil {
+		return fmt.Errorf("update failed: %v\n%s", err, out)
+	}
+
+	manifest, err := readAndValidateManifest(bundleDir)
+	if err != nil {
+		return fmt.Errorf("manifest invalid after update: %v", err)
+	}
+
+	if manifest.Setup != "" {
+		setupPath := filepath.Join(bundleDir, manifest.Setup)
+		if _, err := os.Stat(setupPath); err == nil {
+			setup := exec.Command("node", setupPath, bundleDir)
+			setup.CombinedOutput() // non-fatal
+		}
+	}
+
+	return nil
+}
 
 func cmdBundleUpdate(args []string) {
 	for _, a := range args {
@@ -276,56 +321,42 @@ func cmdBundleUpdate(args []string) {
 		slug = slugs[len(slugs)-1] // highest priority
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fatal("Cannot determine home directory: %v", err)
-	}
-
-	bundleDir := filepath.Join(home, "."+slug)
-	if _, err := os.Stat(bundleDir); err != nil {
-		fatal("Bundle '%s' is not installed at %s", slug, bundleDir)
-	}
-
 	fmt.Printf("Updating %s...\n", slug)
-	fetch := exec.Command("git", "-C", bundleDir, "fetch", "origin")
-	fetch.Stdout = os.Stdout
-	fetch.Stderr = os.Stderr
-	if err := fetch.Run(); err != nil {
-		fatal("Fetch failed: %v", err)
-	}
-	reset := exec.Command("git", "-C", bundleDir, "reset", "--hard", "origin/main")
-	reset.Stdout = os.Stdout
-	reset.Stderr = os.Stderr
-	if err := reset.Run(); err != nil {
-		fatal("Update failed: %v\nResolve manually in %s", err, bundleDir)
+	if err := updateBundleInPlace(slug); err != nil {
+		fatal(err.Error())
 	}
 
-	// Re-validate manifest
-	manifest, err := readAndValidateManifest(bundleDir)
-	if err != nil {
-		fatal("Manifest invalid after update: %v", err)
-	}
-
-	// Re-run setup if declared (must be idempotent)
-	if manifest.Setup != "" {
-		setupPath := filepath.Join(bundleDir, manifest.Setup)
-		if _, err := os.Stat(setupPath); err == nil {
-			fmt.Println("Running setup...")
-			setup := exec.Command("node", setupPath, bundleDir)
-			setup.Stdout = os.Stdout
-			setup.Stderr = os.Stderr
-			if err := setup.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: setup script failed: %v\n", err)
-			}
+	name := slug
+	if dir := bundleDirForSlug(slug); dir != "" {
+		if n := readBundleName(dir); n != "" {
+			name = n
 		}
 	}
-
-	// Hook paths are derived at runtime from manifest, no refresh needed.
-
-	fmt.Printf("Updated %s to %s\n", slug, manifest.Version)
+	fmt.Printf("Updated %s\n", name)
 }
 
 // --- remove ---
+
+// removeBundleFromDisk deletes a bundle's directory. Does NOT check project enablement.
+// Used by both CLI (cmdBundleRemove) and TUI marketplace.
+func removeBundleFromDisk(slug string) error {
+	bundleDir := bundleDirForSlug(slug)
+	if bundleDir == "" {
+		return fmt.Errorf("bundle '%s' is not installed", slug)
+	}
+
+	// Run teardown if declared
+	manifest, _ := readAndValidateManifest(bundleDir)
+	if manifest != nil && manifest.Teardown != "" {
+		teardownPath := filepath.Join(bundleDir, manifest.Teardown)
+		if _, err := os.Stat(teardownPath); err == nil {
+			td := exec.Command("node", teardownPath, bundleDir)
+			td.CombinedOutput() // non-fatal
+		}
+	}
+
+	return os.RemoveAll(bundleDir)
+}
 
 func cmdBundleRemove(args []string) {
 	var force bool
@@ -356,14 +387,9 @@ func cmdBundleRemove(args []string) {
 		}
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fatal("Cannot determine home directory: %v", err)
-	}
-
-	bundleDir := filepath.Join(home, "."+slug)
-	if _, err := os.Stat(bundleDir); err != nil {
-		fatal("Bundle '%s' is not installed at %s", slug, bundleDir)
+	bundleDir := bundleDirForSlug(slug)
+	if bundleDir == "" {
+		fatal("Bundle '%s' is not installed", slug)
 	}
 
 	if !force {
@@ -376,23 +402,8 @@ func cmdBundleRemove(args []string) {
 		}
 	}
 
-	// Run teardown if declared
-	manifest, _ := readAndValidateManifest(bundleDir)
-	if manifest != nil && manifest.Teardown != "" {
-		teardownPath := filepath.Join(bundleDir, manifest.Teardown)
-		if _, err := os.Stat(teardownPath); err == nil {
-			fmt.Println("Running teardown...")
-			td := exec.Command("node", teardownPath, bundleDir)
-			td.Stdout = os.Stdout
-			td.Stderr = os.Stderr
-			if err := td.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: teardown script failed: %v\n", err)
-			}
-		}
-	}
-
-	if err := os.RemoveAll(bundleDir); err != nil {
-		fatal("Failed to remove %s: %v", bundleDir, err)
+	if err := removeBundleFromDisk(slug); err != nil {
+		fatal(err.Error())
 	}
 
 	fmt.Printf("Removed %s\n", slug)
@@ -407,12 +418,10 @@ func cmdBundleInfo(args []string) {
 	}
 
 	slug := args[0]
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fatal("Cannot determine home directory: %v", err)
+	bundleDir := bundleDirForSlug(slug)
+	if bundleDir == "" {
+		fatal("Bundle '%s' is not installed", slug)
 	}
-
-	bundleDir := filepath.Join(home, "."+slug)
 	manifest, err := readAndValidateManifest(bundleDir)
 	if err != nil {
 		fatal("Cannot read bundle '%s': %v", slug, err)
@@ -436,9 +445,12 @@ func cmdBundleInfo(args []string) {
 	fmt.Printf("Directory:   %s\n", bundleDir)
 
 	// Count agentic content
+	agenticDir := bundleDir
 	if manifest.Agentic != "" {
-		agenticDir := filepath.Join(bundleDir, manifest.Agentic)
-		rules, skills, agents, _ := scanAgenticDir(agenticDir)
+		agenticDir = filepath.Join(bundleDir, manifest.Agentic)
+	}
+	rules, skills, agents, _ := scanAgenticDir(agenticDir)
+	if len(rules) > 0 || len(skills) > 0 || len(agents) > 0 {
 		fmt.Printf("Agentic:     %d rules, %d skills, %d agents\n", len(rules), len(skills), len(agents))
 	}
 
@@ -610,17 +622,30 @@ func readAndValidateManifest(bundleDir string) (*BundleManifest, error) {
 	if m.Version == "" {
 		return nil, fmt.Errorf("manifest missing required field: version")
 	}
-	if len(m.Hooks) == 0 {
-		return nil, fmt.Errorf("manifest missing required field: hooks")
-	}
-
 	// Validate hook paths: must be relative, no path traversal
-	for event, path := range m.Hooks {
-		if filepath.IsAbs(path) {
-			return nil, fmt.Errorf("hook '%s' path must be relative: %s", event, path)
+	for event, raw := range m.Hooks {
+		// Collect script paths from both formats
+		var paths []string
+		var behaviors []struct {
+			Script string `json:"script"`
 		}
-		if strings.Contains(path, "..") {
-			return nil, fmt.Errorf("hook '%s' path must not contain '..': %s", event, path)
+		if json.Unmarshal(raw, &behaviors) == nil && len(behaviors) > 0 {
+			for _, b := range behaviors {
+				paths = append(paths, b.Script)
+			}
+		} else {
+			var single string
+			if json.Unmarshal(raw, &single) == nil && single != "" {
+				paths = append(paths, single)
+			}
+		}
+		for _, path := range paths {
+			if filepath.IsAbs(path) {
+				return nil, fmt.Errorf("hook '%s' path must be relative: %s", event, path)
+			}
+			if strings.Contains(path, "..") {
+				return nil, fmt.Errorf("hook '%s' path must not contain '..': %s", event, path)
+			}
 		}
 	}
 

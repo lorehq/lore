@@ -1,8 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -25,13 +31,12 @@ var (
 	btnPrimary = lipgloss.NewStyle().
 			Reverse(true).
 			Bold(true).
-			Padding(0, 3)
+			Padding(0, 2)
 	btnSecondary = lipgloss.NewStyle().
-			Reverse(true).
-			Padding(0, 3)
+			Padding(0, 2)
 	btnDisabled = lipgloss.NewStyle().
 			Faint(true).
-			Padding(0, 3)
+			Padding(0, 2)
 
 	// Semantic colors for projection tree
 	greenStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
@@ -61,11 +66,57 @@ const (
 type tabID int
 
 const (
-	tabProjection tabID = iota
-	// future: tabSettings, tabMarketplace, etc.
+	tabProjection  tabID = iota
+	tabExplore
 )
 
-// projItem represents an item in the catalog or project AGENTIC listing.
+type exploreSubTab int
+
+const (
+	exploreSubBundles  exploreSubTab = iota
+	exploreSubSkillsSh               // skills.sh
+	exploreSubSkillsMP               // SkillsMP (placeholder)
+)
+
+// skillsResult represents a skill from the skills.sh search API.
+type skillsResult struct {
+	ID       string `json:"id"`
+	SkillID  string `json:"skillId"`
+	Name     string `json:"name"`
+	Installs int    `json:"installs"`
+	Source   string `json:"source"`
+}
+
+type skillsSearchMsg struct {
+	results []skillsResult
+	err     error
+}
+
+type skillsImportDoneMsg struct {
+	skill string
+	err   error
+}
+
+// skillsMPResult represents a skill from the SkillsMP search API.
+type skillsMPResult struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Author      string `json:"author"`
+	Stars       int    `json:"stars"`
+	SkillURL    string `json:"skillUrl"`
+	GithubURL   string `json:"githubUrl"`
+}
+
+type skillsMPSearchMsg struct {
+	results []skillsMPResult
+	err     error
+}
+
+type skillsMPKeySavedMsg struct {
+	err error
+}
+
+// projItem represents an item in the catalog or project content listing.
 type projItem struct {
 	kind     string   // "rule", "skill", "agent"
 	name     string
@@ -73,19 +124,137 @@ type projItem struct {
 	skills   []string // agents only: declared skill deps
 	source   string   // "bundle", "global" (catalog items only)
 	bundleSlug string   // which bundle this item came from (bundle items only)
+	// Skills only: file counts in supporting subdirectories
+	numReferences int
+	numAssets     int
+	numScripts    int
+}
+
+// countSkillResources counts files in a skill directory's supporting subdirs.
+func countSkillResources(sourceDir string) (refs, assets, scripts int) {
+	for _, sub := range []struct {
+		name string
+		ptr  *int
+	}{
+		{"references", &refs},
+		{"assets", &assets},
+		{"scripts", &scripts},
+	} {
+		dir := filepath.Join(sourceDir, sub.name)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() {
+				*sub.ptr++
+			}
+		}
+	}
+	return
+}
+
+// skillResourceBadge returns a dimmed summary like "2 refs, 1 asset" or "".
+func skillResourceBadge(refs, assets, scripts int) string {
+	if refs == 0 && assets == 0 && scripts == 0 {
+		return ""
+	}
+	var parts []string
+	if refs > 0 {
+		parts = append(parts, fmt.Sprintf("%d ref", refs))
+		if refs > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	if assets > 0 {
+		parts = append(parts, fmt.Sprintf("%d asset", assets))
+		if assets > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	if scripts > 0 {
+		parts = append(parts, fmt.Sprintf("%d script", scripts))
+		if scripts > 1 {
+			parts[len(parts)-1] += "s"
+		}
+	}
+	return strings.Join(parts, ", ")
+}
+
+// hookEntry pairs an event name with a behavior name.
+type hookEntry struct {
+	event string // e.g. "prompt-submit"
+	name  string // behavior name e.g. "Ambiguity Nudge"
+}
+
+// composedItem represents a rule/skill/agent in the final merged result with provenance.
+type composedItem struct {
+	name     string
+	source   string // "bundle", "global", "project", "harness"
+	conflict bool   // true if same name exists at multiple layers
+}
+
+// composedHookItem represents a hook behavior in the composed result.
+type composedHookItem struct {
+	event  string
+	name   string
+	source string // "bundle", "global", "project"
+}
+
+// composedMCPItem represents an MCP server in the composed result.
+type composedMCPItem struct {
+	name     string
+	source   string // "bundle", "global", "project"
+	conflict bool   // true if overridden from another layer
 }
 
 type bundleGroup struct {
 	slug          string
 	name          string
+	dir           string  // absolute path to installed bundle directory
 	collapsed     bool
 	kindCollapsed [3]bool // rules/skills/agents collapsed within this bundle
 	hasLoreMD     bool
-	hookEvents     []string // hook event names from manifest.json
-	hooksCollapsed bool     // HOOKS list collapsed
-	mcpServers     []string // MCP server names from this bundle's MCP/ dir
-	mcpCollapsed   bool     // MCP list collapsed
+	hookEntries    []hookEntry // hook event → script pairs from manifest.json
+	hooksCollapsed bool        // HOOKS list collapsed
+	mcpServers     []string    // MCP server names from this bundle's MCP/ dir
+	mcpCollapsed   bool        // MCP list collapsed
 	items          []projItem
+}
+
+// ── Bundle TUI Pages ────────────────────────────────────────────────
+
+type bundlePage struct {
+	name       string
+	script     string // absolute path
+	bundleSlug string
+	tabID      tabID
+}
+
+type bundlePageSubtab struct {
+	Name     string             `json:"name"`
+	Badge    string             `json:"badge"`
+	Sections []bundlePageSection `json:"sections"`
+}
+
+type bundlePageOutput struct {
+	Subtabs  []bundlePageSubtab  `json:"subtabs"`
+	Sections []bundlePageSection `json:"sections"`
+	Status   string              `json:"status"`
+}
+
+type bundlePageSection struct {
+	Name      string           `json:"name"`
+	Badge     string           `json:"badge"`
+	Collapsed bool             `json:"collapsed"`
+	Items     []bundlePageItem `json:"items"`
+}
+
+type bundlePageItem struct {
+	Label  string `json:"label"`
+	Detail string `json:"detail"`
+	Path   string `json:"path"`
+	Badge  string `json:"badge"`
 }
 
 // ── Messages ────────────────────────────────────────────────────────
@@ -100,6 +269,42 @@ type genDoneMsg struct {
 	fileCount    int
 	cleanedCount int
 	err          error
+}
+type bundlePageLoadedMsg struct {
+	tabID  tabID
+	output *bundlePageOutput
+	err    error
+}
+
+type marketplaceItem struct {
+	slug        string
+	name        string
+	description string
+	version     string
+	author      string
+	repo        string
+	source      string // original creator's repo URL
+	dir         string // installed bundle directory path
+	tags        []string
+	installed   bool
+}
+
+type mktLoadedMsg struct {
+	installed []marketplaceItem
+	available []marketplaceItem
+	err       error
+}
+
+type mktOpDoneMsg struct {
+	verb string
+	slug string
+	err  error
+}
+
+type mktReadmeMsg struct {
+	slug    string
+	content string
+	err     error
 }
 
 // ── Model ───────────────────────────────────────────────────────────
@@ -120,7 +325,7 @@ type tuiModel struct {
 	projectName string
 	platforms   map[string]bool
 
-	// AGENTIC counts
+	// Content counts
 	ruleCount  int
 	skillCount int
 	agentCount int
@@ -136,23 +341,32 @@ type tuiModel struct {
 	wizBtnFocus  int      // -1=content (text input/list), 0=Back, 1=Continue/Confirm
 
 	// projection planner state
-	projPane      int // 0=catalog, 1=project, 2=output
+	projPane      int // 0=bundles, 1=global, 2=project, 3=composed, 4=projections
 	projCatalog   []projItem // unified bundle + global items (bundle first, then global)
-	projGlobal    []projItem // global AGENTIC items (Pane 0 top)
-	projBundle      []projItem // bundle AGENTIC items (Pane 0 bottom)
+	projGlobal    []projItem // global content items (Pane 0 top)
+	projBundle      []projItem // bundle content items (Pane 0 bottom)
 	projProject   []projItem
 	projHarness   []projItem // harness-managed items (always projected, clobber all)
 	projInherit   map[string]map[string]string
-	projCursor    [3]int
-	projScroll    [3]int // Y offset for each pane's scroll position
+	projCursor    [5]int
+	projScroll    [5]int // Y offset for each pane's scroll position
 	projLoaded    bool
 	hasMCP        bool // true if bundle or project declares MCP servers
 
-	// catalog sub-pane state (pane 0 has two stacked boxes)
-	catalogScroll  [2]int // [0]=global scroll, [1]=bundle scroll
-	catalogSub     int    // 0=global, 1=bundle (sub-pane focus within pane 0)
-	catalogGlobalH int    // height of the global box in pane 0 (for mouse scroll targeting)
 	colStartY      int    // Y offset where column content begins (for mouse targeting)
+	resultTopH     int    // height of the Composed box in column 3 (for mouse Y targeting)
+
+	// Composed result data
+	composedRules  []composedItem
+	composedSkills []composedItem
+	composedAgents []composedItem
+	composedHooks  []composedHookItem
+	composedMCP    []composedMCPItem
+
+	// Composed pane collapse state: 0=rules, 1=skills, 2=agents
+	composedCollapsed      [3]bool
+	composedHooksCollapsed bool
+	composedMCPCollapsed   bool
 
 	// collapsible kind groups: [3]bool for rules/skills/agents collapsed state
 	globalCollapsed  [3]bool // global pane kind groups
@@ -178,11 +392,11 @@ type tuiModel struct {
 	mcpGlobalCollapsed  bool     // global MCP list collapsed
 	mcpProjectCollapsed bool     // project MCP list collapsed
 
-	// Hook event names per layer (for display in panes)
-	hooksGlobal           []string // resolved hook events visible at global level
-	hooksProject          []string // resolved hook events visible at project level
-	hooksGlobalCollapsed  bool     // global HOOKS list collapsed
-	hooksProjectCollapsed bool     // project HOOKS list collapsed
+	// Hook entries per layer (event + script basename for display)
+	hooksGlobal           []hookEntry // resolved hook entries at global level
+	hooksProject          []hookEntry // resolved hook entries at project level
+	hooksGlobalCollapsed  bool        // global HOOKS list collapsed
+	hooksProjectCollapsed bool        // project HOOKS list collapsed
 
 	// generate state
 	genMessage     string // e.g. "Generated 14 files"
@@ -194,13 +408,17 @@ type tuiModel struct {
 	genConfScroll  int      // scroll offset in confirmation dialog
 
 	// cached merged names — recomputed in recomputeDiff(), shared by tree/diff/orphan
-	mergedRules  []string
-	mergedSkills []string
-	mergedAgents []string
+	mergedRules     []string
+	mergedSkills    []string
+	mergedAgents    []string
+	skillSourceDirs map[string]string // skill name → source dir (for resource file enumeration)
 
 	// clean mode — show orphan files in projections pane, delete on generate
 	cleanMode   bool     // destructive mode toggle
 	orphanFiles []string // files that would be deleted (computed)
+
+	// harness visibility — show harness-managed items in projection tree
+	showHarness bool
 
 	// agent-disable skill picker
 	agentDisableActive bool
@@ -223,6 +441,77 @@ type tuiModel struct {
 
 	// success screen
 	successPath string
+
+	// bundle TUI pages
+	bundlePages            []bundlePage
+	bundlePageData         map[tabID]*bundlePageOutput
+	bundlePageScroll       map[tabID]int
+	bundlePageCollapsed    map[tabID]map[int]bool
+	bundlePageSubCollapsed map[tabID]map[int]map[int]bool
+	bundlePageActiveSub    map[tabID]int
+	bundlePageLoading      map[tabID]bool
+
+	// explore tab sub-tab
+	exploreSub exploreSubTab
+
+	// skills explorer sub-tab state
+	skillsSearch       string
+	skillsSearchActive bool
+	skillsResults      []skillsResult
+	skillsLoading      bool
+	skillsScroll       int
+	skillsInitLoaded   bool         // true after first auto-load
+	skillsAddActive    bool         // target picker showing
+	skillsAddItem      skillsResult // which skill to add
+	skillsAddTargets   []string     // target labels for picker
+	skillsAddPaths     []string     // target SKILLS/ paths
+	skillsAddIcons     []string     // target icons (📁/🌐/📦)
+	skillsAddCursor    int
+	skillsImporting    bool
+	skillsImportName   string
+
+	// SkillsMP sub-tab state
+	skillsMPResults    []skillsMPResult
+	skillsMPQuery      string
+	skillsMPSearchBuf  string
+	skillsMPSearchMode bool
+	skillsMPCursor     int
+	skillsMPLoading    bool
+	skillsMPError      string
+	skillsMPAPIKey     string // resolved key (env or config)
+	skillsMPKeyBuf     string // text input for key entry
+	skillsMPKeyFocus   bool   // true when key input is focused
+	skillsMPScroll     int
+	skillsMPAddActive  bool         // target picker showing
+	skillsMPAddItem    skillsMPResult // which skill to add
+	skillsMPAddTargets []string     // target labels for picker
+	skillsMPAddPaths   []string     // target SKILLS/ paths
+	skillsMPAddIcons   []string     // target icons
+	skillsMPAddCursor  int
+	skillsMPImporting  bool
+	skillsMPImportName string
+
+	// bundles sub-tab state (formerly marketplace)
+	mktLoaded             bool
+	mktLoading            bool
+	mktInstalled          []marketplaceItem
+	mktAvailable          []marketplaceItem
+	mktScroll             int
+	mktSearch             string
+	mktSearchActive       bool
+	mktInstalledCollapsed bool
+	mktAvailableCollapsed bool
+	mktOpActive           bool
+	mktOpSlug             string
+	mktOpVerb             string
+	mktConfirm            bool
+	mktConfirmSlug        string
+	mktConfirmVerb        string // "remove" or "install"
+	mktConfirmRepo        string // repo URL for install
+	mktDetail             bool
+	mktDetailItem         marketplaceItem
+	mktDetailReadme       string
+	mktDetailScroll       int
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -274,8 +563,11 @@ func initialModel() *tuiModel {
 		hintPane:         -1,
 		globalCollapsed:     [3]bool{true, true, true},
 		projectCollapsed:    [3]bool{true, true, true},
+		composedCollapsed:   [3]bool{true, true, true},
 		mcpGlobalCollapsed:  true,
 		mcpProjectCollapsed: true,
+		composedHooksCollapsed: true,
+		composedMCPCollapsed:   true,
 	}
 
 	if isLore {
@@ -306,22 +598,21 @@ func (m *tuiModel) loadProjectInfo() {
 		m.platforms = defaultPlatforms()
 	}
 
-	// Count AGENTIC content: bundle + global + project
+	// Count content: bundle + global + project
 	gp := globalPath()
-	projAgentic := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	m.ruleCount = countDir(filepath.Join(gp, "AGENTIC", "RULES")) +
-		countDir(filepath.Join(projAgentic, "RULES"))
-	m.skillCount = countDir(filepath.Join(gp, "AGENTIC", "SKILLS")) +
-		countDir(filepath.Join(projAgentic, "SKILLS"))
-	m.agentCount = countDir(filepath.Join(gp, "AGENTIC", "AGENTS")) +
-		countDir(filepath.Join(projAgentic, "AGENTS"))
+	projDir := filepath.Join(m.cwd, ".lore")
+	m.ruleCount = countDir(filepath.Join(gp, "RULES")) +
+		countDir(filepath.Join(projDir, "RULES"))
+	m.skillCount = countDir(filepath.Join(gp, "SKILLS")) +
+		countDir(filepath.Join(projDir, "SKILLS"))
+	m.agentCount = countDir(filepath.Join(gp, "AGENTS")) +
+		countDir(filepath.Join(projDir, "AGENTS"))
 
 	// Add bundle agentic counts from all enabled bundles
 	for _, pkgDir := range activeBundleDirs() {
-		pkgAgenticDir := filepath.Join(pkgDir, "AGENTIC")
-		m.ruleCount += countDir(filepath.Join(pkgAgenticDir, "RULES"))
-		m.skillCount += countDir(filepath.Join(pkgAgenticDir, "SKILLS"))
-		m.agentCount += countDir(filepath.Join(pkgAgenticDir, "AGENTS"))
+		m.ruleCount += countDir(filepath.Join(pkgDir, "RULES"))
+		m.skillCount += countDir(filepath.Join(pkgDir, "SKILLS"))
+		m.agentCount += countDir(filepath.Join(pkgDir, "AGENTS"))
 	}
 }
 
@@ -398,6 +689,7 @@ func (m *tuiModel) loadProjection() {
 		group := bundleGroup{
 			slug: slug,
 			name: p.Name,
+			dir:  dir,
 		}
 		if seen {
 			group.collapsed = state.collapsed
@@ -414,8 +706,8 @@ func (m *tuiModel) loadProjection() {
 		// Check LORE.md
 		group.hasLoreMD = readLoreMD(filepath.Join(dir, "LORE.md")) != ""
 
-		// Scan hook events from manifest
-		group.hookEvents = readBundleHookEvents(dir)
+		// Scan hook entries from manifest
+		group.hookEntries = readBundleHookEntries(dir)
 
 		// Scan MCP servers
 		for _, s := range readMCPDir(filepath.Join(dir, "MCP")) {
@@ -423,8 +715,7 @@ func (m *tuiModel) loadProjection() {
 		}
 
 		// Scan agentic content
-		pkgAgenticDir := filepath.Join(dir, "AGENTIC")
-		if rules, skills, agents, err := scanAgenticDir(pkgAgenticDir); err == nil {
+		if rules, skills, agents, err := scanAgenticDir(dir); err == nil {
 			for _, name := range sortedKeys(rules) {
 				item := projItem{kind: "rule", name: name, desc: rules[name].Description, source: "bundle", bundleSlug: slug}
 				group.items = append(group.items, item)
@@ -432,6 +723,9 @@ func (m *tuiModel) loadProjection() {
 			}
 			for _, name := range sortedKeys(skills) {
 				item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "bundle", bundleSlug: slug}
+				if skills[name].SourceDir != "" {
+					item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+				}
 				group.items = append(group.items, item)
 				m.projBundle = append(m.projBundle, item)
 			}
@@ -453,14 +747,17 @@ func (m *tuiModel) loadProjection() {
 		}
 	}
 
-	// Scan global AGENTIC
-	globalAgenticDir := filepath.Join(gp, "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(globalAgenticDir); err == nil {
+	// Scan global content
+	if rules, skills, agents, err := scanAgenticDir(gp); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projGlobal = append(m.projGlobal, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "global"})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projGlobal = append(m.projGlobal, projItem{kind: "skill", name: name, desc: skills[name].Description, source: "global"})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "global"}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projGlobal = append(m.projGlobal, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projGlobal = append(m.projGlobal, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills, source: "global"})
@@ -470,30 +767,37 @@ func (m *tuiModel) loadProjection() {
 	// Unified catalog: bundle items first, then global (for toggleCatalogItem indexing)
 	m.projCatalog = append(append([]projItem(nil), m.projBundle...), m.projGlobal...)
 
-	// Scan project AGENTIC
+	// Scan project content
 	m.projProject = nil
-	projectAgenticDir := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(projectAgenticDir); err == nil {
+	if rules, skills, agents, err := scanAgenticDir(filepath.Join(m.cwd, ".lore")); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projProject = append(m.projProject, projItem{kind: "rule", name: name, desc: rules[name].Description})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projProject = append(m.projProject, projItem{kind: "skill", name: name, desc: skills[name].Description})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projProject = append(m.projProject, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projProject = append(m.projProject, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills})
 		}
 	}
 
-	// Scan harness AGENTIC (always projected, clobbers all)
+	// Scan harness content (always projected, clobbers all)
 	m.projHarness = nil
-	harnessAgenticDir := filepath.Join(gp, ".harness", "AGENTIC")
-	if rules, skills, agents, err := scanAgenticDir(harnessAgenticDir); err == nil {
+	harnessDir := filepath.Join(gp, ".harness")
+	if rules, skills, agents, err := scanAgenticDir(harnessDir); err == nil {
 		for _, name := range sortedKeys(rules) {
 			m.projHarness = append(m.projHarness, projItem{kind: "rule", name: name, desc: rules[name].Description, source: "harness"})
 		}
 		for _, name := range sortedKeys(skills) {
-			m.projHarness = append(m.projHarness, projItem{kind: "skill", name: name, desc: skills[name].Description, source: "harness"})
+			item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "harness"}
+			if skills[name].SourceDir != "" {
+				item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			}
+			m.projHarness = append(m.projHarness, item)
 		}
 		for _, name := range sortedKeys(agents) {
 			m.projHarness = append(m.projHarness, projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills, source: "harness"})
@@ -531,8 +835,184 @@ func (m *tuiModel) loadProjection() {
 	// Check if any MCP servers are declared (bundle, global, or project)
 	m.hasMCP = len(readBundleMCP()) > 0 || len(m.mcpGlobal) > 0 || len(m.mcpProject) > 0
 
+	// Load hook event names per layer (for pane display)
+	m.hooksGlobal = readHookEntriesFromDir(filepath.Join(gp, "HOOKS"))
+	m.hooksProject = readHookEntriesFromDir(filepath.Join(m.cwd, ".lore", "HOOKS"))
+
+	// Register bundle TUI pages
+	tuiPages := readBundleTUIPages()
+	m.bundlePages = nil
+	for i, p := range tuiPages {
+		m.bundlePages = append(m.bundlePages, bundlePage{
+			name:       p.Name,
+			script:     p.Script,
+			bundleSlug: p.BundleSlug,
+			tabID:      tabID(i + 2), // 0=tabProjection, 1=tabExplore
+		})
+	}
+	if m.bundlePageData == nil {
+		m.bundlePageData = make(map[tabID]*bundlePageOutput)
+		m.bundlePageScroll = make(map[tabID]int)
+		m.bundlePageCollapsed = make(map[tabID]map[int]bool)
+		m.bundlePageSubCollapsed = make(map[tabID]map[int]map[int]bool)
+		m.bundlePageActiveSub = make(map[tabID]int)
+		m.bundlePageLoading = make(map[tabID]bool)
+	}
+
+	// Build composed data — the final merged result with provenance
+	m.buildComposedData()
+
 	m.projLoaded = true
 	m.recomputeDiff()
+}
+
+// buildComposedData populates the composed result slices from the merged projection.
+// Uses mergeAgenticSets to get the final merged items, then determines provenance
+// from the AgenticFile.Path field. Hooks accumulate from all layers. MCP overrides by name.
+func (m *tuiModel) buildComposedData() {
+	gp := globalPath()
+	harnessDir := filepath.Join(gp, ".harness")
+	projectLoreDir := filepath.Join(m.cwd, ".lore")
+
+	ms, err := mergeAgenticSets(gp, projectLoreDir)
+	if err != nil {
+		m.composedRules = nil
+		m.composedSkills = nil
+		m.composedAgents = nil
+		m.composedHooks = nil
+		m.composedMCP = nil
+		return
+	}
+
+	// Build name sets per layer for conflict detection
+	bundleNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projBundle {
+		bundleNames[item.kind][item.name] = true
+	}
+	globalNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projGlobal {
+		globalNames[item.kind][item.name] = true
+	}
+	projectNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+	for _, item := range m.projProject {
+		projectNames[item.kind][item.name] = true
+	}
+
+	// Determine provenance from path
+	sourceOf := func(path string) string {
+		if strings.Contains(path, harnessDir) {
+			return "harness"
+		}
+		if strings.Contains(path, projectLoreDir) {
+			return "project"
+		}
+		if strings.Contains(path, gp) {
+			return "global"
+		}
+		return "bundle"
+	}
+
+	// Detect conflict: name exists in more than one input layer
+	hasConflict := func(kind, name string) bool {
+		layers := 0
+		if bundleNames[kind][name] {
+			layers++
+		}
+		if globalNames[kind][name] {
+			layers++
+		}
+		if projectNames[kind][name] {
+			layers++
+		}
+		return layers > 1
+	}
+
+	// Rules/Skills/Agents composed data
+	buildComposed := func(items map[string]*AgenticFile, kind string) []composedItem {
+		var result []composedItem
+		for _, name := range sortedKeys(items) {
+			af := items[name]
+			result = append(result, composedItem{
+				name:     name,
+				source:   sourceOf(af.Path),
+				conflict: hasConflict(kind, name),
+			})
+		}
+		return result
+	}
+
+	m.composedRules = buildComposed(ms.Rules, "rule")
+	m.composedSkills = buildComposed(ms.Skills, "skill")
+	m.composedAgents = buildComposed(ms.Agents, "agent")
+
+	// Hooks composed data — accumulate all from all layers
+	m.composedHooks = nil
+	for _, bg := range m.enabledBundles {
+		for _, h := range bg.hookEntries {
+			m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "bundle"})
+		}
+	}
+	for _, h := range m.hooksGlobal {
+		m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "global"})
+	}
+	for _, h := range m.hooksProject {
+		m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "project"})
+	}
+
+	// MCP composed data — override by name (last wins), track conflicts
+	mcpByLayer := map[string][]string{"bundle": nil, "global": nil, "project": nil}
+	mcpLayerSet := map[string]map[string]bool{"bundle": {}, "global": {}, "project": {}}
+	for _, bg := range m.enabledBundles {
+		for _, name := range bg.mcpServers {
+			if !mcpLayerSet["bundle"][name] {
+				mcpLayerSet["bundle"][name] = true
+				mcpByLayer["bundle"] = append(mcpByLayer["bundle"], name)
+			}
+		}
+	}
+	for _, name := range m.mcpGlobal {
+		mcpLayerSet["global"][name] = true
+		mcpByLayer["global"] = append(mcpByLayer["global"], name)
+	}
+	for _, name := range m.mcpProject {
+		mcpLayerSet["project"][name] = true
+		mcpByLayer["project"] = append(mcpByLayer["project"], name)
+	}
+	// Last source wins (project > global > bundle)
+	mcpFinalSource := map[string]string{}
+	for _, name := range mcpByLayer["bundle"] {
+		mcpFinalSource[name] = "bundle"
+	}
+	for _, name := range mcpByLayer["global"] {
+		mcpFinalSource[name] = "global"
+	}
+	for _, name := range mcpByLayer["project"] {
+		mcpFinalSource[name] = "project"
+	}
+	// Build sorted result
+	var mcpNames []string
+	for name := range mcpFinalSource {
+		mcpNames = append(mcpNames, name)
+	}
+	sort.Strings(mcpNames)
+	m.composedMCP = nil
+	for _, name := range mcpNames {
+		layers := 0
+		if mcpLayerSet["bundle"][name] {
+			layers++
+		}
+		if mcpLayerSet["global"][name] {
+			layers++
+		}
+		if mcpLayerSet["project"][name] {
+			layers++
+		}
+		m.composedMCP = append(m.composedMCP, composedMCPItem{
+			name:     name,
+			source:   mcpFinalSource[name],
+			conflict: layers > 1,
+		})
+	}
 }
 
 // tuiGetPolicy is a convenience wrapper around the shared getPolicy function.
@@ -556,7 +1036,7 @@ func (m *tuiModel) setPolicy(kind, name, policy string) {
 // Called after every state change (policy toggle, platform toggle, bundle change).
 // Caches merged names so buildOutputTree/computeGenDiff/computeOrphanFiles share one merge.
 func (m *tuiModel) recomputeDiff() {
-	m.mergedRules, m.mergedSkills, m.mergedAgents = m.computeMergedNames()
+	m.mergedRules, m.mergedSkills, m.mergedAgents, m.skillSourceDirs = m.computeMergedNames()
 	m.genNewFiles, m.genOverFiles = m.computeGenDiff()
 	m.orphanFiles = m.computeOrphanFiles()
 }
@@ -675,13 +1155,17 @@ func (m *tuiModel) projCatalogCount() int {
 	return len(m.projCatalog)
 }
 
-// buildPane2Items lists project-local items from .lore/AGENTIC/ with conflict annotations.
+// buildPane2Items lists project-local items from .lore/ with conflict annotations.
 // Only items physically on disk are shown. Inherited catalog items do NOT appear here —
 // they only show up in the Projections pane via the merged names from mergeAgenticSets().
 type pane2Item struct {
 	kind  string
 	name  string
 	color string // "default", "yellow" (shadows deferred), "strike" (overwritten)
+	// Skills only: resource counts
+	numReferences int
+	numAssets     int
+	numScripts    int
 }
 
 func (m *tuiModel) buildPane2Items() []pane2Item {
@@ -709,27 +1193,53 @@ func (m *tuiModel) buildPane2Items() []pane2Item {
 				color = "strike" // catalog item overrides this project item
 			}
 		}
-		items = append(items, pane2Item{kind: item.kind, name: item.name, color: color})
+		items = append(items, pane2Item{kind: item.kind, name: item.name, color: color, numReferences: item.numReferences, numAssets: item.numAssets, numScripts: item.numScripts})
 	}
 	return items
 }
 
 // computeMergedNames calls the canonical merge engine and extracts sorted name lists.
 // Single source of truth — same merge logic used by `lore generate`.
-func (m *tuiModel) computeMergedNames() (rules, skills, agents []string) {
-	globalAgenticDir := filepath.Join(globalPath(), "AGENTIC")
-	projectAgenticDir := filepath.Join(m.cwd, ".lore", "AGENTIC")
-	ms, err := mergeAgenticSets(globalAgenticDir, projectAgenticDir)
+func (m *tuiModel) computeMergedNames() (rules, skills, agents []string, skillSrcDirs map[string]string) {
+	globalDir := globalPath()
+	projectLoreDir := filepath.Join(m.cwd, ".lore")
+	ms, err := mergeAgenticSets(globalDir, projectLoreDir)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
-	return sortedKeys(ms.Rules), sortedKeys(ms.Skills), sortedKeys(ms.Agents)
+	srcDirs := map[string]string{}
+	for name, skill := range ms.Skills {
+		if skill.SourceDir != "" {
+			srcDirs[name] = skill.SourceDir
+		}
+	}
+	return sortedKeys(ms.Rules), sortedKeys(ms.Skills), sortedKeys(ms.Agents), srcDirs
 }
 
 // buildOutputTree builds a lipgloss tree showing all files that projection would create.
 // Files are color-coded: green = new, yellow = overwrite, red = delete (clean mode).
 func (m *tuiModel) buildOutputTree() string {
 	rules, skills, agents := m.mergedRules, m.mergedSkills, m.mergedAgents
+
+	// Unless showHarness is active, exclude harness-sourced items from the tree.
+	skillSrcDirs := m.skillSourceDirs
+	if !m.showHarness {
+		harnessNames := map[string]map[string]bool{"rule": {}, "skill": {}, "agent": {}}
+		for _, item := range m.projHarness {
+			harnessNames[item.kind][item.name] = true
+		}
+		rules = filterOut(rules, harnessNames["rule"])
+		skills = filterOut(skills, harnessNames["skill"])
+		agents = filterOut(agents, harnessNames["agent"])
+		// Also filter skill resource dirs so harness skill resources are excluded
+		filtered := make(map[string]string, len(skillSrcDirs))
+		for k, v := range skillSrcDirs {
+			if !harnessNames["skill"][k] {
+				filtered[k] = v
+			}
+		}
+		skillSrcDirs = filtered
+	}
 
 	// Collect all paths from all enabled platforms, deduplicated
 	seen := map[string]bool{}
@@ -739,6 +1249,13 @@ func (m *tuiModel) buildOutputTree() string {
 			continue
 		}
 		for _, path := range platformOutputPaths(p, rules, skills, agents, m.hasMCP) {
+			if !seen[path] {
+				seen[path] = true
+				allPaths = append(allPaths, path)
+			}
+		}
+		// Include skill resource files (references/, scripts/, assets/)
+		for _, path := range skillResourcePaths(p, skillSrcDirs) {
 			if !seen[path] {
 				seen[path] = true
 				allPaths = append(allPaths, path)
@@ -938,6 +1455,46 @@ func platformOutputPaths(platform string, rules, skills, agents []string, hasMCP
 	return projector.OutputPaths(rules, skills, agents, hasMCP)
 }
 
+// skillResourcePaths returns the output paths for skill resource files
+// (references/, scripts/, assets/) by walking source directories.
+// These are projected by copySkillResources during generation.
+func skillResourcePaths(platform string, skillSrcDirs map[string]string) []string {
+	projector, ok := projectorRegistry[platform]
+	if !ok || len(skillSrcDirs) == 0 {
+		return nil
+	}
+	// Get the skill output base dirs from the projector.
+	// Use a single dummy skill to discover the platform's skill path pattern.
+	probe := projector.OutputPaths(nil, []string{"__probe__"}, nil, false)
+	var prefixPattern string
+	for _, p := range probe {
+		if strings.Contains(p, "__probe__") && strings.HasSuffix(p, "/") {
+			prefixPattern = p
+			break
+		}
+	}
+	if prefixPattern == "" {
+		return nil
+	}
+
+	var paths []string
+	for name, srcDir := range skillSrcDirs {
+		outDir := strings.Replace(prefixPattern, "__probe__", name, 1)
+		filepath.WalkDir(srcDir, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return nil
+			}
+			rel, _ := filepath.Rel(srcDir, p)
+			if rel == "." || rel == "SKILL.md" {
+				return nil
+			}
+			paths = append(paths, outDir+filepath.ToSlash(rel))
+			return nil
+		})
+	}
+	return paths
+}
+
 // ── Commands ────────────────────────────────────────────────────────
 
 func doInit(cwd string, platforms []string, createNew bool, projectName string) tea.Cmd {
@@ -953,9 +1510,9 @@ func doInit(cwd string, platforms []string, createNew bool, projectName string) 
 
 		// Create .lore/ structure
 		dirs := []string{
-			filepath.Join(targetDir, ".lore", "AGENTIC", "SKILLS"),
-			filepath.Join(targetDir, ".lore", "AGENTIC", "AGENTS"),
-			filepath.Join(targetDir, ".lore", "AGENTIC", "RULES"),
+			filepath.Join(targetDir, ".lore", "SKILLS"),
+			filepath.Join(targetDir, ".lore", "AGENTS"),
+			filepath.Join(targetDir, ".lore", "RULES"),
 		}
 		for _, dir := range dirs {
 			os.MkdirAll(dir, 0755)
@@ -1026,8 +1583,8 @@ func doGenerate(cwd string, platforms []string, orphansToClean []string) tea.Cmd
 
 		// Count output files
 		gp := globalPath()
-		projDir := filepath.Join(cwd, ".lore", "AGENTIC")
-		ms, mergeErr := mergeAgenticSets(filepath.Join(gp, "AGENTIC"), projDir)
+		projDir := filepath.Join(cwd, ".lore")
+		ms, mergeErr := mergeAgenticSets(gp, projDir)
 		if mergeErr != nil {
 			return genDoneMsg{err: mergeErr}
 		}
@@ -1057,6 +1614,152 @@ func doGenerate(cwd string, platforms []string, orphansToClean []string) tea.Cmd
 			}
 		}
 		return genDoneMsg{fileCount: count, cleanedCount: cleaned}
+	}
+}
+
+func invokeBundlePage(page bundlePage, project, cwd string, width, height int) tea.Cmd {
+	return func() tea.Msg {
+		input := map[string]interface{}{
+			"project": project,
+			"cwd":     cwd,
+			"width":   width,
+			"height":  height,
+		}
+		inputJSON, _ := json.Marshal(input)
+
+		cmd := exec.Command("node", page.script)
+		cmd.Dir = cwd
+		cmd.Stdin = bytes.NewReader(inputJSON)
+
+		stdout, err := cmd.Output()
+		if err != nil {
+			return bundlePageLoadedMsg{tabID: page.tabID, err: err}
+		}
+
+		var output bundlePageOutput
+		if err := json.Unmarshal(stdout, &output); err != nil {
+			return bundlePageLoadedMsg{tabID: page.tabID, err: err}
+		}
+		return bundlePageLoadedMsg{tabID: page.tabID, output: &output}
+	}
+}
+
+// ── Marketplace Commands ────────────────────────────────────────────
+
+func loadMarketplace() tea.Cmd {
+	return func() tea.Msg {
+		bundles := discoverBundles()
+		registry := fetchRegistry(false)
+
+		installed := make(map[string]bool)
+		var mktInstalled []marketplaceItem
+		for _, b := range bundles {
+			item := marketplaceItem{
+				slug:      b.Slug,
+				name:      b.Name,
+				version:   b.Version,
+				dir:       b.Dir,
+				installed: true,
+			}
+			// Read description from local manifest as fallback
+			if data, err := os.ReadFile(filepath.Join(b.Dir, "manifest.json")); err == nil {
+				var mf struct {
+					Description string `json:"description"`
+				}
+				if json.Unmarshal(data, &mf) == nil && mf.Description != "" {
+					item.description = mf.Description
+				}
+			}
+			// Enrich from registry if available
+			if registry != nil {
+				for _, e := range registry.Bundles {
+					if e.Slug == b.Slug {
+						item.description = e.Description
+						item.author = e.Author
+						item.repo = e.Repo
+						item.source = e.Source
+						item.tags = e.Tags
+						break
+					}
+				}
+			}
+			mktInstalled = append(mktInstalled, item)
+			installed[b.Slug] = true
+		}
+
+		var mktAvailable []marketplaceItem
+		if registry != nil {
+			for _, e := range registry.Bundles {
+				if !installed[e.Slug] {
+					mktAvailable = append(mktAvailable, marketplaceItem{
+						slug:        e.Slug,
+						name:        e.Name,
+						description: e.Description,
+						author:      e.Author,
+						repo:        e.Repo,
+						source:      e.Source,
+						tags:        e.Tags,
+					})
+				}
+			}
+		}
+
+		return mktLoadedMsg{installed: mktInstalled, available: mktAvailable}
+	}
+}
+
+func doMktInstall(slug, repo string) tea.Cmd {
+	return func() tea.Msg {
+		err := installBundleFromRepo(slug, repo)
+		return mktOpDoneMsg{verb: "install", slug: slug, err: err}
+	}
+}
+
+func doMktUpdate(slug string) tea.Cmd {
+	return func() tea.Msg {
+		err := updateBundleInPlace(slug)
+		return mktOpDoneMsg{verb: "update", slug: slug, err: err}
+	}
+}
+
+func doMktRemove(slug string) tea.Cmd {
+	return func() tea.Msg {
+		err := removeBundleFromDisk(slug)
+		return mktOpDoneMsg{verb: "remove", slug: slug, err: err}
+	}
+}
+
+func loadMktReadme(slug, dir string) tea.Cmd {
+	return func() tea.Msg {
+		data, err := os.ReadFile(filepath.Join(dir, "README.md"))
+		if err != nil {
+			return mktReadmeMsg{slug: slug, err: err}
+		}
+		return mktReadmeMsg{slug: slug, content: string(data)}
+	}
+}
+
+func fetchMktReadme(slug, repo string) tea.Cmd {
+	return func() tea.Msg {
+		// Convert git URL to raw content URL
+		// e.g. https://github.com/lorehq/bundle-stack-skills.git → https://raw.githubusercontent.com/lorehq/bundle-stack-skills/main/README.md
+		raw := strings.TrimSuffix(repo, ".git")
+		raw = strings.Replace(raw, "github.com", "raw.githubusercontent.com", 1)
+		for _, branch := range []string{"main", "master"} {
+			resp, err := http.Get(raw + "/" + branch + "/README.md")
+			if err != nil {
+				continue
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode == 200 {
+				data, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return mktReadmeMsg{slug: slug, err: err}
+				}
+				return mktReadmeMsg{slug: slug, content: string(data)}
+			}
+		}
+		return mktReadmeMsg{slug: slug, err: fmt.Errorf("README not found")}
 	}
 }
 
@@ -1099,6 +1802,127 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loadProjectInfo()
 			m.projLoaded = false
 			m.loadProjection()
+		}
+		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+
+	case bundlePageLoadedMsg:
+		m.bundlePageLoading[msg.tabID] = false
+		if msg.err != nil {
+			m.bundlePageData[msg.tabID] = &bundlePageOutput{
+				Status: "Error: " + msg.err.Error(),
+			}
+		} else {
+			m.bundlePageData[msg.tabID] = msg.output
+			if len(msg.output.Subtabs) > 0 {
+				// Initialize collapse state per sub-tab
+				subCollapsed := make(map[int]map[int]bool)
+				for si, sub := range msg.output.Subtabs {
+					sc := make(map[int]bool)
+					for i, s := range sub.Sections {
+						sc[i] = s.Collapsed
+					}
+					subCollapsed[si] = sc
+				}
+				m.bundlePageSubCollapsed[msg.tabID] = subCollapsed
+			} else {
+				// Initialize section collapse state from script defaults
+				collapsed := make(map[int]bool)
+				for i, s := range msg.output.Sections {
+					collapsed[i] = s.Collapsed
+				}
+				m.bundlePageCollapsed[msg.tabID] = collapsed
+			}
+		}
+
+	case mktLoadedMsg:
+		m.mktLoading = false
+		if msg.err != nil {
+			m.genMessage = "Marketplace: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.mktInstalled = msg.installed
+			m.mktAvailable = msg.available
+			m.mktLoaded = true
+		}
+
+	case mktOpDoneMsg:
+		m.mktOpActive = false
+		m.mktOpSlug = ""
+		m.mktOpVerb = ""
+		if msg.err != nil {
+			m.genMessage = fmt.Sprintf("Failed to %s %s: %s", msg.verb, msg.slug, msg.err)
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			verbed := capitalize(msg.verb) + "ed"
+			if strings.HasSuffix(msg.verb, "e") {
+				verbed = capitalize(msg.verb) + "d"
+			}
+			m.genMessage = fmt.Sprintf("%s %s", verbed, msg.slug)
+			m.genIsError = false
+			m.genTick = 3
+			m.mktLoaded = false  // force reload
+			m.projLoaded = false // refresh projection tab
+		}
+		return m, tea.Batch(
+			loadMarketplace(),
+			tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} }),
+		)
+
+	case skillsSearchMsg:
+		m.skillsLoading = false
+		if msg.err != nil {
+			m.genMessage = "Skills search: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.skillsResults = msg.results
+			m.skillsScroll = 0
+		}
+
+	case skillsImportDoneMsg:
+		m.skillsImporting = false
+		m.skillsImportName = ""
+		m.skillsMPImporting = false
+		m.skillsMPImportName = ""
+		if msg.err != nil {
+			m.genMessage = "Import failed: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.genMessage = fmt.Sprintf("Imported %s", msg.skill)
+			m.genIsError = false
+			m.genTick = 3
+			m.projLoaded = false // refresh projection tab
+		}
+
+	case mktReadmeMsg:
+		if msg.err != nil {
+			m.mktDetailReadme = "(No README available)"
+		} else {
+			m.mktDetailReadme = msg.content
+		}
+
+	case skillsMPSearchMsg:
+		m.skillsMPLoading = false
+		if msg.err != nil {
+			m.skillsMPError = msg.err.Error()
+		} else {
+			m.skillsMPError = ""
+			m.skillsMPResults = msg.results
+			m.skillsMPScroll = 0
+		}
+
+	case skillsMPKeySavedMsg:
+		if msg.err != nil {
+			m.genMessage = "Failed to save API key: " + msg.err.Error()
+			m.genIsError = true
+			m.genTick = 5
+		} else {
+			m.genMessage = "SkillsMP API key saved"
+			m.genIsError = false
+			m.genTick = 3
 		}
 		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 
@@ -1269,25 +2093,27 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 	case stepPlatforms:
 		platCount := len(validPlatforms)
+		canContinue := m.selectedPlatformCount() > 0
 		switch key {
 		case "tab":
 			if m.wizBtnFocus == -1 {
-				// From list -> Back
-				m.wizBtnFocus = 0
-			} else if m.wizBtnFocus == 0 {
-				// Back -> Continue
-				m.wizBtnFocus = 1
+				if canContinue {
+					m.wizBtnFocus = 1 // list -> Continue (skip Back when enabled)
+				} else {
+					m.wizBtnFocus = 0 // list -> Back (Continue disabled)
+				}
+			} else if m.wizBtnFocus == 1 {
+				m.wizBtnFocus = 0 // Continue -> Back
 			} else {
-				// Continue -> list
-				m.wizBtnFocus = -1
+				m.wizBtnFocus = -1 // Back -> list
 			}
 		case "shift+tab":
 			if m.wizBtnFocus == -1 {
-				m.wizBtnFocus = 1
-			} else if m.wizBtnFocus == 1 {
-				m.wizBtnFocus = 0
+				m.wizBtnFocus = 0 // list -> Back
+			} else if m.wizBtnFocus == 0 {
+				m.wizBtnFocus = -1 // Back -> list
 			} else {
-				m.wizBtnFocus = -1
+				m.wizBtnFocus = 0 // Continue -> Back
 			}
 		case "up":
 			if m.wizBtnFocus == -1 && m.wizCursor > 0 {
@@ -1340,9 +2166,17 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	case stepConfirm:
 		switch key {
 		case "tab", "right", "down":
-			m.wizBtnFocus = (m.wizBtnFocus + 2) % 3 - 1
+			if m.wizBtnFocus == 0 {
+				m.wizBtnFocus = 1
+			} else {
+				m.wizBtnFocus = 0
+			}
 		case "shift+tab", "left", "up":
-			m.wizBtnFocus = (m.wizBtnFocus + 3) % 3 - 1
+			if m.wizBtnFocus == 1 {
+				m.wizBtnFocus = 0
+			} else {
+				m.wizBtnFocus = 1
+			}
 		case "enter":
 			if m.wizBtnFocus == 0 {
 				m.goToWizStep(stepPlatforms)
@@ -1361,7 +2195,61 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 }
 
 func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
-	return m.handleProjectionKey(msg)
+	key := msg.String()
+
+	// Number keys switch tabs: 1=Projections, 2=Marketplace, 3+=bundle pages
+	if len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
+		idx := int(key[0] - '1') // 0-indexed
+		if idx == 0 {
+			m.tab = tabProjection
+			return m, nil
+		}
+		if idx == 1 {
+			m.tab = tabExplore
+			if !m.mktLoaded && !m.mktLoading {
+				m.mktLoading = true
+				return m, loadMarketplace()
+			}
+			return m, nil
+		}
+		pageIdx := idx - 2
+		if pageIdx < len(m.bundlePages) {
+			page := m.bundlePages[pageIdx]
+			m.tab = page.tabID
+			// Load page data on first view
+			if m.bundlePageData[page.tabID] == nil && !m.bundlePageLoading[page.tabID] {
+				m.bundlePageLoading[page.tabID] = true
+				return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+			}
+			return m, nil
+		}
+	}
+
+	// Detail modal intercepts all keys regardless of tab
+	if m.mktDetail {
+		switch msg.String() {
+		case "esc", "q":
+			m.mktDetail = false
+			m.mktDetailReadme = ""
+			m.mktDetailScroll = 0
+		case "j", "down":
+			m.mktDetailScroll++
+		case "k", "up":
+			if m.mktDetailScroll > 0 {
+				m.mktDetailScroll--
+			}
+		}
+		return m, nil
+	}
+
+	switch m.tab {
+	case tabProjection:
+		return m.handleProjectionKey(msg)
+	case tabExplore:
+		return m.handleExploreKey(msg)
+	default:
+		return m.handleBundlePageKey(msg)
+	}
 }
 
 func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
@@ -1459,10 +2347,10 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 	switch key {
 	case "tab":
-		m.projPane = (m.projPane + 1) % 3
+		m.projPane = (m.projPane + 1) % 5
 		return m, nil
 	case "shift+tab":
-		m.projPane = (m.projPane + 2) % 3
+		m.projPane = (m.projPane + 4) % 5
 		return m, nil
 	case "r":
 		m.projLoaded = false
@@ -1478,23 +2366,15 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	// Scroll with j/k for all panes
 	switch key {
 	case "j", "down":
-		if m.projPane == 0 {
-			m.catalogScroll[m.catalogSub]++
-		} else {
-			m.projScroll[m.projPane]++
-		}
+		m.projScroll[m.projPane]++
 		return m, nil
 	case "k", "up":
-		if m.projPane == 0 {
-			m.catalogScroll[m.catalogSub]--
-		} else {
-			m.projScroll[m.projPane]--
-		}
+		m.projScroll[m.projPane]--
 		return m, nil
 	}
 
-	// Action keys only apply to catalog pane (pane 0) with a selected item
-	if m.projPane == 0 && m.projCursor[0] < len(m.projCatalog) {
+	// Action keys apply to bundle pane (0) and global pane (1) — both contain toggleable catalog items
+	if (m.projPane == 0 || m.projPane == 1) && m.projCursor[0] < len(m.projCatalog) {
 		switch key {
 		case " ", "enter":
 			m.toggleCatalogItem(m.projCursor[0])
@@ -1511,6 +2391,93 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *tuiModel) handleBundlePageKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
+	key := msg.String()
+	output := m.bundlePageData[m.tab]
+
+	switch key {
+	case "r":
+		// Reload current bundle page
+		for _, page := range m.bundlePages {
+			if page.tabID == m.tab {
+				m.bundlePageLoading[m.tab] = true
+				m.bundlePageData[m.tab] = nil
+				return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+			}
+		}
+	case "left":
+		if output != nil && len(output.Subtabs) > 0 && m.bundlePageActiveSub[m.tab] > 0 {
+			m.bundlePageActiveSub[m.tab]--
+			m.bundlePageScroll[m.tab] = 0
+		}
+	case "right":
+		if output != nil && len(output.Subtabs) > 0 && m.bundlePageActiveSub[m.tab] < len(output.Subtabs)-1 {
+			m.bundlePageActiveSub[m.tab]++
+			m.bundlePageScroll[m.tab] = 0
+		}
+	case "j", "down":
+		m.bundlePageScroll[m.tab]++
+	case "k", "up":
+		scroll := m.bundlePageScroll[m.tab]
+		if scroll > 0 {
+			m.bundlePageScroll[m.tab] = scroll - 1
+		}
+	case "enter", " ":
+		// Toggle section collapse at current position
+		m.toggleBundlePageSection()
+	}
+
+	return m, nil
+}
+
+func (m *tuiModel) toggleBundlePageSection() {
+	output := m.bundlePageData[m.tab]
+	if output == nil {
+		return
+	}
+	scroll := m.bundlePageScroll[m.tab]
+
+	if len(output.Subtabs) > 0 {
+		activeSub := m.bundlePageActiveSub[m.tab]
+		if activeSub >= len(output.Subtabs) {
+			return
+		}
+		subCollapsed := m.bundlePageSubCollapsed[m.tab]
+		if subCollapsed == nil || subCollapsed[activeSub] == nil {
+			return
+		}
+		collapsed := subCollapsed[activeSub]
+		lineIdx := 0
+		for i, section := range output.Subtabs[activeSub].Sections {
+			if lineIdx >= scroll {
+				collapsed[i] = !collapsed[i]
+				return
+			}
+			lineIdx++
+			if !collapsed[i] {
+				lineIdx += len(section.Items)
+			}
+		}
+		return
+	}
+
+	collapsed := m.bundlePageCollapsed[m.tab]
+	if collapsed == nil {
+		return
+	}
+	lineIdx := 0
+	for i, section := range output.Sections {
+		if lineIdx >= scroll {
+			collapsed[i] = !collapsed[i]
+			return
+		}
+		lineIdx++
+		if !collapsed[i] {
+			lineIdx += len(section.Items)
+		}
+	}
 }
 
 func (m *tuiModel) enabledPlatformList() []string {
@@ -1532,6 +2499,13 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Dialog scrolling takes priority
+		if m.mktDetail {
+			m.mktDetailScroll += delta
+			if m.mktDetailScroll < 0 {
+				m.mktDetailScroll = 0
+			}
+			return m, nil
+		}
 		if m.genConfirm {
 			m.genConfScroll += delta
 			if m.genConfScroll < 0 {
@@ -1541,22 +2515,41 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
-			colW := m.width / 3
-			pane := msg.X / colW
-			if pane > 2 {
-				pane = 2
-			}
-			if pane == 0 {
-				// Pane 0 has two stacked sub-boxes; scroll based on mouse Y position.
-				colContentY := msg.Y - m.colStartY
-				sub := 0
-				if m.catalogGlobalH > 0 && colContentY >= m.catalogGlobalH {
-					sub = 1
+			if m.tab == tabExplore {
+				if m.exploreSub == exploreSubSkillsSh {
+					m.skillsScroll += delta
+					if m.skillsScroll < 0 {
+						m.skillsScroll = 0
+					}
+				} else if m.exploreSub == exploreSubSkillsMP {
+					m.skillsMPScroll += delta
+					if m.skillsMPScroll < 0 {
+						m.skillsMPScroll = 0
+					}
+				} else {
+					m.mktScroll += delta
+					if m.mktScroll < 0 {
+						m.mktScroll = 0
+					}
 				}
-				m.catalogScroll[sub] += delta
-			} else {
-				m.projScroll[pane] += delta
+				return m, nil
 			}
+			if m.tab != tabProjection {
+				// Bundle page scroll
+				m.bundlePageScroll[m.tab] += delta
+				return m, nil
+			}
+			colW := m.width / 4
+			pane := msg.X / colW
+			if pane >= 3 {
+				// Column 3 is split: check Y to determine sub-pane
+				if msg.Y < m.colStartY+m.resultTopH {
+					pane = 3 // Composed
+				} else {
+					pane = 4 // Projections
+				}
+			}
+			m.projScroll[pane] += delta
 			return m, nil
 		}
 	}
@@ -1569,6 +2562,16 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	if m.mode == modeSuccess {
 		m.mode = modeDashboard
 		m.loadProjectInfo()
+		return m, nil
+	}
+
+	// Detail modal close button (works from any tab)
+	if m.mktDetail {
+		if zone.Get("mkt-detail-close").InBounds(msg) {
+			m.mktDetail = false
+			m.mktDetailReadme = ""
+			m.mktDetailScroll = 0
+		}
 		return m, nil
 	}
 
@@ -1630,6 +2633,110 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		return m, nil
 	}
 
+	// Marketplace confirm dialog clicks
+	if m.mktConfirm {
+		if zone.Get("mkt-confirm").InBounds(msg) {
+			m.mktConfirm = false
+			m.mktOpActive = true
+			m.mktOpSlug = m.mktConfirmSlug
+			m.mktOpVerb = m.mktConfirmVerb
+			if m.mktConfirmVerb == "remove" {
+				return m, doMktRemove(m.mktConfirmSlug)
+			}
+			return m, doMktInstall(m.mktConfirmSlug, m.mktConfirmRepo)
+		}
+		if zone.Get("mkt-cancel").InBounds(msg) {
+			m.mktConfirm = false
+			return m, nil
+		}
+		return m, nil
+	}
+
+	// Tab clicks
+	if m.mode == modeDashboard {
+		if zone.Get("tab-projection").InBounds(msg) {
+			m.tab = tabProjection
+			return m, nil
+		}
+		if zone.Get("tab-explore").InBounds(msg) {
+			m.tab = tabExplore
+			if !m.mktLoaded && !m.mktLoading {
+				m.mktLoading = true
+				return m, loadMarketplace()
+			}
+			return m, nil
+		}
+		for _, page := range m.bundlePages {
+			zoneID := fmt.Sprintf("tab-bundle-%d", page.tabID)
+			if zone.Get(zoneID).InBounds(msg) {
+				m.tab = page.tabID
+				// Load on first click
+				if m.bundlePageData[page.tabID] == nil && !m.bundlePageLoading[page.tabID] {
+					m.bundlePageLoading[page.tabID] = true
+					return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+				}
+				return m, nil
+			}
+		}
+
+		// Explore tab item clicks
+		if m.tab == tabExplore {
+			return m.handleExploreMouse(msg)
+		}
+
+		// Section collapse and sub-tab clicks on bundle pages
+		if m.tab != tabProjection && m.tab != tabExplore {
+			output := m.bundlePageData[m.tab]
+			if output != nil {
+				// Refresh button
+				if zone.Get(fmt.Sprintf("bp-refresh-%d", m.tab)).InBounds(msg) {
+					for _, page := range m.bundlePages {
+						if page.tabID == m.tab {
+							m.bundlePageLoading[m.tab] = true
+							m.bundlePageData[m.tab] = nil
+							return m, invokeBundlePage(page, projectSlug(), m.cwd, m.width, m.height)
+						}
+					}
+					return m, nil
+				}
+				if len(output.Subtabs) > 0 {
+					// Sub-tab bar clicks
+					for i := range output.Subtabs {
+						if zone.Get(fmt.Sprintf("bp-sub-%d-%d", m.tab, i)).InBounds(msg) {
+							m.bundlePageActiveSub[m.tab] = i
+							m.bundlePageScroll[m.tab] = 0
+							return m, nil
+						}
+					}
+					// Section collapse clicks within active sub-tab
+					activeSub := m.bundlePageActiveSub[m.tab]
+					if activeSub < len(output.Subtabs) {
+						subCollapsed := m.bundlePageSubCollapsed[m.tab]
+						for i := range output.Subtabs[activeSub].Sections {
+							if zone.Get(fmt.Sprintf("bp-section-%d-%d-%d", m.tab, activeSub, i)).InBounds(msg) {
+								if subCollapsed != nil && subCollapsed[activeSub] != nil {
+									subCollapsed[activeSub][i] = !subCollapsed[activeSub][i]
+								}
+								return m, nil
+							}
+						}
+					}
+				} else {
+					// Flat mode section collapse
+					for i := range output.Sections {
+						if zone.Get(fmt.Sprintf("bp-section-%d-%d", m.tab, i)).InBounds(msg) {
+							collapsed := m.bundlePageCollapsed[m.tab]
+							if collapsed != nil {
+								collapsed[i] = !collapsed[i]
+							}
+							return m, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Projection planner clicks
 	if m.mode == modeDashboard && m.projLoaded {
 		// Platform toggles
@@ -1652,6 +2759,12 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Clean mode toggle
 		if zone.Get("clean-toggle").InBounds(msg) {
 			m.cleanMode = !m.cleanMode
+			return m, nil
+		}
+
+		// Harness visibility toggle (in projections pane)
+		if zone.Get("harness-toggle").InBounds(msg) {
+			m.showHarness = !m.showHarness
 			return m, nil
 		}
 
@@ -1684,7 +2797,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Hint button clicks (open hint)
-		for pane := 0; pane < 3; pane++ {
+		for pane := 0; pane < 5; pane++ {
 			if zone.Get(fmt.Sprintf("hint-%d", pane)).InBounds(msg) {
 				m.hintPane = pane
 				return m, nil
@@ -1692,12 +2805,9 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Row title clicks to switch pane
-		for pane := 0; pane < 3; pane++ {
+		for pane := 0; pane < 5; pane++ {
 			if zone.Get(fmt.Sprintf("row-%d", pane)).InBounds(msg) {
 				m.projPane = pane
-				if pane == 0 {
-					m.catalogSub = 0
-				}
 				return m, nil
 			}
 		}
@@ -1712,12 +2822,29 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			}
 		}
 
+		// Bundle readme clicks
+		for i, g := range m.enabledBundles {
+			if zone.Get(fmt.Sprintf("bundle-readme-%d", i)).InBounds(msg) {
+				m.mktDetail = true
+				m.mktDetailItem = marketplaceItem{
+					slug: g.slug,
+					name: g.name,
+					dir:  g.dir,
+				}
+				m.mktDetailReadme = ""
+				m.mktDetailScroll = 0
+				if g.dir != "" {
+					return m, loadMktReadme(g.slug, g.dir)
+				}
+				return m, nil
+			}
+		}
+
 		// Bundle toggle collapse clicks
 		for i := range m.enabledBundles {
 			if zone.Get(fmt.Sprintf("bundle-toggle-%d", i)).InBounds(msg) {
 				m.enabledBundles[i].collapsed = !m.enabledBundles[i].collapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
 		}
@@ -1728,7 +2855,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				if zone.Get(fmt.Sprintf("bundle-kind-%d-%d", gi, ki)).InBounds(msg) {
 					m.enabledBundles[gi].kindCollapsed[ki] = !m.enabledBundles[gi].kindCollapsed[ki]
 					m.projPane = 0
-					m.catalogSub = 1
 					return m, nil
 				}
 			}
@@ -1739,7 +2865,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if zone.Get(fmt.Sprintf("hooks-bundle-%d", gi)).InBounds(msg) {
 				m.enabledBundles[gi].hooksCollapsed = !m.enabledBundles[gi].hooksCollapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
 		}
@@ -1749,24 +2874,15 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			if zone.Get(fmt.Sprintf("mcp-bundle-%d", gi)).InBounds(msg) {
 				m.enabledBundles[gi].mcpCollapsed = !m.enabledBundles[gi].mcpCollapsed
 				m.projPane = 0
-				m.catalogSub = 1
 				return m, nil
 			}
-		}
-
-		// Bundle box title click
-		if zone.Get("row-0p").InBounds(msg) {
-			m.projPane = 0
-			m.catalogSub = 1
-			return m, nil
 		}
 
 		// Global kind group collapse toggles
 		for i := 0; i < 3; i++ {
 			if zone.Get(fmt.Sprintf("global-kind-%d", i)).InBounds(msg) {
 				m.globalCollapsed[i] = !m.globalCollapsed[i]
-				m.projPane = 0
-				m.catalogSub = 0
+				m.projPane = 1
 				return m, nil
 			}
 		}
@@ -1774,24 +2890,21 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Global HOOKS collapse toggle
 		if zone.Get("hooks-global").InBounds(msg) {
 			m.hooksGlobalCollapsed = !m.hooksGlobalCollapsed
-			m.projPane = 0
-			m.catalogSub = 0
+			m.projPane = 1
 			return m, nil
 		}
 
 		// Global MCP collapse toggle
 		if zone.Get("mcp-global").InBounds(msg) {
 			m.mcpGlobalCollapsed = !m.mcpGlobalCollapsed
-			m.projPane = 0
-			m.catalogSub = 0
+			m.projPane = 1
 			return m, nil
 		}
 
 		// Global catalog leaf clicks
 		for i := 0; i < len(m.projGlobal); i++ {
 			if zone.Get(fmt.Sprintf("leaf-g-%d", i)).InBounds(msg) {
-				m.projPane = 0
-				m.catalogSub = 0
+				m.projPane = 1
 				catIdx := len(m.projBundle) + i
 				m.projCursor[0] = catIdx
 				m.toggleCatalogItem(catIdx)
@@ -1803,7 +2916,6 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		for i := 0; i < len(m.projBundle); i++ {
 			if zone.Get(fmt.Sprintf("leaf-p-%d", i)).InBounds(msg) {
 				m.projPane = 0
-				m.catalogSub = 1
 				m.projCursor[0] = i
 				m.toggleCatalogItem(i)
 				return m, nil
@@ -1840,7 +2952,7 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		for i := 0; i < 3; i++ {
 			if zone.Get(fmt.Sprintf("project-kind-%d", i)).InBounds(msg) {
 				m.projectCollapsed[i] = !m.projectCollapsed[i]
-				m.projPane = 1
+				m.projPane = 2
 				return m, nil
 			}
 		}
@@ -1848,23 +2960,42 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Project HOOKS collapse toggle
 		if zone.Get("hooks-project").InBounds(msg) {
 			m.hooksProjectCollapsed = !m.hooksProjectCollapsed
-			m.projPane = 1
+			m.projPane = 2
 			return m, nil
 		}
 
 		// Project MCP collapse toggle
 		if zone.Get("mcp-project").InBounds(msg) {
 			m.mcpProjectCollapsed = !m.mcpProjectCollapsed
-			m.projPane = 1
+			m.projPane = 2
 			return m, nil
+		}
+
+		// Composed pane collapse toggles
+		if zone.Get("composed-hooks").InBounds(msg) {
+			m.composedHooksCollapsed = !m.composedHooksCollapsed
+			m.projPane = 3
+			return m, nil
+		}
+		if zone.Get("composed-mcp").InBounds(msg) {
+			m.composedMCPCollapsed = !m.composedMCPCollapsed
+			m.projPane = 3
+			return m, nil
+		}
+		for i := 0; i < 3; i++ {
+			if zone.Get(fmt.Sprintf("composed-kind-%d", i)).InBounds(msg) {
+				m.composedCollapsed[i] = !m.composedCollapsed[i]
+				m.projPane = 3
+				return m, nil
+			}
 		}
 
 		// Project leaf clicks
 		items := m.buildPane2Items()
 		for i := 0; i < len(items); i++ {
 			if zone.Get(fmt.Sprintf("leaf-1-%d", i)).InBounds(msg) {
-				m.projPane = 1
-				m.projCursor[1] = i
+				m.projPane = 2
+				m.projCursor[2] = i
 				return m, nil
 			}
 		}
@@ -2000,13 +3131,34 @@ const loreLogo = `   _
   | | (_) | | |  __/
   |_|\___/|_|  \___|`
 
+// renderBtn renders a button. Active = reversed/filled. Inactive = bordered frame.
+// Both use the same total width: padding(0,2) active == padding(0,1)+border inactive.
+func renderBtn(label string, active bool) string {
+	if active {
+		return lipgloss.NewStyle().
+			Reverse(true).Bold(true).
+			Padding(0, 2).
+			Render(label)
+	}
+	return lipgloss.NewStyle().
+		Padding(0, 1).
+		Border(lipgloss.NormalBorder(), false, true, false, true).
+		Faint(true).
+		Render(label)
+}
+
 func (m *tuiModel) viewWelcome() string {
 	var b strings.Builder
 
-	// Logo
-	logo := bold.Render(loreLogo)
+	// Logo + version + tagline
+	logoLines := strings.Split(bold.Render(loreLogo), "\n")
+	logoLines[len(logoLines)-1] += "  " + dimStyle.Render("v"+version)
 	b.WriteString("\n")
-	b.WriteString(logo)
+	b.WriteString(strings.Join(logoLines, "\n"))
+	b.WriteString("\n\n")
+	b.WriteString(dimStyle.Render("  Agentic coding, unified"))
+	b.WriteString("\n")
+	b.WriteString(dimStyle.Render("  Copyright (c) 2026 Lore HQ"))
 	b.WriteString("\n\n")
 
 	if !m.globalExists {
@@ -2018,20 +3170,13 @@ func (m *tuiModel) viewWelcome() string {
 	switch m.wizStep {
 	case stepChoice:
 		if m.canInitHere {
-			createBtn := btnSecondary.Render("Create new project directory →")
-			initBtn := btnSecondary.Render("Initialize current directory →")
-			if m.wizCursor == 0 {
-				createBtn = btnPrimary.Render("Create new project directory →")
-			} else {
-				initBtn = btnPrimary.Render("Initialize current directory →")
-			}
 			b.WriteString("  ")
-			b.WriteString(zone.Mark("wiz-choice-1", createBtn))
+			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", m.wizCursor == 0)))
 			b.WriteString("\n\n  ")
-			b.WriteString(zone.Mark("wiz-choice-0", initBtn))
+			b.WriteString(zone.Mark("wiz-choice-0", renderBtn("Initialize current directory →", m.wizCursor == 1)))
 		} else {
 			b.WriteString("  ")
-			b.WriteString(zone.Mark("wiz-choice-1", btnPrimary.Render("Create new project directory →")))
+			b.WriteString(zone.Mark("wiz-choice-1", renderBtn("Create new project directory →", true)))
 		}
 
 	case stepName:
@@ -2041,7 +3186,7 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString(bold.Render("  Project name: "))
 		b.WriteString(m.wizNameBuf)
 		if m.wizBtnFocus == -1 {
-			b.WriteString(bold.Render("_"))
+			b.WriteString(bold.Render("█"))
 		} else {
 			b.WriteString(dimStyle.Render("_"))
 		}
@@ -2055,17 +3200,9 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString(dimStyle.Render("  " + filepath.Join(m.cwd, m.wizNameBuf+"/")))
 		b.WriteString("\n\n")
 		b.WriteString("  ")
-		backBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			backBtn = btnPrimary.Render("Back")
-		}
-		contBtn := btnPrimary.Render("Continue")
-		if m.wizBtnFocus == 0 {
-			contBtn = btnSecondary.Render("Continue")
-		}
-		b.WriteString(zone.Mark("wiz-back", backBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
-		b.WriteString(zone.Mark("wiz-name-continue", contBtn))
+		b.WriteString(zone.Mark("wiz-name-continue", renderBtn("Continue", m.wizBtnFocus != 0)))
 
 	case stepPlatforms:
 		if m.wizChoice == 0 {
@@ -2082,15 +3219,17 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString("\n\n")
 
 		for i, p := range validPlatforms {
-			cursor := "  "
-			if m.wizCursor == i {
-				cursor = bold.Render("> ")
-			}
 			check := "[ ]"
 			if m.wizPlatforms[i] {
-				check = bold.Render("[x]")
+				check = "[x]"
 			}
-			line := fmt.Sprintf("  %s%s %s", cursor, check, p)
+			label := fmt.Sprintf("%s %s", check, p)
+			var line string
+			if m.wizCursor == i && m.wizBtnFocus == -1 {
+				line = "  " + lipgloss.NewStyle().Reverse(true).Bold(true).Render(label)
+			} else {
+				line = "  " + label
+			}
 			b.WriteString(zone.Mark(fmt.Sprintf("wiz-plat-%d", i), line) + "\n")
 		}
 
@@ -2102,18 +3241,10 @@ func (m *tuiModel) viewWelcome() string {
 			b.WriteString(dimStyle.Render(fmt.Sprintf("  %d platform(s) selected", count)))
 		}
 		b.WriteString("\n\n  ")
-		platBackBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			platBackBtn = btnPrimary.Render("Back")
-		}
-		b.WriteString(zone.Mark("wiz-back", platBackBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
 		if count > 0 {
-			platContBtn := btnPrimary.Render("Continue")
-			if m.wizBtnFocus != 1 {
-				platContBtn = btnSecondary.Render("Continue")
-			}
-			b.WriteString(zone.Mark("wiz-plat-continue", platContBtn))
+			b.WriteString(zone.Mark("wiz-plat-continue", renderBtn("Continue", m.wizBtnFocus == 1)))
 		} else {
 			b.WriteString(btnDisabled.Render("Continue"))
 		}
@@ -2134,17 +3265,9 @@ func (m *tuiModel) viewWelcome() string {
 		b.WriteString("\n")
 
 		b.WriteString("  ")
-		confBackBtn := btnSecondary.Render("Back")
-		if m.wizBtnFocus == 0 {
-			confBackBtn = btnPrimary.Render("Back")
-		}
-		confBtn := btnPrimary.Render("Confirm")
-		if m.wizBtnFocus == 0 {
-			confBtn = btnSecondary.Render("Confirm")
-		}
-		b.WriteString(zone.Mark("wiz-back", confBackBtn))
+		b.WriteString(zone.Mark("wiz-back", renderBtn("Back", m.wizBtnFocus == 0)))
 		b.WriteString("  ")
-		b.WriteString(zone.Mark("wiz-confirm", confBtn))
+		b.WriteString(zone.Mark("wiz-confirm", renderBtn("Confirm", m.wizBtnFocus != 0)))
 	}
 
 	return b.String()
@@ -2153,10 +3276,16 @@ func (m *tuiModel) viewWelcome() string {
 // ── Dashboard View ──────────────────────────────────────────────────
 
 func (m *tuiModel) viewDashboardShell() string {
-	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm
+	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm || m.mktDetail
 
 	// When a dialog is open, give it the entire screen
 	if hasDialog {
+		if m.mktDetail {
+			return m.overlayMktDetails(m.height)
+		}
+		if m.mktConfirm {
+			return m.viewMarketplace(m.height)
+		}
 		return m.viewProjectionPlanner(m.height)
 	}
 
@@ -2174,12 +3303,19 @@ func (m *tuiModel) viewDashboardShell() string {
 		contentH = 1
 	}
 
-	// Compute Y offset where columns begin (for mouse scroll targeting)
-	platBar := m.renderPlatformBar()
-	platBarH := strings.Count(platBar, "\n") + 1
-	m.colStartY = headerH + tabH + platBarH
-
-	content := m.viewProjectionPlanner(contentH)
+	var content string
+	switch m.tab {
+	case tabProjection:
+		// Compute Y offset where columns begin (for mouse scroll targeting)
+		platBar := m.renderPlatformBar()
+		platBarH := strings.Count(platBar, "\n") + 1
+		m.colStartY = headerH + tabH + platBarH
+		content = m.viewProjectionPlanner(contentH)
+	case tabExplore:
+		content = m.viewExplore(contentH)
+	default:
+		content = m.viewBundlePage(contentH)
+	}
 
 	// Assemble and pad to exact terminal height
 	var b strings.Builder
@@ -2220,9 +3356,8 @@ func (m *tuiModel) renderTabBar() string {
 	activeTabStyle := lipgloss.NewStyle().
 		Bold(true).
 		Padding(0, 2).
-		Foreground(lipgloss.Color("12")).
 		Border(lipgloss.RoundedBorder(), true, true, false, true).
-		BorderForeground(lipgloss.Color("12"))
+		BorderForeground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
 
 	inactiveTabStyle := lipgloss.NewStyle().
 		Faint(true).
@@ -2236,6 +3371,14 @@ func (m *tuiModel) renderTabBar() string {
 		id     tabID
 	}{
 		{"Projections", "tab-projection", tabProjection},
+		{"Explore", "tab-explore", tabExplore},
+	}
+	for _, page := range m.bundlePages {
+		tabs = append(tabs, struct {
+			label  string
+			zoneID string
+			id     tabID
+		}{page.name, fmt.Sprintf("tab-bundle-%d", page.tabID), page.tabID})
 	}
 
 	var parts []string
@@ -2263,7 +3406,16 @@ func (m *tuiModel) renderTabBar() string {
 }
 
 func (m *tuiModel) renderStatusBar() string {
-	left := dimStyle.Render(" Inheritance: ○ off  ◐ defer  ● overwrite")
+	var left string
+	if m.tab == tabExplore {
+		if m.exploreSub == exploreSubSkillsSh {
+			left = dimStyle.Render(" Skills: search and import from the Agent Skills ecosystem")
+		} else {
+			left = dimStyle.Render(" Bundles: install and manage composable behavioral units")
+		}
+	} else {
+		left = dimStyle.Render(" Inheritance: ○ off  ◐ defer  ● overwrite")
+	}
 	right := dimStyle.Render(fmt.Sprintf("lore v%s ", version))
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 0 {
@@ -2302,13 +3454,19 @@ func (m *tuiModel) computeGenDiff() (newFiles, overFiles []string) {
 func (m *tuiModel) computeOrphanFiles() []string {
 	rules, skills, agents := m.mergedRules, m.mergedSkills, m.mergedAgents
 
-	// Build the set of files that WOULD be generated
+	// Build the set of files that WOULD be generated.
+	// Track directory entries separately — any file under an expected skill
+	// directory is expected (skill resources: references/, scripts/, assets/).
 	expected := map[string]bool{}
+	expectedDirs := []string{} // directory prefixes (e.g., ".claude/skills/lore-repair/")
 	for _, p := range validPlatforms {
 		if !m.platforms[p] {
 			continue
 		}
 		for _, path := range platformOutputPaths(p, rules, skills, agents, m.hasMCP) {
+			if strings.HasSuffix(path, "/") {
+				expectedDirs = append(expectedDirs, path)
+			}
 			expected[strings.TrimSuffix(path, "/")] = true
 		}
 	}
@@ -2325,7 +3483,18 @@ func (m *tuiModel) computeOrphanFiles() []string {
 			}
 			rel, _ := filepath.Rel(m.cwd, p)
 			rel = filepath.ToSlash(rel)
-			if !expected[rel] && !seen[rel] {
+			if expected[rel] || seen[rel] {
+				return nil
+			}
+			// Check if file is under an expected directory (skill resources)
+			underExpectedDir := false
+			for _, prefix := range expectedDirs {
+				if strings.HasPrefix(rel, prefix) {
+					underExpectedDir = true
+					break
+				}
+			}
+			if !underExpectedDir {
 				seen[rel] = true
 				orphans = append(orphans, rel)
 			}
@@ -2508,60 +3677,92 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		colMaxH = 5
 	}
 
-	colW := w / 3
+	colW := w / 4
 	innerW := colW - 2 // 2 border chars
 
-	// Build pane 0 (catalog) as two stacked boxes
-	pane0 := m.renderCatalogColumn(innerW, colMaxH, false, false)
-
-	// Build panes 1 and 2 as single boxes
-	visibleH := colMaxH - 2 // title + bottom border
-	if visibleH < 3 {
-		visibleH = 3
+	// Columns 0-2: full-height single boxes
+	fullVisibleH := colMaxH - 2 // title + bottom border
+	if fullVisibleH < 3 {
+		fullVisibleH = 3
 	}
 
-	paneContents := [2]string{
+	// Column 3: "Results" wrapper (2 lines for outer border) + split 50/50
+	resultInnerH := colMaxH - 2 // outer top/bottom border
+	if resultInnerH < 6 {
+		resultInnerH = 6
+	}
+	topBoxH := resultInnerH / 2
+	botBoxH := resultInnerH - topBoxH
+	topVisibleH := topBoxH - 2 // title + bottom border
+	botVisibleH := botBoxH - 2
+	if topVisibleH < 2 {
+		topVisibleH = 2
+	}
+	if botVisibleH < 2 {
+		botVisibleH = 2
+	}
+	m.resultTopH = topBoxH + 1 // +1 for outer top border, for mouse Y targeting
+
+	// Pane contents for columns 0-2
+	paneContents := [3]string{
+		m.renderBundleContent(innerW),
+		m.renderGlobalList(innerW),
 		m.renderProjectList(innerW),
-		m.renderOutputContent(innerW),
 	}
+	titles := [3]string{"📦 Bundles", "🌐 Global", "📁 Project"}
 
-	// Clamp scroll offsets for panes 1 and 2
-	for i := 0; i < 2; i++ {
-		paneIdx := i + 1
+	// Clamp scroll offsets for panes 0-2
+	for i := 0; i < 3; i++ {
 		totalLines := strings.Count(paneContents[i], "\n") + 1
 		if paneContents[i] == "" {
 			totalLines = 0
 		}
-		m.clampScroll(paneIdx, totalLines, visibleH)
+		m.clampScroll(i, totalLines, fullVisibleH)
 	}
 
-	titles := [2]string{"Project", "Projections"}
-	var cols []string
-	cols = append(cols, pane0)
+	// Column 3 pane contents (2 narrower to nest inside outer Results border)
+	subInnerW := innerW - 2
+	if subInnerW < 4 {
+		subInnerW = 4
+	}
+	composedContent := m.renderComposedList(subInnerW)
+	outputContent := m.renderOutputContent(subInnerW)
 
-	for i := 0; i < 2; i++ {
-		paneIdx := i + 1
+	composedTotalLines := strings.Count(composedContent, "\n") + 1
+	if composedContent == "" {
+		composedTotalLines = 0
+	}
+	outputTotalLines := strings.Count(outputContent, "\n") + 1
+	if outputContent == "" {
+		outputTotalLines = 0
+	}
+	m.clampScroll(3, composedTotalLines, topVisibleH)
+	m.clampScroll(4, outputTotalLines, botVisibleH)
+
+	// Build columns 0-2 (full height single boxes)
+	var cols []string
+	for i := 0; i < 3; i++ {
 		allLines := strings.Split(paneContents[i], "\n")
 		if paneContents[i] == "" {
 			allLines = nil
 		}
 		totalLines := len(allLines)
 
-		start := m.projScroll[paneIdx]
+		start := m.projScroll[i]
 		if start > totalLines {
 			start = totalLines
 		}
-		end := start + visibleH
+		end := start + fullVisibleH
 		if end > totalLines {
 			end = totalLines
 		}
 		visible := allLines[start:end]
-		for len(visible) < visibleH {
+		for len(visible) < fullVisibleH {
 			visible = append(visible, "")
 		}
 
 		var box []string
-		box = append(box, m.renderBoxTitle(titles[i], innerW, paneIdx))
+		box = append(box, m.renderBoxTitle(titles[i], innerW, i))
 		for _, vl := range visible {
 			lineW := lipgloss.Width(vl)
 			if lineW > innerW {
@@ -2574,9 +3775,90 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 			}
 			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
 		}
-		box = append(box, m.renderBoxBottom(innerW, paneIdx, visibleH, totalLines))
+		box = append(box, m.renderBoxBottom(innerW, i, fullVisibleH, totalLines))
 		cols = append(cols, strings.Join(box, "\n"))
 	}
+
+	// Build column 3: vertically stacked Composed (pane 3) + Projections (pane 4)
+	buildSubBox := func(title string, content string, pane int, visH int) []string {
+		allLines := strings.Split(content, "\n")
+		if content == "" {
+			allLines = nil
+		}
+		total := len(allLines)
+
+		start := m.projScroll[pane]
+		if start > total {
+			start = total
+		}
+		end := start + visH
+		if end > total {
+			end = total
+		}
+		visible := allLines[start:end]
+		for len(visible) < visH {
+			visible = append(visible, "")
+		}
+
+		var box []string
+		box = append(box, m.renderBoxTitle(title, subInnerW, pane))
+		for _, vl := range visible {
+			lineW := lipgloss.Width(vl)
+			if lineW > subInnerW {
+				vl = ansi.Truncate(vl, subInnerW, "")
+				lineW = lipgloss.Width(vl)
+			}
+			pad := subInnerW - lineW
+			if pad < 0 {
+				pad = 0
+			}
+			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+		}
+		box = append(box, m.renderBoxBottom(subInnerW, pane, visH, total))
+		return box
+	}
+
+	topBox := buildSubBox("Composed", composedContent, 3, topVisibleH)
+	botBox := buildSubBox("Projections", outputContent, 4, botVisibleH)
+
+	// Outer "Results" wrapper with harness toggle
+	var harnessToggle string
+	if m.showHarness {
+		harnessToggle = zone.Mark("harness-toggle", "● harness")
+	} else {
+		harnessToggle = zone.Mark("harness-toggle", "○ harness")
+	}
+	resultsLabel := " Results "
+	toggleW := lipgloss.Width(harnessToggle)
+	labelW := lipgloss.Width(resultsLabel)
+	fillW := innerW - labelW - toggleW
+	if fillW < 1 {
+		fillW = 1
+	}
+	outerTop := dimStyle.Render("╭") + bold.Render(resultsLabel) + dimStyle.Render(strings.Repeat("─", fillW)) + dimStyle.Render(" ") + harnessToggle + dimStyle.Render("╮")
+	outerBot := dimStyle.Render("╰") + dimStyle.Render(strings.Repeat("─", innerW)) + dimStyle.Render("╯")
+
+	// Wrap inner box lines with outer │ side borders
+	var col3Lines []string
+	col3Lines = append(col3Lines, outerTop)
+	for _, line := range topBox {
+		lineW := lipgloss.Width(line)
+		pad := innerW - lineW
+		if pad < 0 {
+			pad = 0
+		}
+		col3Lines = append(col3Lines, dimStyle.Render("│")+line+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+	}
+	for _, line := range botBox {
+		lineW := lipgloss.Width(line)
+		pad := innerW - lineW
+		if pad < 0 {
+			pad = 0
+		}
+		col3Lines = append(col3Lines, dimStyle.Render("│")+line+strings.Repeat(" ", pad)+dimStyle.Render("│"))
+	}
+	col3Lines = append(col3Lines, outerBot)
+	cols = append(cols, strings.Join(col3Lines, "\n"))
 
 	columnsStr := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 
@@ -2650,10 +3932,18 @@ func (m *tuiModel) renderBoxBottom(innerW int, pane int, visibleH int, totalLine
 	return dimStyle.Render("╰" + fill + "╯")
 }
 
-var hintTexts = [3][]string{
-	{ // Global (pane 0)
+var hintTexts = [5][]string{
+	{ // Bundles (pane 0)
+		"Enabled and available bundles.",
+		"",
+		"Click items to cycle inheritance policy:",
+		"  ○ off       — excluded from projection",
+		"  ◐ defer     — included, project can override",
+		"  ● overwrite — included, overrides project",
+	},
+	{ // Global (pane 1)
 		"Rules, skills, and agents from the",
-		"global directory and active bundle.",
+		"global directory.",
 		"",
 		"Click items to cycle inheritance policy:",
 		"  ○ off       — excluded from projection",
@@ -2663,19 +3953,29 @@ var hintTexts = [3][]string{
 		"LORE.md — prose instructions accumulated",
 		"from all layers. Edit the file directly.",
 	},
-	{ // Project (pane 1)
+	{ // Project (pane 2)
 		"Your project-local agentic content",
-		"from .lore/AGENTIC/.",
+		"from .lore/.",
 		"",
-		"Only items on disk are shown here.",
 		"Conflict indicators:",
 		"  yellow — shadows a deferred global item",
 		"  struck — overridden by global ● overwrite",
 	},
-	{ // Projections (pane 2)
-		"File tree preview of what lore generate",
-		"will produce for the selected platforms.",
+	{ // Composed (pane 3)
+		"Final merged result after three-layer",
+		"composition (bundle + global + project).",
 		"",
+		"Provenance symbols:",
+		"  ⬡ bundle   ● global",
+		"  ◆ project  ⊕ harness",
+		"",
+		"  ⚠ = name exists at multiple layers",
+	},
+	{ // Projections (pane 4)
+		"File tree preview of what",
+		"lore generate will produce.",
+		"",
+		"Projection colors:",
 		"  green  — new file (does not exist yet)",
 		"  yellow — overwrites an existing file",
 		"  red    — orphan to delete (clean mode)",
@@ -2684,7 +3984,7 @@ var hintTexts = [3][]string{
 
 // overlayHint renders a centered full-screen hint dialog for the given pane.
 func (m *tuiModel) overlayHint(lines []string, w int, _ int, pane int) []string {
-	titles := [3]string{"Global Catalog", "Project Agentics", "Projection Preview"}
+	titles := [5]string{"Bundle Catalog", "Global Catalog", "Project Agentics", "Composed Result", "Projection Output"}
 	title := bold.Render(titles[pane])
 
 	inner := title + "\n\n" + strings.Join(hintTexts[pane], "\n") + "\n\n" +
@@ -2770,211 +4070,6 @@ func (m *tuiModel) overlayLoreHint(lines []string, w int) []string {
 
 // ── Pane Content Renderers ──────────────────────────────────────────
 
-// renderCatalogColumn renders the full pane 0 column with two stacked boxes (Global + Bundle).
-func (m *tuiModel) renderCatalogColumn(innerW int, colMaxH int, hasBundle bool, hasDiscovery bool) string {
-	// Always show bundle box (it shows enabled + available bundles)
-	showBottom := len(m.enabledBundles) > 0 || len(m.availableBundles) > 0
-	var globalH, pkgH int
-	if showBottom {
-		globalH = colMaxH / 2
-		pkgH = colMaxH - globalH
-		if globalH < 5 {
-			globalH = 5
-		}
-		if pkgH < 5 {
-			pkgH = 5
-		}
-	} else {
-		globalH = colMaxH
-		pkgH = 0
-	}
-
-	globalVisH := globalH - 2 // title + bottom border
-	if globalVisH < 3 {
-		globalVisH = 3
-	}
-
-	// Render global content
-	globalContent := m.renderGlobalList(innerW)
-	globalLines := strings.Split(globalContent, "\n")
-	if globalContent == "" {
-		globalLines = nil
-	}
-	globalTotal := len(globalLines)
-
-	// Clamp global scroll
-	m.clampCatalogScroll(0, globalTotal, globalVisH)
-
-	gStart := m.catalogScroll[0]
-	if gStart > globalTotal {
-		gStart = globalTotal
-	}
-	gEnd := gStart + globalVisH
-	if gEnd > globalTotal {
-		gEnd = globalTotal
-	}
-	gVisible := globalLines[gStart:gEnd]
-	for len(gVisible) < globalVisH {
-		gVisible = append(gVisible, "")
-	}
-
-	var box []string
-	box = append(box, m.renderCatalogBoxTitle("Global", innerW, 0, true))
-	for _, vl := range gVisible {
-		lineW := lipgloss.Width(vl)
-		if lineW > innerW {
-			vl = ansi.Truncate(vl, innerW, "")
-			lineW = lipgloss.Width(vl)
-		}
-		pad := innerW - lineW
-		if pad < 0 {
-			pad = 0
-		}
-		box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
-	}
-	box = append(box, m.renderCatalogBoxBottom(innerW, 0, globalVisH, globalTotal))
-
-	// Record global box height for mouse scroll targeting
-	m.catalogGlobalH = globalH
-
-	if showBottom {
-		pkgVisH := pkgH - 2
-		if pkgVisH < 3 {
-			pkgVisH = 3
-		}
-
-		pkgContent := m.renderBundleContent(innerW)
-		pkgLines := strings.Split(pkgContent, "\n")
-		if pkgContent == "" {
-			pkgLines = nil
-		}
-		pkgTotal := len(pkgLines)
-
-		m.clampCatalogScroll(1, pkgTotal, pkgVisH)
-
-		pStart := m.catalogScroll[1]
-		if pStart > pkgTotal {
-			pStart = pkgTotal
-		}
-		pEnd := pStart + pkgVisH
-		if pEnd > pkgTotal {
-			pEnd = pkgTotal
-		}
-		pVisible := pkgLines[pStart:pEnd]
-		for len(pVisible) < pkgVisH {
-			pVisible = append(pVisible, "")
-		}
-
-		box = append(box, m.renderCatalogBoxTitle("Bundles", innerW, 1, false))
-		for _, vl := range pVisible {
-			lineW := lipgloss.Width(vl)
-			if lineW > innerW {
-				vl = ansi.Truncate(vl, innerW, "")
-				lineW = lipgloss.Width(vl)
-			}
-			pad := innerW - lineW
-			if pad < 0 {
-				pad = 0
-			}
-			box = append(box, dimStyle.Render("│")+vl+strings.Repeat(" ", pad)+dimStyle.Render("│"))
-		}
-		box = append(box, m.renderCatalogBoxBottom(innerW, 1, pkgVisH, pkgTotal))
-	}
-
-	return strings.Join(box, "\n")
-}
-
-// renderCatalogBoxTitle renders a title bar for a catalog sub-box.
-// sub: 0=global, 1=bundle. showHint: whether to show the ? button.
-func (m *tuiModel) renderCatalogBoxTitle(label string, innerW int, sub int, showHint bool) string {
-	isFocused := m.projPane == 0 && m.catalogSub == sub
-
-	var styledLabel string
-	if isFocused {
-		styledLabel = bold.Render(" " + label + " ")
-	} else {
-		styledLabel = dimStyle.Render(" " + label + " ")
-	}
-
-	// Right-side widget: hint (?) for global box
-	var rightWidget string
-	rightW := 0
-	if showHint {
-		rightWidget = zone.Mark("hint-0", dimStyle.Render(" ? "))
-		rightW = 3
-	}
-
-	labelW := lipgloss.Width(styledLabel)
-	fill := innerW - labelW - rightW - 1
-	if fill < 0 {
-		fill = 0
-	}
-
-	var borderFmt lipgloss.Style
-	if isFocused {
-		borderFmt = lipgloss.NewStyle().Bold(true)
-	} else {
-		borderFmt = dimStyle
-	}
-
-	var title string
-	if rightW > 0 {
-		title = borderFmt.Render("╭─") + styledLabel + dimStyle.Render(strings.Repeat("─", fill)) + rightWidget + dimStyle.Render("╮")
-	} else {
-		title = borderFmt.Render("╭─") + styledLabel + dimStyle.Render(strings.Repeat("─", fill)) + dimStyle.Render("╮")
-	}
-
-	zoneID := "row-0"
-	if sub == 1 {
-		zoneID = "row-0p"
-	}
-	return zone.Mark(zoneID, title)
-}
-
-// renderCatalogBoxBottom renders a bottom border with scroll indicators for a catalog sub-box.
-func (m *tuiModel) renderCatalogBoxBottom(innerW int, sub int, visibleH int, totalLines int) string {
-	fill := strings.Repeat("─", innerW)
-
-	if totalLines <= visibleH {
-		return dimStyle.Render("╰" + fill + "╯")
-	}
-
-	hasAbove := m.catalogScroll[sub] > 0
-	hasBelow := m.catalogScroll[sub]+visibleH < totalLines
-
-	indicator := ""
-	if hasAbove && hasBelow {
-		indicator = " ▲▼ "
-	} else if hasAbove {
-		indicator = " ▲ "
-	} else if hasBelow {
-		indicator = " ▼ "
-	}
-	if indicator != "" {
-		indW := lipgloss.Width(indicator)
-		fillW := innerW - indW
-		if fillW < 0 {
-			fillW = 0
-		}
-		return dimStyle.Render("╰"+strings.Repeat("─", fillW)) + dimStyle.Render(indicator) + dimStyle.Render("╯")
-	}
-	return dimStyle.Render("╰" + fill + "╯")
-}
-
-// clampCatalogScroll ensures catalog sub-box scroll offset is within valid range.
-func (m *tuiModel) clampCatalogScroll(sub int, totalLines int, visibleH int) {
-	maxScroll := totalLines - visibleH
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
-	if m.catalogScroll[sub] > maxScroll {
-		m.catalogScroll[sub] = maxScroll
-	}
-	if m.catalogScroll[sub] < 0 {
-		m.catalogScroll[sub] = 0
-	}
-}
-
 // renderGlobalList renders global catalog items with collapsible kind groups.
 func (m *tuiModel) renderGlobalList(w int) string {
 	var lines []string
@@ -2986,22 +4081,21 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		lines = append(lines, zone.Mark("lore-global", dimStyle.Render(" 🗋 LORE.md")))
 	}
 
-	// HOOKS row (collapsible, only shown if non-empty)
+	// HOOKS row (collapsible, always shown)
 	if len(m.hooksGlobal) > 0 {
 		arrow := "▾"
 		if m.hooksGlobalCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " HOOKS"
-		if m.hooksGlobalCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksGlobal)))
-		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksGlobal)))
 		lines = append(lines, zone.Mark("hooks-global", header))
 		if !m.hooksGlobalCollapsed {
-			for _, name := range m.hooksGlobal {
-				lines = append(lines, "  ⚡ "+name)
+			for _, h := range m.hooksGlobal {
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
 	}
 
 	// MCP row (collapsible, always shown)
@@ -3010,10 +4104,7 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		if m.mcpGlobalCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " MCP"
-		if m.mcpGlobalCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpGlobal)))
-		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpGlobal)))
 		lines = append(lines, zone.Mark("mcp-global", header))
 		if !m.mcpGlobalCollapsed {
 			for _, name := range m.mcpGlobal {
@@ -3024,36 +4115,39 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		lines = append(lines, dimStyle.Render(" MCP (0)"))
 	}
 
-	if len(m.projGlobal) == 0 {
-		return strings.Join(lines, "\n")
-	}
-
-	lastKind := ""
-	kindIdx := -1 // 0=rules, 1=skills, 2=agents
-	for i, item := range m.projGlobal {
-		if item.kind != lastKind {
-			lastKind = item.kind
-			kindIdx = kindIndex(item.kind)
-			collapsed := kindIdx >= 0 && m.globalCollapsed[kindIdx]
-			arrow := "▾"
-			if collapsed {
-				arrow = "▸"
-			}
-			count := m.countKindItems(m.projGlobal, item.kind)
-			header := " " + arrow + " " + strings.ToUpper(item.kind) + "S"
-			if collapsed {
-				header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-			}
-			lines = append(lines, zone.Mark(fmt.Sprintf("global-kind-%d", kindIdx), bold.Render(header)))
-		}
-		if kindIdx >= 0 && m.globalCollapsed[kindIdx] {
+	// RULES / SKILLS / AGENTS (always shown)
+	for _, kind := range []string{"rule", "skill", "agent"} {
+		ki := kindIndex(kind)
+		count := m.countKindItems(m.projGlobal, kind)
+		collapsed := m.globalCollapsed[ki]
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+strings.ToUpper(kind)+"S (0)"))
 			continue
 		}
-		policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
-		sym := policySymbol(policy)
-		line := "  " + sym + " " + item.name
-		line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
-		lines = append(lines, line)
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("global-kind-%d", ki), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for i, item := range m.projGlobal {
+			if item.kind != kind {
+				continue
+			}
+			policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
+			sym := policySymbol(policy)
+			line := "  " + sym + " " + item.name
+			line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
+			lines = append(lines, line)
+			if item.kind == "skill" {
+				if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+					lines = append(lines, dimStyle.Render("      "+badge))
+				}
+			}
+		}
 	}
 	return strings.Join(lines, "\n")
 }
@@ -3101,15 +4195,16 @@ func (m *tuiModel) renderBundleContent(w int) string {
 				arrow = "▸"
 			}
 			nameLabel := zone.Mark(fmt.Sprintf("bundle-toggle-%d", gi), " "+arrow+" "+group.name)
+			readmeBtn := zone.Mark(fmt.Sprintf("bundle-readme-%d", gi), dimStyle.Render("?"))
 			disableBtn := zone.Mark(fmt.Sprintf("bundle-disable-%d", gi),
 				lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("×"))
 			nameW := lipgloss.Width(nameLabel)
-			btnW := 1
+			btnW := lipgloss.Width(readmeBtn) + 1 + 1 // readme + space + disable
 			gap := w - nameW - btnW
 			if gap < 1 {
 				gap = 1
 			}
-			lines = append(lines, nameLabel+strings.Repeat(" ", gap)+disableBtn)
+			lines = append(lines, nameLabel+strings.Repeat(" ", gap)+readmeBtn+" "+disableBtn)
 
 			if !group.collapsed {
 				// LORE.md row
@@ -3117,22 +4212,21 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					lines = append(lines, zone.Mark(fmt.Sprintf("lore-bundle-%d", gi), "   🖹 LORE.md"))
 				}
 
-				// HOOKS row (collapsible, only shown if non-empty)
-				if len(group.hookEvents) > 0 {
+				// HOOKS row (collapsible, always shown)
+				if len(group.hookEntries) > 0 {
 					arrow := "▾"
 					if m.enabledBundles[gi].hooksCollapsed {
 						arrow = "▸"
 					}
-					header := "   " + arrow + " HOOKS"
-					if m.enabledBundles[gi].hooksCollapsed {
-						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEvents)))
-					}
+					header := "   " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
 					lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].hooksCollapsed {
-						for _, name := range group.hookEvents {
-							lines = append(lines, "    ⚡ "+name)
+						for _, h := range group.hookEntries {
+							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 						}
 					}
+				} else {
+					lines = append(lines, dimStyle.Render("   HOOKS (0)"))
 				}
 
 				// MCP row (collapsible, always shown)
@@ -3141,10 +4235,7 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					if m.enabledBundles[gi].mcpCollapsed {
 						arrow = "▸"
 					}
-					header := "   " + arrow + " MCP"
-					if m.enabledBundles[gi].mcpCollapsed {
-						header += dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
-					}
+					header := "   " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
 					lines = append(lines, zone.Mark(fmt.Sprintf("mcp-bundle-%d", gi), header))
 					if !m.enabledBundles[gi].mcpCollapsed {
 						for _, name := range group.mcpServers {
@@ -3155,35 +4246,41 @@ func (m *tuiModel) renderBundleContent(w int) string {
 					lines = append(lines, dimStyle.Render("   MCP (0)"))
 				}
 
-				// Items grouped by kind, each kind collapsible
-				lastKind := ""
-				ki := -1
-				for _, item := range group.items {
-					if item.kind != lastKind {
-						lastKind = item.kind
-						ki = kindIndex(item.kind)
-						collapsed := ki >= 0 && m.enabledBundles[gi].kindCollapsed[ki]
-						arrow := "▾"
-						if collapsed {
-							arrow = "▸"
-						}
-						header := "   " + arrow + " " + strings.ToUpper(item.kind) + "S"
-						if collapsed {
-							count := m.countKindItems(group.items, item.kind)
-							header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-						}
-						lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
-					}
-					if ki >= 0 && m.enabledBundles[gi].kindCollapsed[ki] {
-						flatIdx++
+				// RULES / SKILLS / AGENTS (always shown)
+				for _, kind := range []string{"rule", "skill", "agent"} {
+					ki := kindIndex(kind)
+					count := m.countKindItems(group.items, kind)
+					collapsed := m.enabledBundles[gi].kindCollapsed[ki]
+					if count == 0 {
+						lines = append(lines, dimStyle.Render("   "+strings.ToUpper(kind)+"S (0)"))
 						continue
 					}
-					policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
-					sym := policySymbol(policy)
-					line := "    " + sym + " " + item.name
-					line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
-					lines = append(lines, line)
-					flatIdx++
+					arrow := "▾"
+					if collapsed {
+						arrow = "▸"
+					}
+					header := "   " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+					lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
+					if collapsed {
+						flatIdx += count
+						continue
+					}
+					for _, item := range group.items {
+						if item.kind != kind {
+							continue
+						}
+						policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
+						sym := policySymbol(policy)
+						line := "    " + sym + " " + item.name
+						line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
+						lines = append(lines, line)
+						if item.kind == "skill" {
+							if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+								lines = append(lines, dimStyle.Render("        "+badge))
+							}
+						}
+						flatIdx++
+					}
 				}
 			} else {
 				flatIdx += len(group.items)
@@ -3216,6 +4313,122 @@ func (m *tuiModel) renderBundleContent(w int) string {
 }
 
 // renderProjectList renders the project pane with collapsible kind groups.
+// renderComposedList renders the Composed pane content showing the final merged result
+// with provenance symbols and conflict indicators.
+func (m *tuiModel) renderComposedList(w int) string {
+	var lines []string
+
+	// Filter harness items when not showing harness
+	filterItems := func(items []composedItem) []composedItem {
+		if m.showHarness {
+			return items
+		}
+		var filtered []composedItem
+		for _, item := range items {
+			if item.source != "harness" {
+				filtered = append(filtered, item)
+			}
+		}
+		return filtered
+	}
+
+	// Provenance symbol
+	provenanceSym := func(source string) string {
+		switch source {
+		case "bundle":
+			return "📦"
+		case "global":
+			return "🌐"
+		case "project":
+			return "📁"
+		case "harness":
+			return "🔧"
+		}
+		return "?"
+	}
+
+	// HOOKS row (collapsible)
+	hookCount := len(m.composedHooks)
+	if hookCount > 0 {
+		arrow := "▾"
+		if m.composedHooksCollapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", hookCount))
+		lines = append(lines, zone.Mark("composed-hooks", header))
+		if !m.composedHooksCollapsed {
+			for _, h := range m.composedHooks {
+				sym := provenanceSym(h.source)
+				lines = append(lines, "  "+sym+" "+h.event+dimStyle.Render(" > "+h.name))
+			}
+		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
+	}
+
+	// MCP row (collapsible)
+	mcpCount := len(m.composedMCP)
+	if mcpCount > 0 {
+		arrow := "▾"
+		if m.composedMCPCollapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", mcpCount))
+		lines = append(lines, zone.Mark("composed-mcp", header))
+		if !m.composedMCPCollapsed {
+			for _, item := range m.composedMCP {
+				sym := provenanceSym(item.source)
+				line := "  " + sym + " " + item.name
+				if item.conflict {
+					line += " " + dimStyle.Render("⚠")
+				}
+				lines = append(lines, line)
+			}
+		}
+	} else {
+		lines = append(lines, dimStyle.Render(" MCP (0)"))
+	}
+
+	// RULES / SKILLS / AGENTS (collapsible)
+	type kindGroup struct {
+		label string
+		items []composedItem
+		idx   int // index into composedCollapsed
+	}
+	groups := []kindGroup{
+		{"RULES", filterItems(m.composedRules), 0},
+		{"SKILLS", filterItems(m.composedSkills), 1},
+		{"AGENTS", filterItems(m.composedAgents), 2},
+	}
+	for _, g := range groups {
+		count := len(g.items)
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+g.label+" (0)"))
+			continue
+		}
+		collapsed := m.composedCollapsed[g.idx]
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
+		}
+		header := " " + arrow + " " + g.label + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("composed-kind-%d", g.idx), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for _, item := range g.items {
+			sym := provenanceSym(item.source)
+			line := "  " + sym + " " + item.name
+			if item.conflict {
+				line += " " + dimStyle.Render("⚠")
+			}
+			lines = append(lines, line)
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func (m *tuiModel) renderProjectList(w int) string {
 	var lines []string
 
@@ -3226,22 +4439,21 @@ func (m *tuiModel) renderProjectList(w int) string {
 		lines = append(lines, zone.Mark("lore-project", dimStyle.Render(" 🗋 LORE.md")))
 	}
 
-	// HOOKS row (collapsible, only shown if non-empty)
+	// HOOKS row (collapsible, always shown)
 	if len(m.hooksProject) > 0 {
 		arrow := "▾"
 		if m.hooksProjectCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " HOOKS"
-		if m.hooksProjectCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksProject)))
-		}
+		header := " " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.hooksProject)))
 		lines = append(lines, zone.Mark("hooks-project", header))
 		if !m.hooksProjectCollapsed {
-			for _, name := range m.hooksProject {
-				lines = append(lines, "  ⚡ "+name)
+			for _, h := range m.hooksProject {
+				lines = append(lines, "  ⚡ "+h.event+dimStyle.Render(" > "+h.name))
 			}
 		}
+	} else {
+		lines = append(lines, dimStyle.Render(" HOOKS (0)"))
 	}
 
 	// MCP row (collapsible, always shown)
@@ -3250,10 +4462,7 @@ func (m *tuiModel) renderProjectList(w int) string {
 		if m.mcpProjectCollapsed {
 			arrow = "▸"
 		}
-		header := " " + arrow + " MCP"
-		if m.mcpProjectCollapsed {
-			header += dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpProject)))
-		}
+		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpProject)))
 		lines = append(lines, zone.Mark("mcp-project", header))
 		if !m.mcpProjectCollapsed {
 			for _, name := range m.mcpProject {
@@ -3264,43 +4473,45 @@ func (m *tuiModel) renderProjectList(w int) string {
 		lines = append(lines, dimStyle.Render(" MCP (0)"))
 	}
 
+	// RULES / SKILLS / AGENTS (always shown)
 	items := m.buildPane2Items()
-	if len(items) == 0 {
-		lines = append(lines, dimStyle.Render(" RULES"), dimStyle.Render(" SKILLS"), dimStyle.Render(" AGENTS"))
-		return strings.Join(lines, "\n")
-	}
-
-	lastKind := ""
-	kindIdx := -1
-	for _, item := range items {
-		if item.kind != lastKind {
-			lastKind = item.kind
-			kindIdx = kindIndex(item.kind)
-			collapsed := kindIdx >= 0 && m.projectCollapsed[kindIdx]
-			arrow := "▾"
-			if collapsed {
-				arrow = "▸"
-			}
-			count := countPane2Kind(items, item.kind)
-			header := " " + arrow + " " + strings.ToUpper(item.kind) + "S"
-			if collapsed {
-				header += dimStyle.Render(fmt.Sprintf(" (%d)", count))
-			}
-			lines = append(lines, zone.Mark(fmt.Sprintf("project-kind-%d", kindIdx), bold.Render(header)))
-		}
-		if kindIdx >= 0 && m.projectCollapsed[kindIdx] {
+	for _, kind := range []string{"rule", "skill", "agent"} {
+		ki := kindIndex(kind)
+		count := countPane2Kind(items, kind)
+		collapsed := m.projectCollapsed[ki]
+		if count == 0 {
+			lines = append(lines, dimStyle.Render(" "+strings.ToUpper(kind)+"S (0)"))
 			continue
 		}
-		label := item.name
-		switch item.color {
-		case "green":
-			label = greenStyle.Render(label)
-		case "yellow":
-			label = yellowStyle.Render(label)
-		case "strike":
-			label = redStyle.Render(label)
+		arrow := "▾"
+		if collapsed {
+			arrow = "▸"
 		}
-		lines = append(lines, "   "+label)
+		header := " " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+		lines = append(lines, zone.Mark(fmt.Sprintf("project-kind-%d", ki), bold.Render(header)))
+		if collapsed {
+			continue
+		}
+		for _, item := range items {
+			if item.kind != kind {
+				continue
+			}
+			label := item.name
+			switch item.color {
+			case "green":
+				label = greenStyle.Render(label)
+			case "yellow":
+				label = yellowStyle.Render(label)
+			case "strike":
+				label = redStyle.Render(label)
+			}
+			lines = append(lines, "   "+label)
+			if item.kind == "skill" {
+				if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+					lines = append(lines, dimStyle.Render("     "+badge))
+				}
+			}
+		}
 	}
 	return strings.Join(lines, "\n")
 }
@@ -3589,6 +4800,169 @@ func (m *tuiModel) overlayBundleConfirmDialog(lines []string, w int) []string {
 	}
 
 	return lines
+}
+
+// ── Bundle Page Renderer ────────────────────────────────────────────
+
+func (m *tuiModel) viewBundlePage(maxH int) string {
+	output := m.bundlePageData[m.tab]
+
+	if m.bundlePageLoading[m.tab] {
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(maxH).
+			Align(lipgloss.Center, lipgloss.Center).
+			Faint(true).
+			Render("Loading...")
+	}
+
+	if output == nil {
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(maxH).
+			Align(lipgloss.Center, lipgloss.Center).
+			Faint(true).
+			Render("Press r to load")
+	}
+
+	if len(output.Subtabs) > 0 {
+		subTabBar := m.renderBundlePageSubTabs(output.Subtabs)
+		subTabH := strings.Count(subTabBar, "\n") + 1
+		contentH := maxH - subTabH
+		if contentH < 1 {
+			contentH = 1
+		}
+		activeSub := m.bundlePageActiveSub[m.tab]
+		if activeSub >= len(output.Subtabs) {
+			activeSub = 0
+		}
+		if m.bundlePageSubCollapsed[m.tab] == nil {
+			m.bundlePageSubCollapsed[m.tab] = make(map[int]map[int]bool)
+		}
+		collapsed := m.bundlePageSubCollapsed[m.tab][activeSub]
+		if collapsed == nil {
+			collapsed = make(map[int]bool)
+			m.bundlePageSubCollapsed[m.tab][activeSub] = collapsed
+		}
+		zonePrefix := fmt.Sprintf("bp-section-%d-%d", m.tab, activeSub)
+		content := m.renderBundlePageSections(output.Subtabs[activeSub].Sections, output.Status, collapsed, zonePrefix, contentH)
+		return subTabBar + "\n" + content
+	}
+
+	collapsed := m.bundlePageCollapsed[m.tab]
+	if collapsed == nil {
+		collapsed = make(map[int]bool)
+		m.bundlePageCollapsed[m.tab] = collapsed
+	}
+	zonePrefix := fmt.Sprintf("bp-section-%d", m.tab)
+	return m.renderBundlePageSections(output.Sections, output.Status, collapsed, zonePrefix, maxH)
+}
+
+func (m *tuiModel) renderBundlePageSubTabs(subtabs []bundlePageSubtab) string {
+	borderFg := lipgloss.AdaptiveColor{Light: "236", Dark: "248"}
+
+	activeStyle := lipgloss.NewStyle().
+		Bold(true).
+		Padding(0, 1).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
+
+	inactiveStyle := lipgloss.NewStyle().
+		Faint(true).
+		Padding(0, 1).
+		Border(lipgloss.RoundedBorder(), true, true, false, true).
+		BorderForeground(borderFg)
+
+	activeSub := m.bundlePageActiveSub[m.tab]
+	var parts []string
+	for i, sub := range subtabs {
+		label := sub.Name
+		if sub.Badge != "" {
+			label += " " + sub.Badge
+		}
+		zoneID := fmt.Sprintf("bp-sub-%d-%d", m.tab, i)
+		var rendered string
+		if activeSub == i {
+			rendered = activeStyle.Render(label)
+		} else {
+			rendered = inactiveStyle.Render(label)
+		}
+		parts = append(parts, zone.Mark(zoneID, rendered))
+	}
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
+
+	refreshBtn := zone.Mark(fmt.Sprintf("bp-refresh-%d", m.tab), dimStyle.Render(" ↻ "))
+	barW := lipgloss.Width(tabBar)
+	btnW := lipgloss.Width(refreshBtn)
+	gap := m.width - barW - btnW
+	if gap < 1 {
+		gap = 1
+	}
+	filler := lipgloss.NewStyle().Foreground(borderFg).Render(strings.Repeat("─", gap))
+	return lipgloss.JoinHorizontal(lipgloss.Bottom, tabBar, filler, refreshBtn)
+}
+
+func (m *tuiModel) renderBundlePageSections(sections []bundlePageSection, status string, collapsed map[int]bool, zonePrefix string, maxH int) string {
+	var lines []string
+
+	for i, section := range sections {
+		arrow := "▾"
+		if collapsed[i] {
+			arrow = "▸"
+		}
+		header := fmt.Sprintf(" %s %s", arrow, bold.Render(section.Name))
+		if section.Badge != "" {
+			header += " " + dimStyle.Render("("+section.Badge+")")
+		}
+		lines = append(lines, zone.Mark(fmt.Sprintf("%s-%d", zonePrefix, i), header))
+
+		if !collapsed[i] {
+			for _, item := range section.Items {
+				line := "   " + item.Label
+				if item.Detail != "" {
+					line += "  " + dimStyle.Render(item.Detail)
+				}
+				if item.Badge != "" {
+					line += "  " + item.Badge
+				}
+				lines = append(lines, line)
+			}
+		}
+		lines = append(lines, "") // spacer between sections
+	}
+
+	if status != "" {
+		lines = append(lines, dimStyle.Render(" "+status))
+	}
+
+	// Apply scroll
+	scroll := m.bundlePageScroll[m.tab]
+	if scroll > len(lines) {
+		scroll = len(lines)
+		m.bundlePageScroll[m.tab] = scroll
+	}
+	if scroll < 0 {
+		scroll = 0
+		m.bundlePageScroll[m.tab] = 0
+	}
+	visible := lines
+	if scroll < len(visible) {
+		visible = visible[scroll:]
+	} else {
+		visible = nil
+	}
+	if len(visible) > maxH {
+		visible = visible[:maxH]
+	}
+	for len(visible) < maxH {
+		visible = append(visible, "")
+	}
+	for i, line := range visible {
+		if lipgloss.Width(line) > m.width {
+			visible[i] = ansi.Truncate(line, m.width, "…")
+		}
+	}
+	return strings.Join(visible, "\n")
 }
 
 // ── Entry Point ─────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -19,6 +20,7 @@ func (p *WindsurfProjector) OutputPaths(rules, skills, agents []string, hasMCP b
 	}
 	for _, n := range skills {
 		paths = append(paths, ".windsurf/skills/"+n+"/", ".windsurf/skills/"+n+"/SKILL.md")
+		paths = append(paths, ".windsurf/workflows/"+n+".md")
 	}
 	return paths
 }
@@ -49,8 +51,42 @@ func (p *WindsurfProjector) Project(root string, ms *MergedSet) error {
 		return err
 	}
 
+	// User-invocable skills → .windsurf/workflows/<name>.md (Windsurf slash commands)
+	// Windsurf uses [arguments] placeholder syntax; translate from $ARGUMENTS.
+	for _, skill := range userInvocableSkills(ms) {
+		var sb strings.Builder
+		sb.WriteString("---\n")
+		if skill.Description != "" {
+			sb.WriteString(fmt.Sprintf("description: %s\n", skill.Description))
+		}
+		sb.WriteString("---\n\n")
+		body := strings.ReplaceAll(skill.Body, "$ARGUMENTS", "[arguments]")
+		sb.WriteString(body)
+		sb.WriteString("\n")
+		path := filepath.Join(root, ".windsurf", "workflows", skill.Name+".md")
+		if err := writeFile(path, []byte(sb.String())); err != nil {
+			return fmt.Errorf("write windsurf workflow %s: %w", skill.Name, err)
+		}
+	}
+
 	// .windsurf/hooks.json
-	return p.writeHooks(root)
+	if err := p.writeHooks(root); err != nil {
+		return err
+	}
+
+	// MCP → ~/.codeium/windsurf/mcp_config.json (global, merge not overwrite)
+	if len(ms.MCP) > 0 {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("windsurf MCP: get home dir: %w", err)
+		}
+		mcpPath := filepath.Join(home, ".codeium", "windsurf", "mcp_config.json")
+		if err := writeMCPConfigMerge(mcpPath, ms.MCP); err != nil {
+			return fmt.Errorf("windsurf MCP: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (p *WindsurfProjector) writeRule(windsurfDir, name string, rule *AgenticFile) error {
@@ -59,9 +95,9 @@ func (p *WindsurfProjector) writeRule(windsurfDir, name string, rule *AgenticFil
 	if rule.Description != "" {
 		sb.WriteString(fmt.Sprintf("description: %s\n", rule.Description))
 	}
-	if len(rule.Paths) > 0 {
+	if len(rule.Globs) > 0 {
 		sb.WriteString("globs:\n")
-		for _, p := range rule.Paths {
+		for _, p := range rule.Globs {
 			sb.WriteString(fmt.Sprintf("  - %s\n", p))
 		}
 	} else {
@@ -100,13 +136,19 @@ type windsurfHook struct {
 }
 
 func (p *WindsurfProjector) writeHooks(root string) error {
+	h := func(cmd string) []windsurfHook { return []windsurfHook{{Command: cmd}} }
 	cfg := windsurfHooksConfig{
 		Hooks: map[string][]windsurfHook{
-			"pre_write_code":  {{Command: "lore hook pre-tool-use"}},
-			"post_write_code": {{Command: "lore hook post-tool-use"}},
-			"pre_run_command": {{Command: "lore hook pre-tool-use"}},
-			"pre_read_code":   {{Command: "lore hook pre-tool-use"}},
-			"pre_user_prompt": {{Command: "lore hook prompt-submit"}},
+			"pre_read_code":        h("lore hook pre-tool-use"),
+			"pre_write_code":       h("lore hook pre-tool-use"),
+			"pre_run_command":      h("lore hook pre-tool-use"),
+			"pre_mcp_tool_use":     h("lore hook pre-tool-use"),
+			"post_read_code":       h("lore hook post-tool-use"),
+			"post_write_code":      h("lore hook post-tool-use"),
+			"post_run_command":     h("lore hook post-tool-use"),
+			"post_mcp_tool_use":    h("lore hook post-tool-use"),
+			"pre_user_prompt":      h("lore hook prompt-submit"),
+			"post_cascade_response": h("lore hook stop"),
 		},
 	}
 

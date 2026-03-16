@@ -76,9 +76,9 @@ func (p *CursorProjector) writeRule(root, name string, rule *AgenticFile) error 
 	if rule.Description != "" {
 		sb.WriteString(fmt.Sprintf("description: %s\n", rule.Description))
 	}
-	if len(rule.Paths) > 0 {
+	if len(rule.Globs) > 0 {
 		sb.WriteString("globs:\n")
-		for _, p := range rule.Paths {
+		for _, p := range rule.Globs {
 			sb.WriteString(fmt.Sprintf("  - %s\n", p))
 		}
 	} else {
@@ -105,18 +105,21 @@ type cursorHook struct {
 }
 
 func (p *CursorProjector) writeHooks(root string) error {
+	loreHook := func(cmd string) []cursorHook {
+		return []cursorHook{{Command: cmd, Type: "command"}}
+	}
 	cfg := cursorHooksConfig{
 		Version: 1,
 		Hooks: map[string][]cursorHook{
-			"preToolUse": {
-				{Command: "lore hook pre-tool-use", Type: "command"},
-			},
-			"postToolUse": {
-				{Command: "lore hook post-tool-use", Type: "command"},
-			},
-			"beforeSubmitPrompt": {
-				{Command: "lore hook prompt-submit", Type: "command"},
-			},
+			"preToolUse":        loreHook("lore hook pre-tool-use"),
+			"postToolUse":       loreHook("lore hook post-tool-use"),
+			"beforeSubmitPrompt": loreHook("lore hook prompt-submit"),
+			"sessionStart":      loreHook("lore hook session-start"),
+			"stop":              loreHook("lore hook stop"),
+			"preCompact":        loreHook("lore hook pre-compact"),
+			"sessionEnd":        loreHook("lore hook session-end"),
+			"subagentStart":     loreHook("lore hook subagent-start"),
+			"subagentStop":      loreHook("lore hook subagent-stop"),
 		},
 	}
 

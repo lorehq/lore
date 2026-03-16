@@ -1,0 +1,222 @@
+# Directory Layout
+
+Lore uses three content layers plus a harness layer. Each has a specific directory structure and purpose.
+
+## Project Directory (`.lore/`)
+
+Created by `lore init`. Highest priority layer — always wins over global and bundle.
+
+```
+.lore/
+├── config.json          # Platforms + enabled bundles
+├── inherit.json         # Per-item policies (off/defer/overwrite)
+├── LORE.md              # Project-specific instructions (accumulated)
+├── RULES/               # Project rules (*.md)
+├── SKILLS/              # Project skills (<name>/SKILL.md)
+├── AGENTS/              # Project agents (*.md)
+├── HOOKS/               # Project hook overrides (<event>.mjs)
+├── MCP/                 # Project MCP server declarations (*.json)
+├── .last-generated      # Sentinel file — mtime tracks staleness
+├── .session-nonce       # Random 4-char hex, stable for project lifetime
+└── .sessions/           # Session state files (gitignored)
+    └── <id>.json        # Per-session state (platform, timestamps)
+```
+
+**config.json schema:**
+```json
+{
+  "bundles": ["lore-os"],
+  "platforms": {
+    "claude": true,
+    "copilot": false,
+    "cursor": true,
+    "gemini": false,
+    "windsurf": false,
+    "opencode": false
+  }
+}
+```
+
+**inherit.json schema:**
+```json
+{
+  "rules": { "<name>": "off|defer|overwrite" },
+  "skills": { "<name>": "off|defer|overwrite" },
+  "agents": { "<name>": "off|defer|overwrite" }
+}
+```
+
+Policy values:
+- `"off"` — excluded from merge entirely
+- `"defer"` — included unless project has same-named item
+- `"overwrite"` — included unconditionally, replaces project items
+
+Default policies (when no entry in inherit.json):
+- Bundle items default to `"defer"` (auto-included)
+- Global items default to `"off"` (opt-in)
+
+## Global Directory (`~/.config/lore/`)
+
+Respects `$XDG_CONFIG_HOME`. Operator-managed content. Middle priority layer.
+
+```
+~/.config/lore/
+├── config.json          # Global config (registryUrl)
+├── LORE.md              # Global instructions (accumulated)
+├── RULES/               # Operator rules (*.md)
+├── SKILLS/              # Operator skills (<name>/SKILL.md)
+├── AGENTS/              # Operator agents (*.md)
+├── HOOKS/               # Global hook overrides (<event>.mjs)
+├── MCP/                 # Global MCP servers (*.json)
+├── .harness/            # Binary-managed embedded content
+│   ├── SKILLS/          # Harness skills (lore-repair, lore-status, lore-migrate)
+│   ├── RULES/           # Harness rules
+│   └── AGENTS/          # Harness agents (lore-harness-engineer)
+└── .cache/
+    └── registry.json    # Marketplace cache (24h TTL)
+```
+
+**Seeded on first run** (`ensureGlobalDir()`):
+- All content directories created (RULES/, SKILLS/, AGENTS/, HOOKS/, MCP/)
+- LORE.md stub (empty file)
+- Example content with `example-*` prefix in RULES/, SKILLS/, AGENTS/, MCP/
+- Harness content embedded from binary into `.harness/`
+
+**`.harness/` is binary-managed:** Overwritten on every invocation via `seedHarnessContent()`. Users should never edit files here. Harness items participate in merge at highest priority (above project).
+
+## Bundle Directory (`~/.<slug>/`)
+
+Installed by `lore bundle install`. Lowest priority content layer.
+
+```
+~/.<slug>/                    (e.g., ~/.lore-os/)
+├── manifest.json             # Required: metadata + hook declarations
+├── LORE.md                   # Bundle instructions (accumulated)
+├── config.json               # Bundle-internal configuration
+├── RULES/                    # Bundle rules
+├── SKILLS/                   # Bundle skills
+├── AGENTS/                   # Bundle agents
+├── HOOKS/                    # Bundle hook scripts (declared in manifest)
+├── MCP/                      # Server declarations (.json) + implementations (.js)
+├── SCRIPTS/                  # Hook implementations, setup, teardown
+└── PROMPTS/                  # Static templates for hook scripts
+```
+
+**manifest.json schema:**
+```json
+{
+  "manifest_version": 1,
+  "slug": "lore-os",
+  "name": "Lore OS",
+  "version": "0.1.0",
+  "description": "Behavioral layer for agentic coding",
+  "hooks": {
+    "pre-tool-use": "SCRIPTS/hooks/pre-tool-use.mjs",
+    "post-tool-use": "SCRIPTS/hooks/post-tool-use.mjs",
+    "prompt-submit": "SCRIPTS/hooks/prompt-submit.mjs",
+    "session-start": "SCRIPTS/hooks/session-start.mjs",
+    "stop": "SCRIPTS/hooks/stop.mjs",
+    "pre-compact": "SCRIPTS/hooks/pre-compact.mjs",
+    "session-end": "SCRIPTS/hooks/session-end.mjs"
+  },
+  "tui": {
+    "pages": [{ "name": "Dashboard", "script": "SCRIPTS/tui-page.mjs" }]
+  },
+  "setup": "SCRIPTS/setup.mjs",
+  "teardown": "SCRIPTS/teardown.mjs"
+}
+```
+
+**Bundle data directory:** `~/LORE-<SLUG>/` (e.g., `~/LORE-OS/`). Lives outside the bundle directory. Survives bundle reinstalls and updates. Bundle concern, not platform concern.
+
+**Discovery:** `discoverBundles()` scans `~/` for `~/.<name>/manifest.json`. Follows symlinks. Results sorted by slug.
+
+## Platform Output Directories
+
+Generated by `lore generate`. These are output — never edit manually.
+
+```
+project-root/
+├── CLAUDE.md                         # Claude Code mandate
+├── AGENTS.md                         # Cursor/Windsurf/Copilot/OpenCode mandate
+├── GEMINI.md                         # Gemini CLI mandate
+├── .windsurfrules                    # Windsurf legacy mandate
+├── .mcp.json                         # Claude MCP config
+├── .claude/
+│   ├── settings.json                 # Claude hooks
+│   ├── rules/<name>.md               # Claude + OpenCode rules
+│   ├── skills/<name>/SKILL.md        # Claude + OpenCode skills
+│   └── agents/<name>.md              # Claude + OpenCode agents
+├── .cursor/
+│   ├── hooks.json                    # Cursor hooks
+│   ├── mcp.json                      # Cursor MCP config
+│   ├── rules/<name>.mdc              # Cursor rules
+│   ├── skills/<name>/SKILL.md        # Cursor skills
+│   └── agents/<name>.md              # Cursor agents
+├── .github/
+│   ├── copilot-instructions.md       # Copilot instructions
+│   ├── hooks/lore.json               # Copilot hooks
+│   ├── instructions/<name>.instructions.md  # Copilot rules
+│   ├── skills/<name>/SKILL.md        # Copilot skills
+│   └── agents/<name>.agent.md        # Copilot agents
+├── .gemini/
+│   ├── settings.json                 # Gemini hooks
+│   ├── skills/<name>/SKILL.md        # Gemini skills
+│   └── agents/<name>.md              # Gemini agents
+├── .windsurf/
+│   ├── hooks.json                    # Windsurf hooks
+│   ├── rules/<name>.md               # Windsurf rules
+│   └── skills/<name>/SKILL.md        # Windsurf skills
+└── .opencode/
+    ├── plugins/lore-hooks.mjs        # OpenCode hook plugin
+    ├── skills/<name>/SKILL.md        # OpenCode skills
+    └── agents/<name>.md              # OpenCode agents
+```
+
+## Four-Layer Merge Order
+
+Content is merged in this order (last wins for same-named items):
+
+| Priority | Layer | Source | Default Policy |
+|----------|-------|--------|---------------|
+| 4 (highest) | Harness | `~/.config/lore/.harness/` | Always included |
+| 3 | Project | `.lore/` | Always included |
+| 2 | Global | `~/.config/lore/` | `"off"` (opt-in) |
+| 1 (lowest) | Bundle(s) | `~/.<slug>/` | `"defer"` (auto) |
+
+For multiple bundles: array order in config.json, last = highest priority.
+
+**Exception — LORE.md:** Accumulated (concatenated), not last-wins. All non-empty layers contribute. Each gets a heading: `# BundleName`, `# Global`, `# Project`.
+
+**Exception — MCP:** Three-layer accumulate (bundle -> global -> project). Override by server name. No per-server policy toggle.
+
+**Exception — Hooks:** Three-layer last-wins (bundle -> global -> project). Project wins. Only one script runs per event.
+
+## Troubleshooting Checklist
+
+1. **Content not appearing in projection:**
+   - Is it in the right directory? (RULES/, SKILLS/, AGENTS/ — UPPERCASE)
+   - Is the bundle enabled? Check `.lore/config.json` bundles array
+   - Is the item's policy "off"? Check `.lore/inherit.json`
+   - Is there a same-named item in a higher layer shadowing it?
+
+2. **Projection stale / changes not reflected:**
+   - Check `.lore/.last-generated` mtime
+   - Run `lore generate` manually
+   - On `prompt-submit`, binary auto-regenerates if stale
+
+3. **Global content not loading:**
+   - Global items default to "off" — must set to "defer" or "overwrite" in inherit.json
+   - Verify global dir: `ls ~/.config/lore/`
+   - Check `$XDG_CONFIG_HOME` if set
+
+4. **Bundle not discovered:**
+   - Must be at `~/.<slug>/manifest.json`
+   - Slug must be non-empty in manifest
+   - Check symlinks are valid
+
+5. **Hook not firing:**
+   - Check manifest.json maps the event
+   - Check for higher-priority override (project HOOKS/ or global HOOKS/)
+   - Verify script file exists at declared path
+   - Test directly: `echo '{}' | node <script-path>`

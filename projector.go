@@ -1,15 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
 
-// Projector generates platform-specific output from a merged AGENTIC set.
+// Projector generates platform-specific output from a merged content set.
 type Projector interface {
 	Name() string
 	Project(root string, ms *MergedSet) error
@@ -26,6 +28,7 @@ var projectorRegistry = map[string]Projector{
 	"gemini":   &GeminiProjector{},
 	"windsurf": &WindsurfProjector{},
 	"opencode": &OpenCodeProjector{},
+	"cline":    &ClineProjector{},
 }
 
 // writeFile is a helper that creates parent dirs and writes content.
@@ -151,7 +154,7 @@ func stripJSONComments(data []byte) []byte {
 }
 
 // projectSkills writes skills to <baseDir>/skills/<name>/SKILL.md.
-// Universal SKILL.md format — all 6 platforms support this.
+// Universal SKILL.md format — all 7 platforms support this.
 // Frontmatter includes `name` and `description` (the universal common denominator).
 func projectSkills(baseDir string, ms *MergedSet) error {
 	for _, name := range sortedKeys(ms.Skills) {
@@ -166,8 +169,6 @@ func projectSkills(baseDir string, ms *MergedSet) error {
 		}
 		if skill.UserInvocable != nil {
 			fm["user-invocable"] = *skill.UserInvocable
-		} else {
-			fm["user-invocable"] = false
 		}
 		if len(skill.AllowedTools) > 0 {
 			fm["allowed-tools"] = skill.AllowedTools
@@ -176,12 +177,46 @@ func projectSkills(baseDir string, ms *MergedSet) error {
 			fm["agent"] = skill.Agent
 		}
 		content := renderFrontmatter(fm) + "\n" + skill.Body + "\n"
-		path := filepath.Join(baseDir, "skills", name, "SKILL.md")
+		skillDir := filepath.Join(baseDir, "skills", name)
+		path := filepath.Join(skillDir, "SKILL.md")
 		if err := writeFile(path, []byte(content)); err != nil {
 			return fmt.Errorf("write skill %s: %w", name, err)
 		}
+		// Copy supporting files from source directory (standard layout only).
+		// Per the Agent Skills open standard, skills can contain scripts/,
+		// references/, assets/, and other supporting files alongside SKILL.md.
+		if skill.SourceDir != "" {
+			if err := copySkillResources(skill.SourceDir, skillDir); err != nil {
+				return fmt.Errorf("copy skill resources %s: %w", name, err)
+			}
+		}
 	}
 	return nil
+}
+
+// copySkillResources copies all files from a skill source directory to the
+// projected skill directory, EXCEPT SKILL.md (which is handled by projectSkills).
+// This enables deep skills per the Agent Skills open standard — scripts/,
+// references/, assets/, and other supporting files are projected alongside SKILL.md.
+func copySkillResources(srcDir, dstDir string) error {
+	return filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil // skip unreadable entries
+		}
+		rel, _ := filepath.Rel(srcDir, path)
+		if rel == "." || rel == "SKILL.md" {
+			return nil // skip root and SKILL.md (handled separately)
+		}
+		dst := filepath.Join(dstDir, rel)
+		if d.IsDir() {
+			return os.MkdirAll(dst, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil // skip unreadable files
+		}
+		return writeFile(dst, data)
+	})
 }
 
 // projectAgents writes agents to <baseDir>/agents/<name>.md.
@@ -223,8 +258,8 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 		if rule.Description != "" {
 			fm["description"] = rule.Description
 		}
-		if len(rule.Paths) > 0 {
-			fm["paths"] = rule.Paths
+		if len(rule.Globs) > 0 {
+			fm["paths"] = rule.Globs
 		}
 		content := renderFrontmatter(fm) + "\n" + rule.Body + "\n"
 		path := filepath.Join(claudeDir, "rules", name+".md")
@@ -237,7 +272,25 @@ func projectClaudeDir(root string, ms *MergedSet) error {
 	if err := projectSkills(claudeDir, ms); err != nil {
 		return err
 	}
-	return projectAgents(claudeDir, ms)
+	if err := projectAgents(claudeDir, ms); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// userInvocableSkills returns user-invocable skills, sorted by name.
+// Skills are user-invocable by default — only excluded if explicitly set to false.
+func userInvocableSkills(ms *MergedSet) []*AgenticFile {
+	var out []*AgenticFile
+	for _, name := range sortedKeys(ms.Skills) {
+		skill := ms.Skills[name]
+		if skill.UserInvocable != nil && !*skill.UserInvocable {
+			continue
+		}
+		out = append(out, skill)
+	}
+	return out
 }
 
 // writeAGENTSMD generates AGENTS.md at the project root from the agents template.
@@ -332,6 +385,63 @@ func writeMCPConfig(path string, servers []MCPServer) error {
 	return writeFile(path, append(data, '\n'))
 }
 
+// writeMCPConfigMerge merges Lore's MCP servers into an existing global config file.
+// Unlike writeMCPConfig, this does NOT fully own the file — it reads existing servers,
+// merges Lore's servers on top by name, and writes back. Used for global config paths
+// (Cline, Windsurf) that other tools also write to.
+func writeMCPConfigMerge(path string, servers []MCPServer) error {
+	existing := make(map[string]json.RawMessage)
+
+	if data, err := os.ReadFile(path); err == nil {
+		var cfg struct {
+			MCPServers map[string]json.RawMessage `json:"mcpServers"`
+		}
+		cleaned := stripJSONComments(data)
+		if json.Unmarshal(cleaned, &cfg) == nil && cfg.MCPServers != nil {
+			existing = cfg.MCPServers
+		}
+	}
+
+	// Overwrite with Lore's servers
+	for _, s := range servers {
+		entry := map[string]interface{}{
+			"command": s.Command,
+			"args":    s.Args,
+		}
+		if len(s.Env) > 0 {
+			entry["env"] = s.Env
+		}
+		raw, err := json.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("marshal MCP server %s: %w", s.Name, err)
+		}
+		existing[s.Name] = json.RawMessage(raw)
+	}
+
+	// Build stable JSON with sorted keys (Go maps are non-deterministic)
+	names := sortedKeys(existing)
+	var sb strings.Builder
+	sb.WriteString("{\n  \"mcpServers\": {")
+	for i, name := range names {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		keyJSON, _ := json.Marshal(name)
+		var indented bytes.Buffer
+		if err := json.Indent(&indented, existing[name], "    ", "  "); err != nil {
+			sb.WriteString(fmt.Sprintf("\n    %s: %s", keyJSON, string(existing[name])))
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("\n    %s: %s", keyJSON, indented.String()))
+	}
+	if len(names) > 0 {
+		sb.WriteString("\n  ")
+	}
+	sb.WriteString("}\n}\n")
+
+	return writeFile(path, []byte(sb.String()))
+}
+
 // sortedKeys returns map keys in a stable order (sorted).
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
@@ -345,4 +455,15 @@ func sortedKeys[V any](m map[string]V) []string {
 		}
 	}
 	return keys
+}
+
+// filterOut returns a new slice with entries in the exclude set removed.
+func filterOut(names []string, exclude map[string]bool) []string {
+	var out []string
+	for _, n := range names {
+		if !exclude[n] {
+			out = append(out, n)
+		}
+	}
+	return out
 }
