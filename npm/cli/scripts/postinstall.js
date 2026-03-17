@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-// Postinstall: bootstrap global directory and install the default bundle.
-// No shipped files — everything is fetched via the binary's own commands.
+// Postinstall: bootstrap global directory and harness content.
 
 const { execSync } = require("child_process");
 
@@ -17,11 +16,8 @@ function run(cmd) {
 }
 
 try {
-  // Bootstrap ~/.config/lore/ — dirs, harness seeds, examples
+  // Bootstrap ~/.config/lore/ — dirs, harness seeds
   run("lore version");
-
-  // Install default bundle (lore-os)
-  run("lore bundle install lore-os --url https://github.com/lorehq/lore-os.git");
 } catch (e) {
   // Binary not yet in PATH during install — will bootstrap on first user command
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -20,6 +21,10 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	zone "github.com/lrstanley/bubblezone"
 )
+
+// bundleSlugPattern validates kebab-case bundle names: starts with lowercase letter,
+// followed by lowercase letters, digits, or single hyphens. No consecutive hyphens, no trailing hyphen.
+var bundleSlugPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 
 // ── Styles ──────────────────────────────────────────────────────────
 
@@ -74,8 +79,9 @@ type exploreSubTab int
 
 const (
 	exploreSubBundles  exploreSubTab = iota
+	exploreSubSkillsMP               // SkillsMP
 	exploreSubSkillsSh               // skills.sh
-	exploreSubSkillsMP               // SkillsMP (placeholder)
+	exploreSubSmithery               // Smithery (MCP servers)
 )
 
 // skillsResult represents a skill from the skills.sh search API.
@@ -114,6 +120,22 @@ type skillsMPSearchMsg struct {
 
 type skillsMPKeySavedMsg struct {
 	err error
+}
+
+// smitheryResult represents an MCP server from the Smithery registry API.
+type smitheryResult struct {
+	QualifiedName string `json:"qualifiedName"`
+	DisplayName   string `json:"displayName"`
+	Description   string `json:"description"`
+	Homepage      string `json:"homepage"`
+	UseCount      int    `json:"useCount"`
+	Verified      bool   `json:"verified"`
+}
+
+type smitherySearchMsg struct {
+	results []smitheryResult
+	total   int
+	err     error
 }
 
 // projItem represents an item in the catalog or project content listing.
@@ -212,6 +234,7 @@ type bundleGroup struct {
 	slug          string
 	name          string
 	dir           string  // absolute path to installed bundle directory
+	active        bool    // true if in project's config.json bundles array
 	collapsed     bool
 	kindCollapsed [3]bool // rules/skills/agents collapsed within this bundle
 	hasLoreMD     bool
@@ -373,14 +396,13 @@ type tuiModel struct {
 	projectCollapsed [3]bool // project pane kind groups
 
 	// bundle state
-	enabledBundles   []bundleGroup // enabled bundles in priority order
-	availableBundles []BundleInfo  // installed but not enabled
+	allBundles []bundleGroup // all discovered bundles (active + inactive)
 
-	// bundle confirm dialog
-	bundleConfirm       bool   // showing bundle confirm dialog
-	bundleConfirmSlug   string // slug to enable/disable
-	bundleConfirmName   string // display name
-	bundleConfirmEnable bool   // true = enable, false = disable
+	// bundle confirm dialog (used for remove confirmation)
+	bundleConfirm     bool   // showing bundle confirm dialog
+	bundleConfirmSlug string // slug of bundle to remove
+	bundleConfirmName string // display name
+	bundleConfirmDir  string // absolute path to bundle directory
 
 	// LORE.md presence flags
 	loreGlobal  bool // global LORE.md has content
@@ -399,10 +421,12 @@ type tuiModel struct {
 	hooksProjectCollapsed bool        // project HOOKS list collapsed
 
 	// generate state
-	genMessage     string // e.g. "Generated 14 files"
-	genIsError     bool   // true if genMessage is an error
-	genTick        int    // countdown to clear message
 	genConfirm     bool   // showing confirmation dialog
+
+	// Notification system (toastr-like status bar messages)
+	notifyMsg   string // message text
+	notifyLevel string // "success", "warn", "error", "info"
+	notifyTick  int    // countdown to auto-dismiss (seconds)
 	genNewFiles    []string // files that would be created
 	genOverFiles   []string // files that would be overwritten
 	genConfScroll  int      // scroll offset in confirmation dialog
@@ -482,6 +506,7 @@ type tuiModel struct {
 	skillsMPKeyBuf     string // text input for key entry
 	skillsMPKeyFocus   bool   // true when key input is focused
 	skillsMPScroll     int
+	skillsMPInitLoaded bool   // true after initial top-100 load triggered
 	skillsMPAddActive  bool         // target picker showing
 	skillsMPAddItem    skillsMPResult // which skill to add
 	skillsMPAddTargets []string     // target labels for picker
@@ -491,6 +516,24 @@ type tuiModel struct {
 	skillsMPImporting  bool
 	skillsMPImportName string
 
+	// Smithery sub-tab state (MCP servers)
+	smitheryResults    []smitheryResult
+	smitheryQuery      string
+	smitherySearchBuf  string
+	smitherySearchMode bool
+	smitheryLoading    bool
+	smitheryError      string
+	smitheryScroll     int
+	smitheryInitLoaded bool
+	smitheryAddActive  bool           // target picker showing
+	smitheryAddItem    smitheryResult  // which server to add
+	smitheryAddTargets []string
+	smitheryAddPaths   []string
+	smitheryAddIcons   []string
+	smitheryAddCursor  int
+	smitheryImporting  bool
+	smitheryImportName string
+
 	// bundles sub-tab state (formerly marketplace)
 	mktLoaded             bool
 	mktLoading            bool
@@ -499,8 +542,6 @@ type tuiModel struct {
 	mktScroll             int
 	mktSearch             string
 	mktSearchActive       bool
-	mktInstalledCollapsed bool
-	mktAvailableCollapsed bool
 	mktOpActive           bool
 	mktOpSlug             string
 	mktOpVerb             string
@@ -512,6 +553,20 @@ type tuiModel struct {
 	mktDetailItem         marketplaceItem
 	mktDetailReadme       string
 	mktDetailScroll       int
+
+	// Per-item removal state
+	itemRemoveConfirm bool   // confirmation dialog active
+	itemRemoveName    string // item name to remove
+	itemRemoveKind    string // "rule", "skill", "agent", "mcp", "hook"
+	itemRemoveLayer   string // "global" or "project"
+	itemRemovePath    string // full filesystem path to remove
+
+	// Create bundle modal state
+	bundleCreateActive   bool   // modal showing
+	bundleCreateName     string // text input buffer
+	bundleCreateErr      string // validation error
+	bundleCreateCallback string // "skills" | "skillsmp" | "smithery" — which flow to resume
+	bundleCreateKind     string // "SKILLS" | "MCP" — content subdirectory
 }
 
 // isProjectSafeDir returns true if dir is a valid location for a Lore project.
@@ -645,8 +700,8 @@ func (m *tuiModel) loadProjection() {
 	m.projBundle = nil
 	m.projGlobal = nil
 
-	// Discover all installed bundles and split into enabled/available
-	allBundles := discoverBundles()
+	// Discover all installed bundles
+	discoveredBundles := discoverBundles()
 	enabledSlugs := readBundleSlugs()
 	enabledSet := make(map[string]bool)
 	for _, s := range enabledSlugs {
@@ -661,7 +716,7 @@ func (m *tuiModel) loadProjection() {
 		mcpCollapsed   bool
 	}
 	oldState := make(map[string]bundleCollapseState)
-	for _, g := range m.enabledBundles {
+	for _, g := range m.allBundles {
 		oldState[g.slug] = bundleCollapseState{
 			collapsed:      g.collapsed,
 			kindCollapsed:  g.kindCollapsed,
@@ -670,26 +725,14 @@ func (m *tuiModel) loadProjection() {
 		}
 	}
 
-	// Build enabled bundles in priority order
-	m.enabledBundles = nil
-	bundleBySlug := make(map[string]*BundleInfo)
-	for i := range allBundles {
-		bundleBySlug[allBundles[i].Slug] = &allBundles[i]
-	}
-	for _, slug := range enabledSlugs {
-		p := bundleBySlug[slug]
-		if p == nil {
-			continue
-		}
-		dir := bundleDirForSlug(slug)
-		if dir == "" {
-			continue
-		}
+	// Helper to build a bundleGroup from a BundleInfo
+	buildGroup := func(slug, name, dir string, active bool) bundleGroup {
 		state, seen := oldState[slug]
 		group := bundleGroup{
-			slug: slug,
-			name: p.Name,
-			dir:  dir,
+			slug:   slug,
+			name:   name,
+			dir:    dir,
+			active: active,
 		}
 		if seen {
 			group.collapsed = state.collapsed
@@ -716,35 +759,59 @@ func (m *tuiModel) loadProjection() {
 
 		// Scan agentic content
 		if rules, skills, agents, err := scanAgenticDir(dir); err == nil {
-			for _, name := range sortedKeys(rules) {
-				item := projItem{kind: "rule", name: name, desc: rules[name].Description, source: "bundle", bundleSlug: slug}
+			for _, n := range sortedKeys(rules) {
+				item := projItem{kind: "rule", name: n, desc: rules[n].Description, source: "bundle", bundleSlug: slug}
 				group.items = append(group.items, item)
-				m.projBundle = append(m.projBundle, item)
+				if active {
+					m.projBundle = append(m.projBundle, item)
+				}
 			}
-			for _, name := range sortedKeys(skills) {
-				item := projItem{kind: "skill", name: name, desc: skills[name].Description, source: "bundle", bundleSlug: slug}
-				if skills[name].SourceDir != "" {
-					item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[name].SourceDir)
+			for _, n := range sortedKeys(skills) {
+				item := projItem{kind: "skill", name: n, desc: skills[n].Description, source: "bundle", bundleSlug: slug}
+				if skills[n].SourceDir != "" {
+					item.numReferences, item.numAssets, item.numScripts = countSkillResources(skills[n].SourceDir)
 				}
 				group.items = append(group.items, item)
-				m.projBundle = append(m.projBundle, item)
+				if active {
+					m.projBundle = append(m.projBundle, item)
+				}
 			}
-			for _, name := range sortedKeys(agents) {
-				item := projItem{kind: "agent", name: name, desc: agents[name].Description, skills: agents[name].Skills, source: "bundle", bundleSlug: slug}
+			for _, n := range sortedKeys(agents) {
+				item := projItem{kind: "agent", name: n, desc: agents[n].Description, skills: agents[n].Skills, source: "bundle", bundleSlug: slug}
 				group.items = append(group.items, item)
-				m.projBundle = append(m.projBundle, item)
+				if active {
+					m.projBundle = append(m.projBundle, item)
+				}
 			}
 		}
 
-		m.enabledBundles = append(m.enabledBundles, group)
+		return group
 	}
 
-	// Available = installed but not enabled
-	m.availableBundles = nil
-	for _, p := range allBundles {
-		if !enabledSet[p.Slug] {
-			m.availableBundles = append(m.availableBundles, p)
+	// Build unified bundle list: enabled first (in priority order), then inactive
+	m.allBundles = nil
+	bundleBySlug := make(map[string]*BundleInfo)
+	for i := range discoveredBundles {
+		bundleBySlug[discoveredBundles[i].Slug] = &discoveredBundles[i]
+	}
+	addedSlugs := make(map[string]bool)
+	for _, slug := range enabledSlugs {
+		p := bundleBySlug[slug]
+		if p == nil {
+			continue
 		}
+		dir := bundleDirForSlug(slug)
+		if dir == "" {
+			continue
+		}
+		m.allBundles = append(m.allBundles, buildGroup(slug, p.Name, dir, true))
+		addedSlugs[slug] = true
+	}
+	for _, p := range discoveredBundles {
+		if addedSlugs[p.Slug] {
+			continue
+		}
+		m.allBundles = append(m.allBundles, buildGroup(p.Slug, p.Name, p.Dir, false))
 	}
 
 	// Scan global content
@@ -947,7 +1014,10 @@ func (m *tuiModel) buildComposedData() {
 
 	// Hooks composed data — accumulate all from all layers
 	m.composedHooks = nil
-	for _, bg := range m.enabledBundles {
+	for _, bg := range m.allBundles {
+		if !bg.active {
+			continue
+		}
 		for _, h := range bg.hookEntries {
 			m.composedHooks = append(m.composedHooks, composedHookItem{event: h.event, name: h.name, source: "bundle"})
 		}
@@ -962,7 +1032,10 @@ func (m *tuiModel) buildComposedData() {
 	// MCP composed data — override by name (last wins), track conflicts
 	mcpByLayer := map[string][]string{"bundle": nil, "global": nil, "project": nil}
 	mcpLayerSet := map[string]map[string]bool{"bundle": {}, "global": {}, "project": {}}
-	for _, bg := range m.enabledBundles {
+	for _, bg := range m.allBundles {
+		if !bg.active {
+			continue
+		}
 		for _, name := range bg.mcpServers {
 			if !mcpLayerSet["bundle"][name] {
 				mcpLayerSet["bundle"][name] = true
@@ -1068,6 +1141,164 @@ func policySymbol(policy string) string {
 // kindPlural maps kind to the inherit.json key.
 func kindPlural(kind string) string {
 	return kind + "s"
+}
+
+// itemDiskPath returns the full filesystem path for a rule, skill, or agent.
+func itemDiskPath(baseDir, kind, name string) string {
+	switch kind {
+	case "rule":
+		return filepath.Join(baseDir, "RULES", name+".md")
+	case "skill":
+		return filepath.Join(baseDir, "SKILLS", name)
+	case "agent":
+		return filepath.Join(baseDir, "AGENTS", name+".md")
+	}
+	return ""
+}
+
+// createNewBundleSentinel is the path sentinel for the "Create new bundle" target picker option.
+const createNewBundleSentinel = "__create_new_bundle__"
+
+// createNewBundle creates a new user bundle directory with a manifest.json
+// and returns the full path to the content subdirectory (SKILLS/ or MCP/).
+func createNewBundle(slug, contentKind string) (string, error) {
+	dir := filepath.Join(bundlesPath(), slug)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("create bundle dir: %w", err)
+	}
+	manifest := map[string]interface{}{
+		"name": slug,
+		"slug": slug,
+	}
+	data, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0644); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, contentKind), nil
+}
+
+// validateBundleSlug checks if a name is valid for a new bundle.
+// Returns an error message or empty string if valid.
+func validateBundleSlug(name string) string {
+	if name == "" {
+		return ""
+	}
+	if !bundleSlugPattern.MatchString(name) {
+		return "Must be kebab-case: lowercase letters, numbers, hyphens."
+	}
+	// Check for existing bundle with same slug
+	dir := filepath.Join(bundlesPath(), name)
+	if _, err := os.Stat(dir); err == nil {
+		return fmt.Sprintf("Bundle %q already exists.", name)
+	}
+	return ""
+}
+
+// overlayCreateBundleDialog renders a centered dialog for naming a new bundle.
+func (m *tuiModel) overlayCreateBundleDialog(lines []string, w int) []string {
+	title := bold.Render("Create new bundle")
+	subtitle := dimStyle.Render("Enter a name (kebab-case):")
+
+	inputW := 30
+	namePad := inputW - len(m.bundleCreateName) - 1
+	if namePad < 0 {
+		namePad = 0
+	}
+	inputContent := m.bundleCreateName + "\u2588" + strings.Repeat(" ", namePad)
+	inputLine := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		Render(inputContent)
+
+	var errLine string
+	if m.bundleCreateErr != "" {
+		errLine = "\n" + errStyle.Render(m.bundleCreateErr)
+	}
+
+	nameValid := m.bundleCreateName != "" && m.bundleCreateErr == ""
+	var createBtn string
+	if nameValid {
+		createBtn = zone.Mark("bundle-create-confirm", btnPrimary.Render("Create"))
+	} else {
+		createBtn = btnDisabled.Render("Create")
+	}
+	cancelBtn := zone.Mark("bundle-create-cancel", btnSecondary.Render("Cancel"))
+	buttons := createBtn + "   " + cancelBtn
+
+	inner := title + "\n\n" + subtitle + "\n" + inputLine + errLine + "\n\n" + buttons
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(1, 2).
+		Render(inner)
+
+	boxLines := strings.Split(box, "\n")
+	boxH := len(boxLines)
+
+	startY := len(lines)/2 - boxH/2
+	if startY < 0 {
+		startY = 0
+	}
+
+	for i, bl := range boxLines {
+		row := startY + i
+		if row < len(lines) {
+			blW := lipgloss.Width(bl)
+			pad := (w - blW) / 2
+			if pad < 0 {
+				pad = 0
+			}
+			lines[row] = strings.Repeat(" ", pad) + bl
+		}
+	}
+
+	return lines
+}
+
+// finishBundleCreate creates the bundle and resumes the import flow that triggered it.
+func (m *tuiModel) finishBundleCreate() (*tuiModel, tea.Cmd) {
+	slug := m.bundleCreateName
+	kind := m.bundleCreateKind
+	callback := m.bundleCreateCallback
+
+	newDir, err := createNewBundle(slug, kind)
+	if err != nil {
+		m.bundleCreateActive = false
+		return m, m.notifyCmd("Create bundle failed: "+err.Error(), "error")
+	}
+
+	m.bundleCreateActive = false
+
+	switch callback {
+	case "skills":
+		m.skillsAddActive = false
+		m.skillsImporting = true
+		m.skillsImportName = m.skillsAddItem.Name
+		source := m.skillsAddItem.Source
+		skillName := m.skillsAddItem.Name
+		return m, doSkillImport(source, skillName, newDir, source)
+
+	case "skillsmp":
+		m.skillsMPAddActive = false
+		m.skillsMPImporting = true
+		m.skillsMPImportName = m.skillsMPAddItem.Name
+		source := m.skillsMPAddItem.GithubURL
+		if source == "" {
+			source = m.skillsMPAddItem.SkillURL
+		}
+		skillName := m.skillsMPAddItem.Name
+		return m, doSkillsMPImport(source, skillName, newDir)
+
+	case "smithery":
+		m.smitheryAddActive = false
+		m.smitheryImporting = true
+		m.smitheryImportName = m.smitheryAddItem.DisplayName
+		return m, doSmitheryAdd(m.smitheryAddItem, newDir)
+	}
+
+	return m, nil
 }
 
 // toggleCatalogItem cycles the policy for a catalog item.
@@ -1788,17 +2019,13 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case genDoneMsg:
 		if msg.err != nil {
-			m.genMessage = "Error: " + msg.err.Error()
-			m.genIsError = true
-			m.genTick = 5
+			m.notify("Error: "+msg.err.Error(), "error")
 		} else {
 			summary := fmt.Sprintf("Generated %d files", msg.fileCount)
 			if msg.cleanedCount > 0 {
 				summary += fmt.Sprintf(", removed %d", msg.cleanedCount)
 			}
-			m.genMessage = summary
-			m.genIsError = false
-			m.genTick = 3
+			m.notify(summary, "success")
 			m.loadProjectInfo()
 			m.projLoaded = false
 			m.loadProjection()
@@ -1837,31 +2064,25 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case mktLoadedMsg:
 		m.mktLoading = false
 		if msg.err != nil {
-			m.genMessage = "Marketplace: " + msg.err.Error()
-			m.genIsError = true
-			m.genTick = 5
-		} else {
-			m.mktInstalled = msg.installed
-			m.mktAvailable = msg.available
-			m.mktLoaded = true
+			m.notify("Marketplace: "+msg.err.Error(), "error")
+			return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 		}
+		m.mktInstalled = msg.installed
+		m.mktAvailable = msg.available
+		m.mktLoaded = true
 
 	case mktOpDoneMsg:
 		m.mktOpActive = false
 		m.mktOpSlug = ""
 		m.mktOpVerb = ""
 		if msg.err != nil {
-			m.genMessage = fmt.Sprintf("Failed to %s %s: %s", msg.verb, msg.slug, msg.err)
-			m.genIsError = true
-			m.genTick = 5
+			m.notify(fmt.Sprintf("Failed to %s %s: %s", msg.verb, msg.slug, msg.err), "error")
 		} else {
 			verbed := capitalize(msg.verb) + "ed"
 			if strings.HasSuffix(msg.verb, "e") {
 				verbed = capitalize(msg.verb) + "d"
 			}
-			m.genMessage = fmt.Sprintf("%s %s", verbed, msg.slug)
-			m.genIsError = false
-			m.genTick = 3
+			m.notify(fmt.Sprintf("%s %s", verbed, msg.slug), "success")
 			m.mktLoaded = false  // force reload
 			m.projLoaded = false // refresh projection tab
 		}
@@ -1873,13 +2094,11 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case skillsSearchMsg:
 		m.skillsLoading = false
 		if msg.err != nil {
-			m.genMessage = "Skills search: " + msg.err.Error()
-			m.genIsError = true
-			m.genTick = 5
-		} else {
-			m.skillsResults = msg.results
-			m.skillsScroll = 0
+			m.notify("Skills search: "+msg.err.Error(), "error")
+			return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 		}
+		m.skillsResults = msg.results
+		m.skillsScroll = 0
 
 	case skillsImportDoneMsg:
 		m.skillsImporting = false
@@ -1887,15 +2106,11 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.skillsMPImporting = false
 		m.skillsMPImportName = ""
 		if msg.err != nil {
-			m.genMessage = "Import failed: " + msg.err.Error()
-			m.genIsError = true
-			m.genTick = 5
+			m.notify("Import failed: "+msg.err.Error(), "error")
 		} else {
-			m.genMessage = fmt.Sprintf("Imported %s", msg.skill)
-			m.genIsError = false
-			m.genTick = 3
 			m.projLoaded = false // refresh projection tab
 		}
+		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 
 	case mktReadmeMsg:
 		if msg.err != nil {
@@ -1916,22 +2131,44 @@ func (m *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case skillsMPKeySavedMsg:
 		if msg.err != nil {
-			m.genMessage = "Failed to save API key: " + msg.err.Error()
-			m.genIsError = true
-			m.genTick = 5
+			m.notify("Failed to save API key: "+msg.err.Error(), "error")
 		} else {
-			m.genMessage = "SkillsMP API key saved"
-			m.genIsError = false
-			m.genTick = 3
+			m.notify("SkillsMP API key saved", "success")
+		}
+		// Trigger initial load now that we have a key
+		cmd := m.ensureSkillsMPLoaded()
+		tickCmd := tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+		if cmd != nil {
+			return m, tea.Batch(tickCmd, cmd)
+		}
+		return m, tickCmd
+
+	case smitherySearchMsg:
+		m.smitheryLoading = false
+		if msg.err != nil {
+			m.smitheryError = msg.err.Error()
+		} else {
+			m.smitheryError = ""
+			m.smitheryResults = msg.results
+			m.smitheryScroll = 0
+		}
+
+	case smitheryAddDoneMsg:
+		m.smitheryImporting = false
+		m.smitheryImportName = ""
+		if msg.err != nil {
+			m.notify("Add failed: "+msg.err.Error(), "error")
+		} else {
+			m.projLoaded = false // refresh projection tab
 		}
 		return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 
 	case tickMsg:
-		if m.genTick > 0 {
-			m.genTick--
-			if m.genTick == 0 {
-				m.genMessage = ""
-				m.genIsError = false
+		if m.notifyTick > 0 {
+			m.notifyTick--
+			if m.notifyTick == 0 {
+				m.notifyMsg = ""
+				m.notifyLevel = ""
 			} else {
 				return m, tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
 			}
@@ -1969,7 +2206,7 @@ func (m *tuiModel) handleKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	case "ctrl+c":
 		return m, tea.Quit
 	case "q":
-		if m.mode == modeDashboard {
+		if m.mode == modeDashboard && !m.bundleCreateActive {
 			return m, tea.Quit
 		}
 	}
@@ -2197,6 +2434,11 @@ func (m *tuiModel) handleWelcomeKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
+	// Bundle create modal intercepts all keys — skip tab switching
+	if m.bundleCreateActive {
+		return m.handleExploreKey(msg)
+	}
+
 	// Number keys switch tabs: 1=Projections, 2=Marketplace, 3+=bundle pages
 	if len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
 		idx := int(key[0] - '1') // 0-indexed
@@ -2255,6 +2497,24 @@ func (m *tuiModel) handleDashboardKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
+	// Item removal confirmation dialog intercepts all keys
+	if m.itemRemoveConfirm {
+		switch key {
+		case "esc":
+			m.itemRemoveConfirm = false
+		case "enter":
+			m.itemRemoveConfirm = false
+			path := m.itemRemovePath
+			if path != "" {
+				if err := os.RemoveAll(path); err != nil {
+					return m, m.notifyCmd("Remove failed: "+err.Error(), "error")
+				}
+				m.projLoaded = false
+			}
+		}
+		return m, nil
+	}
+
 	// Generate confirmation dialog intercepts all keys
 	if m.genConfirm {
 		switch key {
@@ -2262,7 +2522,9 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			m.genConfirm = false
 		case "enter":
 			m.genConfirm = false
-			m.genMessage = "Generating..."
+			m.notifyMsg = "Generating..."
+			m.notifyLevel = "info"
+			m.notifyTick = 0 // persists until genDoneMsg overwrites
 			var orphans []string
 			if m.cleanMode {
 				orphans = m.orphanFiles
@@ -2279,26 +2541,19 @@ func (m *tuiModel) handleProjectionKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		return m, nil
 	}
 
-	// Bundle confirm dialog intercepts all keys
+	// Bundle confirm dialog intercepts all keys (removal confirmation)
 	if m.bundleConfirm {
 		switch key {
 		case "esc":
 			m.bundleConfirm = false
 		case "enter":
 			m.bundleConfirm = false
-			var err error
-			if m.bundleConfirmEnable {
-				err = enableBundle(m.cwd, m.bundleConfirmSlug)
-			} else {
-				err = disableBundle(m.cwd, m.bundleConfirmSlug)
+			// Disable first if active, then remove from disk
+			_ = disableBundle(m.cwd, m.bundleConfirmSlug)
+			if err := os.RemoveAll(m.bundleConfirmDir); err != nil {
+				return m, m.notifyCmd("Remove error: "+err.Error(), "error")
 			}
-			if err != nil {
-				m.genMessage = "Bundle error: " + err.Error()
-				m.genIsError = true
-				m.genTick = 5
-			} else {
-				m.loadProjection()
-			}
+			m.loadProjection()
 		}
 		return m, nil
 	}
@@ -2516,17 +2771,23 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		// Column scrolling
 		if m.mode == modeDashboard && m.projLoaded {
 			if m.tab == tabExplore {
-				if m.exploreSub == exploreSubSkillsSh {
+				switch m.exploreSub {
+				case exploreSubSkillsSh:
 					m.skillsScroll += delta
 					if m.skillsScroll < 0 {
 						m.skillsScroll = 0
 					}
-				} else if m.exploreSub == exploreSubSkillsMP {
+				case exploreSubSkillsMP:
 					m.skillsMPScroll += delta
 					if m.skillsMPScroll < 0 {
 						m.skillsMPScroll = 0
 					}
-				} else {
+				case exploreSubSmithery:
+					m.smitheryScroll += delta
+					if m.smitheryScroll < 0 {
+						m.smitheryScroll = 0
+					}
+				default:
 					m.mktScroll += delta
 					if m.mktScroll < 0 {
 						m.mktScroll = 0
@@ -2611,19 +2872,12 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	if m.bundleConfirm {
 		if zone.Get("bundle-confirm").InBounds(msg) {
 			m.bundleConfirm = false
-			var err error
-			if m.bundleConfirmEnable {
-				err = enableBundle(m.cwd, m.bundleConfirmSlug)
-			} else {
-				err = disableBundle(m.cwd, m.bundleConfirmSlug)
+			// Disable first if active, then remove from disk
+			_ = disableBundle(m.cwd, m.bundleConfirmSlug)
+			if err := os.RemoveAll(m.bundleConfirmDir); err != nil {
+				return m, m.notifyCmd("Remove error: "+err.Error(), "error")
 			}
-			if err != nil {
-				m.genMessage = "Bundle error: " + err.Error()
-				m.genIsError = true
-				m.genTick = 5
-			} else {
-				m.loadProjection()
-			}
+			m.loadProjection()
 			return m, nil
 		}
 		if zone.Get("bundle-cancel").InBounds(msg) {
@@ -2768,11 +3022,33 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 
+		// Item removal confirmation dialog buttons
+		if m.itemRemoveConfirm {
+			if zone.Get("rm-confirm").InBounds(msg) {
+				m.itemRemoveConfirm = false
+				path := m.itemRemovePath
+				if path != "" {
+					if err := os.RemoveAll(path); err != nil {
+						return m, m.notifyCmd("Remove failed: "+err.Error(), "error")
+					}
+					m.projLoaded = false
+				}
+				return m, nil
+			}
+			if zone.Get("rm-cancel").InBounds(msg) {
+				m.itemRemoveConfirm = false
+				return m, nil
+			}
+			return m, nil
+		}
+
 		// Confirmation dialog buttons
 		if m.genConfirm {
 			if zone.Get("gen-confirm").InBounds(msg) {
 				m.genConfirm = false
-				m.genMessage = "Generating..."
+				m.notifyMsg = "Generating..."
+				m.notifyLevel = "info"
+				m.notifyTick = 0 // persists until genDoneMsg overwrites
 				var orphans []string
 				if m.cleanMode {
 					orphans = m.orphanFiles
@@ -2811,19 +3087,36 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 				return m, nil
 			}
 		}
-		// Bundle disable clicks (x buttons on enabled bundles)
-		for i, g := range m.enabledBundles {
-			if zone.Get(fmt.Sprintf("bundle-disable-%d", i)).InBounds(msg) {
+		// Bundle radio toggle clicks (on/off)
+		for i, g := range m.allBundles {
+			if zone.Get(fmt.Sprintf("bundle-radio-%d", i)).InBounds(msg) {
+				var err error
+				if g.active {
+					err = disableBundle(m.cwd, g.slug)
+				} else {
+					err = enableBundle(m.cwd, g.slug)
+				}
+				if err != nil {
+					return m, m.notifyCmd("Bundle error: "+err.Error(), "error")
+				}
+				m.loadProjection()
+				return m, nil
+			}
+		}
+
+		// Bundle remove clicks (destructive — opens confirm dialog)
+		for i, g := range m.allBundles {
+			if zone.Get(fmt.Sprintf("bundle-remove-%d", i)).InBounds(msg) {
 				m.bundleConfirm = true
 				m.bundleConfirmSlug = g.slug
 				m.bundleConfirmName = g.name
-				m.bundleConfirmEnable = false
+				m.bundleConfirmDir = g.dir
 				return m, nil
 			}
 		}
 
 		// Bundle readme clicks
-		for i, g := range m.enabledBundles {
+		for i, g := range m.allBundles {
 			if zone.Get(fmt.Sprintf("bundle-readme-%d", i)).InBounds(msg) {
 				m.mktDetail = true
 				m.mktDetailItem = marketplaceItem{
@@ -2841,19 +3134,19 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Bundle toggle collapse clicks
-		for i := range m.enabledBundles {
+		for i := range m.allBundles {
 			if zone.Get(fmt.Sprintf("bundle-toggle-%d", i)).InBounds(msg) {
-				m.enabledBundles[i].collapsed = !m.enabledBundles[i].collapsed
+				m.allBundles[i].collapsed = !m.allBundles[i].collapsed
 				m.projPane = 0
 				return m, nil
 			}
 		}
 
 		// Bundle kind group collapse toggles
-		for gi := range m.enabledBundles {
+		for gi := range m.allBundles {
 			for ki := 0; ki < 3; ki++ {
 				if zone.Get(fmt.Sprintf("bundle-kind-%d-%d", gi, ki)).InBounds(msg) {
-					m.enabledBundles[gi].kindCollapsed[ki] = !m.enabledBundles[gi].kindCollapsed[ki]
+					m.allBundles[gi].kindCollapsed[ki] = !m.allBundles[gi].kindCollapsed[ki]
 					m.projPane = 0
 					return m, nil
 				}
@@ -2861,18 +3154,18 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		}
 
 		// Bundle HOOKS collapse toggles
-		for gi := range m.enabledBundles {
+		for gi := range m.allBundles {
 			if zone.Get(fmt.Sprintf("hooks-bundle-%d", gi)).InBounds(msg) {
-				m.enabledBundles[gi].hooksCollapsed = !m.enabledBundles[gi].hooksCollapsed
+				m.allBundles[gi].hooksCollapsed = !m.allBundles[gi].hooksCollapsed
 				m.projPane = 0
 				return m, nil
 			}
 		}
 
 		// Bundle MCP collapse toggles
-		for gi := range m.enabledBundles {
+		for gi := range m.allBundles {
 			if zone.Get(fmt.Sprintf("mcp-bundle-%d", gi)).InBounds(msg) {
-				m.enabledBundles[gi].mcpCollapsed = !m.enabledBundles[gi].mcpCollapsed
+				m.allBundles[gi].mcpCollapsed = !m.allBundles[gi].mcpCollapsed
 				m.projPane = 0
 				return m, nil
 			}
@@ -2901,6 +3194,55 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			return m, nil
 		}
 
+		// Global item removal [x] clicks (check before leaf clicks)
+		for i, item := range m.projGlobal {
+			if zone.Get(fmt.Sprintf("rm-g-%d", i)).InBounds(msg) {
+				m.itemRemoveConfirm = true
+				m.itemRemoveName = item.name
+				m.itemRemoveKind = item.kind
+				m.itemRemoveLayer = "global"
+				m.itemRemovePath = itemDiskPath(globalPath(), item.kind, item.name)
+				return m, nil
+			}
+		}
+
+		// Global MCP removal [x] clicks
+		for i, name := range m.mcpGlobal {
+			if zone.Get(fmt.Sprintf("rm-mcp-g-%d", i)).InBounds(msg) {
+				m.itemRemoveConfirm = true
+				m.itemRemoveName = name
+				m.itemRemoveKind = "mcp"
+				m.itemRemoveLayer = "global"
+				m.itemRemovePath = filepath.Join(globalPath(), "MCP", name+".json")
+				return m, nil
+			}
+		}
+
+		// Project item removal [x] clicks
+		projItems := m.buildPane2Items()
+		for i, item := range projItems {
+			if zone.Get(fmt.Sprintf("rm-p-%d", i)).InBounds(msg) {
+				m.itemRemoveConfirm = true
+				m.itemRemoveName = item.name
+				m.itemRemoveKind = item.kind
+				m.itemRemoveLayer = "project"
+				m.itemRemovePath = itemDiskPath(filepath.Join(m.cwd, ".lore"), item.kind, item.name)
+				return m, nil
+			}
+		}
+
+		// Project MCP removal [x] clicks
+		for i, name := range m.mcpProject {
+			if zone.Get(fmt.Sprintf("rm-mcp-p-%d", i)).InBounds(msg) {
+				m.itemRemoveConfirm = true
+				m.itemRemoveName = name
+				m.itemRemoveKind = "mcp"
+				m.itemRemoveLayer = "project"
+				m.itemRemovePath = filepath.Join(m.cwd, ".lore", "MCP", name+".json")
+				return m, nil
+			}
+		}
+
 		// Global catalog leaf clicks
 		for i := 0; i < len(m.projGlobal); i++ {
 			if zone.Get(fmt.Sprintf("leaf-g-%d", i)).InBounds(msg) {
@@ -2922,21 +3264,10 @@ func (m *tuiModel) handleMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 			}
 		}
 
-		// Bundle enable clicks (available bundles)
-		for i, p := range m.availableBundles {
-			if zone.Get(fmt.Sprintf("bundle-enable-%d", i)).InBounds(msg) {
-				m.bundleConfirm = true
-				m.bundleConfirmSlug = p.Slug
-				m.bundleConfirmName = p.Name
-				m.bundleConfirmEnable = true
-				return m, nil
-			}
-		}
-
 		// LORE.md clicks — open tooltip modal
 		loreClicked := zone.Get("lore-global").InBounds(msg) || zone.Get("lore-project").InBounds(msg)
 		if !loreClicked {
-			for i := range m.enabledBundles {
+			for i := range m.allBundles {
 				if zone.Get(fmt.Sprintf("lore-bundle-%d", i)).InBounds(msg) {
 					loreClicked = true
 					break
@@ -3276,7 +3607,7 @@ func (m *tuiModel) viewWelcome() string {
 // ── Dashboard View ──────────────────────────────────────────────────
 
 func (m *tuiModel) viewDashboardShell() string {
-	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm || m.mktDetail
+	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.mktConfirm || m.mktDetail || m.itemRemoveConfirm
 
 	// When a dialog is open, give it the entire screen
 	if hasDialog {
@@ -3317,17 +3648,17 @@ func (m *tuiModel) viewDashboardShell() string {
 		content = m.viewBundlePage(contentH)
 	}
 
-	// Assemble and pad to exact terminal height
-	var b strings.Builder
-	b.WriteString(headerBar)
-	b.WriteString("\n")
-	b.WriteString(tabBar)
-	b.WriteString("\n")
-	b.WriteString(content)
-	b.WriteString("\n")
-	b.WriteString(statusBar)
+	// Assemble frame — hard clamp to exactly m.height lines
+	frame := headerBar + "\n" + tabBar + "\n" + content + "\n" + statusBar
+	frameLines := strings.Split(frame, "\n")
+	if len(frameLines) > m.height {
+		frameLines = frameLines[:m.height]
+	}
+	for len(frameLines) < m.height {
+		frameLines = append(frameLines, "")
+	}
 
-	return b.String()
+	return strings.Join(frameLines, "\n")
 }
 
 func (m *tuiModel) renderHeaderBar() string {
@@ -3405,12 +3736,48 @@ func (m *tuiModel) renderTabBar() string {
 	return tabBar
 }
 
+// notify sets a transient status bar message that auto-dismisses.
+func (m *tuiModel) notify(msg, level string) {
+	m.notifyMsg = msg
+	m.notifyLevel = level
+	switch level {
+	case "error", "warn":
+		m.notifyTick = 5
+	default:
+		m.notifyTick = 3
+	}
+}
+
+// notifyCmd sets a notification and returns a tick command to start the countdown.
+func (m *tuiModel) notifyCmd(msg, level string) tea.Cmd {
+	m.notify(msg, level)
+	return tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+}
+
 func (m *tuiModel) renderStatusBar() string {
 	var left string
-	if m.tab == tabExplore {
-		if m.exploreSub == exploreSubSkillsSh {
+	if m.notifyMsg != "" {
+		var style lipgloss.Style
+		switch m.notifyLevel {
+		case "success":
+			style = greenStyle.Bold(true)
+		case "warn":
+			style = yellowStyle.Bold(true)
+		case "error":
+			style = errStyle.Bold(true)
+		default: // "info"
+			style = dimStyle
+		}
+		left = style.Render(" " + m.notifyMsg)
+	} else if m.tab == tabExplore {
+		switch m.exploreSub {
+		case exploreSubSkillsSh:
 			left = dimStyle.Render(" Skills: search and import from the Agent Skills ecosystem")
-		} else {
+		case exploreSubSkillsMP:
+			left = dimStyle.Render(" SkillsMP: search 500K+ agent skills")
+		case exploreSubSmithery:
+			left = dimStyle.Render(" Smithery: browse and add MCP servers")
+		default:
 			left = dimStyle.Render(" Bundles: install and manage composable behavioral units")
 		}
 	} else {
@@ -3587,14 +3954,9 @@ func (m *tuiModel) renderActionBar() string {
 	boxInnerW := m.width - 4 // border + padding
 
 	var content string
-	if m.genMessage != "" {
-		var msgStyle lipgloss.Style
-		if m.genIsError {
-			msgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
-		} else {
-			msgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
-		}
-		msg := msgStyle.Render(m.genMessage)
+	if m.notifyMsg != "" && m.notifyLevel == "info" {
+		// "info" level (e.g. "Generating...") replaces action bar content
+		msg := dimStyle.Render(m.notifyMsg)
 		pad := boxInnerW - lipgloss.Width(msg)
 		if pad < 0 {
 			pad = 0
@@ -3639,7 +4001,7 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 	}
 
 	w := m.width
-	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.hintPane >= 0 || m.loreHint
+	hasDialog := m.genConfirm || m.agentDisableActive || m.skillWarnActive || m.bundleConfirm || m.hintPane >= 0 || m.loreHint || m.itemRemoveConfirm
 
 	// When a dialog is open, give the full space to the overlay
 	if hasDialog {
@@ -3647,7 +4009,9 @@ func (m *tuiModel) viewProjectionPlanner(maxH int) string {
 		for i := range lines {
 			lines[i] = ""
 		}
-		if m.genConfirm {
+		if m.itemRemoveConfirm {
+			lines = m.overlayItemRemoveDialog(lines, w)
+		} else if m.genConfirm {
 			lines = m.overlayGenConfirmDialog(lines, w)
 		} else if m.bundleConfirm {
 			lines = m.overlayBundleConfirmDialog(lines, w)
@@ -4107,8 +4471,9 @@ func (m *tuiModel) renderGlobalList(w int) string {
 		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpGlobal)))
 		lines = append(lines, zone.Mark("mcp-global", header))
 		if !m.mcpGlobalCollapsed {
-			for _, name := range m.mcpGlobal {
-				lines = append(lines, "  ⚡ "+name)
+			for i, name := range m.mcpGlobal {
+				removeBtn := zone.Mark(fmt.Sprintf("rm-mcp-g-%d", i), errStyle.Render("[x]"))
+				lines = append(lines, "  "+removeBtn+" "+name)
 			}
 		}
 	} else {
@@ -4139,7 +4504,8 @@ func (m *tuiModel) renderGlobalList(w int) string {
 			}
 			policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
 			sym := policySymbol(policy)
-			line := "  " + sym + " " + item.name
+			removeBtn := zone.Mark(fmt.Sprintf("rm-g-%d", i), errStyle.Render("[x]"))
+			line := "  " + removeBtn + " " + sym + " " + item.name
 			line = zone.Mark(fmt.Sprintf("leaf-g-%d", i), line)
 			lines = append(lines, line)
 			if item.kind == "skill" {
@@ -4176,137 +4542,130 @@ func (m *tuiModel) countKindItems(items []projItem, kind string) int {
 	return n
 }
 
-// renderBundleContent renders the bundle pane with enabled bundles (collapsible)
-// and available bundles.
+// renderBundleContent renders the bundle pane as a flat list of all discovered bundles
+// with on/off radio toggles, readme buttons, and remove buttons.
 func (m *tuiModel) renderBundleContent(w int) string {
 	var lines []string
 
-	// Enabled bundles section
-	if len(m.enabledBundles) > 0 {
-		if len(m.availableBundles) > 0 {
-			lines = append(lines, bold.Render(" ENABLED"))
+	if len(m.allBundles) == 0 {
+		lines = append(lines, dimStyle.Render(" No bundles installed"))
+		return strings.Join(lines, "\n")
+	}
+
+	// flatIdx tracks position within m.projBundle (active bundle items only)
+	flatIdx := 0
+	for gi, group := range m.allBundles {
+		// Bundle header: radio name                    ? ×
+		radio := "○"
+		if group.active {
+			radio = "●"
 		}
-		// Build a flat index offset for projBundle items
-		flatIdx := 0
-		for gi, group := range m.enabledBundles {
-			// Bundle header: ▾/▸ name                    ×
-			arrow := "▾"
-			if group.collapsed {
-				arrow = "▸"
+		arrow := "▾"
+		if group.collapsed {
+			arrow = "▸"
+		}
+		radioBtn := zone.Mark(fmt.Sprintf("bundle-radio-%d", gi), " "+radio)
+		nameLabel := zone.Mark(fmt.Sprintf("bundle-toggle-%d", gi), " "+arrow+" "+group.name)
+		readmeBtn := zone.Mark(fmt.Sprintf("bundle-readme-%d", gi), dimStyle.Render("?"))
+		removeBtn := zone.Mark(fmt.Sprintf("bundle-remove-%d", gi),
+			errStyle.Render("×"))
+		nameW := lipgloss.Width(radioBtn) + lipgloss.Width(nameLabel)
+		btnW := lipgloss.Width(readmeBtn) + 1 + lipgloss.Width(removeBtn) // readme + space + remove
+		gap := w - nameW - btnW
+		if gap < 1 {
+			gap = 1
+		}
+		lines = append(lines, radioBtn+nameLabel+strings.Repeat(" ", gap)+readmeBtn+" "+removeBtn)
+
+		if !group.collapsed {
+			// LORE.md row
+			if group.hasLoreMD {
+				lines = append(lines, zone.Mark(fmt.Sprintf("lore-bundle-%d", gi), "   🖹 LORE.md"))
 			}
-			nameLabel := zone.Mark(fmt.Sprintf("bundle-toggle-%d", gi), " "+arrow+" "+group.name)
-			readmeBtn := zone.Mark(fmt.Sprintf("bundle-readme-%d", gi), dimStyle.Render("?"))
-			disableBtn := zone.Mark(fmt.Sprintf("bundle-disable-%d", gi),
-				lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("×"))
-			nameW := lipgloss.Width(nameLabel)
-			btnW := lipgloss.Width(readmeBtn) + 1 + 1 // readme + space + disable
-			gap := w - nameW - btnW
-			if gap < 1 {
-				gap = 1
+
+			// HOOKS row (collapsible, always shown)
+			if len(group.hookEntries) > 0 {
+				arrow := "▾"
+				if m.allBundles[gi].hooksCollapsed {
+					arrow = "▸"
+				}
+				header := "   " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
+				lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
+				if !m.allBundles[gi].hooksCollapsed {
+					for _, h := range group.hookEntries {
+						lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" > "+h.name))
+					}
+				}
+			} else {
+				lines = append(lines, dimStyle.Render("   HOOKS (0)"))
 			}
-			lines = append(lines, nameLabel+strings.Repeat(" ", gap)+readmeBtn+" "+disableBtn)
 
-			if !group.collapsed {
-				// LORE.md row
-				if group.hasLoreMD {
-					lines = append(lines, zone.Mark(fmt.Sprintf("lore-bundle-%d", gi), "   🖹 LORE.md"))
+			// MCP row (collapsible, always shown)
+			if len(group.mcpServers) > 0 {
+				arrow := "▾"
+				if m.allBundles[gi].mcpCollapsed {
+					arrow = "▸"
 				}
-
-				// HOOKS row (collapsible, always shown)
-				if len(group.hookEntries) > 0 {
-					arrow := "▾"
-					if m.enabledBundles[gi].hooksCollapsed {
-						arrow = "▸"
+				header := "   " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
+				lines = append(lines, zone.Mark(fmt.Sprintf("mcp-bundle-%d", gi), header))
+				if !m.allBundles[gi].mcpCollapsed {
+					for _, name := range group.mcpServers {
+						lines = append(lines, "    ⚡ "+name)
 					}
-					header := "   " + arrow + " HOOKS" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.hookEntries)))
-					lines = append(lines, zone.Mark(fmt.Sprintf("hooks-bundle-%d", gi), header))
-					if !m.enabledBundles[gi].hooksCollapsed {
-						for _, h := range group.hookEntries {
-							lines = append(lines, "    ⚡ "+h.event+dimStyle.Render(" > "+h.name))
-						}
-					}
-				} else {
-					lines = append(lines, dimStyle.Render("   HOOKS (0)"))
 				}
+			} else {
+				lines = append(lines, dimStyle.Render("   MCP (0)"))
+			}
 
-				// MCP row (collapsible, always shown)
-				if len(group.mcpServers) > 0 {
-					arrow := "▾"
-					if m.enabledBundles[gi].mcpCollapsed {
-						arrow = "▸"
-					}
-					header := "   " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(group.mcpServers)))
-					lines = append(lines, zone.Mark(fmt.Sprintf("mcp-bundle-%d", gi), header))
-					if !m.enabledBundles[gi].mcpCollapsed {
-						for _, name := range group.mcpServers {
-							lines = append(lines, "    ⚡ "+name)
-						}
-					}
-				} else {
-					lines = append(lines, dimStyle.Render("   MCP (0)"))
+			// RULES / SKILLS / AGENTS (always shown)
+			for _, kind := range []string{"rule", "skill", "agent"} {
+				ki := kindIndex(kind)
+				count := m.countKindItems(group.items, kind)
+				collapsed := m.allBundles[gi].kindCollapsed[ki]
+				if count == 0 {
+					lines = append(lines, dimStyle.Render("   "+strings.ToUpper(kind)+"S (0)"))
+					continue
 				}
-
-				// RULES / SKILLS / AGENTS (always shown)
-				for _, kind := range []string{"rule", "skill", "agent"} {
-					ki := kindIndex(kind)
-					count := m.countKindItems(group.items, kind)
-					collapsed := m.enabledBundles[gi].kindCollapsed[ki]
-					if count == 0 {
-						lines = append(lines, dimStyle.Render("   "+strings.ToUpper(kind)+"S (0)"))
-						continue
-					}
-					arrow := "▾"
-					if collapsed {
-						arrow = "▸"
-					}
-					header := "   " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
-					lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
-					if collapsed {
+				arrow := "▾"
+				if collapsed {
+					arrow = "▸"
+				}
+				header := "   " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
+				lines = append(lines, zone.Mark(fmt.Sprintf("bundle-kind-%d-%d", gi, ki), bold.Render(header)))
+				if collapsed {
+					if group.active {
 						flatIdx += count
+					}
+					continue
+				}
+				for _, item := range group.items {
+					if item.kind != kind {
 						continue
 					}
-					for _, item := range group.items {
-						if item.kind != kind {
-							continue
-						}
+					if group.active {
+						// Active bundle: show policy toggle (clickable)
 						policy := m.tuiGetPolicy(kindPlural(item.kind), item.name, defaultForSource(item.source))
 						sym := policySymbol(policy)
 						line := "    " + sym + " " + item.name
 						line = zone.Mark(fmt.Sprintf("leaf-p-%d", flatIdx), line)
 						lines = append(lines, line)
-						if item.kind == "skill" {
-							if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
-								lines = append(lines, dimStyle.Render("        "+badge))
-							}
-						}
 						flatIdx++
+					} else {
+						// Inactive bundle: show as off (not clickable)
+						lines = append(lines, dimStyle.Render("    ○ "+item.name))
+					}
+					if item.kind == "skill" {
+						if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
+							lines = append(lines, dimStyle.Render("        "+badge))
+						}
 					}
 				}
-			} else {
+			}
+		} else {
+			if group.active {
 				flatIdx += len(group.items)
 			}
 		}
-	}
-
-	// Available bundles section
-	if len(m.availableBundles) > 0 {
-		if len(m.enabledBundles) > 0 {
-			lines = append(lines, "")
-		}
-		lines = append(lines, bold.Render(" AVAILABLE"))
-		for i, p := range m.availableBundles {
-			label := " + " + p.Name
-			if p.Version != "" {
-				label += " v" + p.Version
-			}
-			label = dimStyle.Render(label)
-			lines = append(lines, zone.Mark(fmt.Sprintf("bundle-enable-%d", i), label))
-		}
-	}
-
-	// Nothing at all
-	if len(m.enabledBundles) == 0 && len(m.availableBundles) == 0 {
-		lines = append(lines, dimStyle.Render(" No bundles installed"))
 	}
 
 	return strings.Join(lines, "\n")
@@ -4465,8 +4824,9 @@ func (m *tuiModel) renderProjectList(w int) string {
 		header := " " + arrow + " MCP" + dimStyle.Render(fmt.Sprintf(" (%d)", len(m.mcpProject)))
 		lines = append(lines, zone.Mark("mcp-project", header))
 		if !m.mcpProjectCollapsed {
-			for _, name := range m.mcpProject {
-				lines = append(lines, "  ⚡ "+name)
+			for i, name := range m.mcpProject {
+				removeBtn := zone.Mark(fmt.Sprintf("rm-mcp-p-%d", i), errStyle.Render("[x]"))
+				lines = append(lines, "  "+removeBtn+" "+name)
 			}
 		}
 	} else {
@@ -4475,6 +4835,7 @@ func (m *tuiModel) renderProjectList(w int) string {
 
 	// RULES / SKILLS / AGENTS (always shown)
 	items := m.buildPane2Items()
+	projItemIdx := 0
 	for _, kind := range []string{"rule", "skill", "agent"} {
 		ki := kindIndex(kind)
 		count := countPane2Kind(items, kind)
@@ -4490,12 +4851,19 @@ func (m *tuiModel) renderProjectList(w int) string {
 		header := " " + arrow + " " + strings.ToUpper(kind) + "S" + dimStyle.Render(fmt.Sprintf(" (%d)", count))
 		lines = append(lines, zone.Mark(fmt.Sprintf("project-kind-%d", ki), bold.Render(header)))
 		if collapsed {
+			// Still count items for stable indexing
+			for _, item := range items {
+				if item.kind == kind {
+					projItemIdx++
+				}
+			}
 			continue
 		}
 		for _, item := range items {
 			if item.kind != kind {
 				continue
 			}
+			removeBtn := zone.Mark(fmt.Sprintf("rm-p-%d", projItemIdx), errStyle.Render("[x]"))
 			label := item.name
 			switch item.color {
 			case "green":
@@ -4505,12 +4873,13 @@ func (m *tuiModel) renderProjectList(w int) string {
 			case "strike":
 				label = redStyle.Render(label)
 			}
-			lines = append(lines, "   "+label)
+			lines = append(lines, "  "+removeBtn+" "+label)
 			if item.kind == "skill" {
 				if badge := skillResourceBadge(item.numReferences, item.numAssets, item.numScripts); badge != "" {
-					lines = append(lines, dimStyle.Render("     "+badge))
+					lines = append(lines, dimStyle.Render("      "+badge))
 				}
 			}
+			projItemIdx++
 		}
 	}
 	return strings.Join(lines, "\n")
@@ -4594,6 +4963,45 @@ func (m *tuiModel) overlayAgentDisableDialog(lines []string, w int) []string {
 }
 
 // overlaySkillWarnDialog warns that disabling a skill will affect active agents.
+// overlayItemRemoveDialog renders a confirmation dialog for removing an item from disk.
+func (m *tuiModel) overlayItemRemoveDialog(lines []string, w int) []string {
+	title := bold.Render(fmt.Sprintf("Remove %s %q?", m.itemRemoveKind, m.itemRemoveName))
+	subtitle := dimStyle.Render(fmt.Sprintf("Delete from %s layer on disk.", m.itemRemoveLayer))
+	pathLine := dimStyle.Render(m.itemRemovePath)
+
+	confirmBtn := zone.Mark("rm-confirm", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true).Padding(0, 1).Render("Remove"))
+	cancelBtn := zone.Mark("rm-cancel", btnSecondary.Render("Cancel"))
+
+	inner := title + "\n\n" + subtitle + "\n" + pathLine + "\n\n" + confirmBtn + "   " + cancelBtn
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(1, 2).
+		Render(inner)
+
+	boxLines := strings.Split(box, "\n")
+	boxH := len(boxLines)
+
+	startY := len(lines)/2 - boxH/2
+	if startY < 0 {
+		startY = 0
+	}
+
+	for i, bl := range boxLines {
+		row := startY + i
+		if row < len(lines) {
+			blW := lipgloss.Width(bl)
+			pad := (w - blW) / 2
+			if pad < 0 {
+				pad = 0
+			}
+			lines[row] = strings.Repeat(" ", pad) + bl
+		}
+	}
+
+	return lines
+}
+
 func (m *tuiModel) overlaySkillWarnDialog(lines []string, w int) []string {
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	title := bold.Render(fmt.Sprintf("Disable skill %q", m.skillWarnName))
@@ -4756,19 +5164,13 @@ func (m *tuiModel) selectedPlatformList() []string {
 	return result
 }
 
-// overlayBundleConfirmDialog renders a centered confirmation dialog for bundle activate/deactivate.
+// overlayBundleConfirmDialog renders a centered confirmation dialog for bundle removal.
 func (m *tuiModel) overlayBundleConfirmDialog(lines []string, w int) []string {
-	var title string
-	var body string
-	if m.bundleConfirmEnable {
-		title = bold.Render("Enable Bundle")
-		body = "Enable " + bold.Render(m.bundleConfirmName) + "?\n\nHook scripts and agentic content from this\nbundle will be included on next generate."
-	} else {
-		title = bold.Render("Disable Bundle")
-		body = "Disable " + bold.Render(m.bundleConfirmName) + "?\n\nHook scripts will stop firing. Agentic content\nfrom this bundle will no longer be included."
-	}
+	title := bold.Render("Remove Bundle")
+	body := "Remove " + bold.Render(m.bundleConfirmName) + "?\n\nThis will permanently delete the bundle from disk.\n" +
+		dimStyle.Render(m.bundleConfirmDir)
 
-	confirmBtn := zone.Mark("bundle-confirm", btnPrimary.Render("▶ Confirm"))
+	confirmBtn := zone.Mark("bundle-confirm", lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true).Padding(0, 1).Render("Remove"))
 	cancelBtn := zone.Mark("bundle-cancel", btnSecondary.Render("Cancel"))
 	buttons := confirmBtn + "   " + cancelBtn
 

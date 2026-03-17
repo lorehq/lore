@@ -10,6 +10,70 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
+// bundleCardLines builds the content lines for a bundle card.
+func bundleCardLines(item marketplaceItem, innerW int) []string {
+	var content []string
+
+	// Row 1: name + version + action buttons (right-aligned)
+	nameStr := bold.Render(item.name)
+	if item.version != "" {
+		nameStr += "  " + dimStyle.Render("v"+item.version)
+	}
+
+	var buttons string
+	if item.installed {
+		updateBtn := zone.Mark("mkt-update-"+item.slug, dimStyle.Render("[update]"))
+		removeBtn := zone.Mark("mkt-remove-"+item.slug, lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("[remove]"))
+		detailBtn := zone.Mark("mkt-detail-"+item.slug, dimStyle.Render("[details]"))
+		buttons = updateBtn + " " + removeBtn + " " + detailBtn
+	} else {
+		installBtn := zone.Mark("mkt-install-"+item.slug, greenStyle.Render("[install]"))
+		detailBtn := zone.Mark("mkt-detail-"+item.slug, dimStyle.Render("[details]"))
+		buttons = installBtn + " " + detailBtn
+	}
+
+	nameW := lipgloss.Width(nameStr)
+	btnW := lipgloss.Width(buttons)
+	gap := innerW - nameW - btnW
+	if gap < 1 {
+		gap = 1
+	}
+	content = append(content, nameStr+strings.Repeat(" ", gap)+buttons)
+
+	// Row 2: description
+	if item.description != "" {
+		desc := item.description
+		if len(desc) > innerW {
+			desc = desc[:innerW-1] + "\u2026"
+		}
+		content = append(content, dimStyle.Render(desc))
+	}
+
+	// Row 3: author
+	if item.author != "" {
+		content = append(content, dimStyle.Render("by "+item.author))
+	}
+
+	// Row 4: tags
+	if len(item.tags) > 0 {
+		content = append(content, dimStyle.Render(strings.Join(item.tags, ", ")))
+	}
+
+	// Row 5: repo links
+	var repoLinks []string
+	if item.repo != "" {
+		repoLinks = append(repoLinks, "repo: "+strings.TrimSuffix(item.repo, ".git"))
+	}
+	if item.source != "" {
+		repoLinks = append(repoLinks, "source: "+item.source)
+	}
+	if len(repoLinks) > 0 {
+		content = append(content, dimStyle.Render(strings.Join(repoLinks, "  \u00b7  ")))
+	}
+
+	return content
+}
+
 // viewMarketplace renders the marketplace tab content.
 func (m *tuiModel) viewMarketplace(maxH int) string {
 	// Confirm dialog overlay
@@ -17,56 +81,54 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 		return m.overlayMktConfirmDialog(maxH)
 	}
 
-	if m.mktOpActive {
-		var verb string
-		switch m.mktOpVerb {
-		case "install":
-			verb = "Installing"
-		case "update":
-			verb = "Updating"
-		case "remove":
-			verb = "Removing"
-		default:
-			verb = m.mktOpVerb
+	if m.mktLoading || !m.mktLoaded || m.mktOpActive {
+		msg := "Loading marketplace..."
+		if m.mktOpActive {
+			switch m.mktOpVerb {
+			case "install":
+				msg = "Installing " + m.mktOpSlug + "..."
+			case "update":
+				msg = "Updating " + m.mktOpSlug + "..."
+			case "remove":
+				msg = "Removing " + m.mktOpSlug + "..."
+			}
+		} else if !m.mktLoaded {
+			msg = "Press 2 or click the tab to load"
 		}
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(maxH).
-			Align(lipgloss.Center, lipgloss.Center).
-			Faint(true).
-			Render(fmt.Sprintf("%s %s...", verb, m.mktOpSlug))
-	}
-
-	if m.mktLoading {
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(maxH).
-			Align(lipgloss.Center, lipgloss.Center).
-			Faint(true).
-			Render("Loading marketplace...")
-	}
-
-	if !m.mktLoaded {
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(maxH).
-			Align(lipgloss.Center, lipgloss.Center).
-			Faint(true).
-			Render("Press 2 or click the tab to load")
+		var lines []string
+		half := maxH / 2
+		for i := 0; i < half; i++ {
+			lines = append(lines, "")
+		}
+		lines = append(lines, dimStyle.Render("  "+msg))
+		for len(lines) < maxH {
+			lines = append(lines, "")
+		}
+		return strings.Join(lines, "\n")
 	}
 
 	var lines []string
 
-	// Top bar: search
-	topBar := " "
+	// Search bar
+	var searchContent string
 	if m.mktSearchActive {
-		topBar += "/ " + m.mktSearch + "\u2588"
+		searchContent = " /  " + m.mktSearch + "\u2588"
 	} else if m.mktSearch != "" {
-		topBar += dimStyle.Render("filter: "+m.mktSearch) + "  " + zone.Mark("mkt-clear-search", dimStyle.Render("[clear]"))
+		searchContent = " /  " + dimStyle.Render("filter: "+m.mktSearch) + "  " + zone.Mark("mkt-clear-search", dimStyle.Render("[clear]"))
 	} else {
-		topBar += dimStyle.Render("Press / to search bundles")
+		searchContent = dimStyle.Render(" /  Press / to search bundles")
 	}
-	lines = append(lines, topBar)
+	searchBox := zone.Mark("mkt-search-bar", searchContent)
+
+	slashHint := dimStyle.Render("/")
+	searchGap := m.width - lipgloss.Width(searchContent) - lipgloss.Width(slashHint) - 2
+	if searchGap < 1 {
+		searchGap = 1
+	}
+	lines = append(lines, " "+searchBox+strings.Repeat(" ", searchGap)+slashHint+" ")
+
+	// Separator
+	lines = append(lines, dimStyle.Render(" "+strings.Repeat("\u2500", m.width-2)))
 	lines = append(lines, "")
 
 	// Filter function
@@ -88,102 +150,28 @@ func (m *tuiModel) viewMarketplace(maxH int) string {
 		return false
 	}
 
-	// INSTALLED section
+	// Flat list: installed first, then available
 	filteredInstalled := filterMarketplaceItems(m.mktInstalled, matches)
-	installedArrow := "\u25be"
-	if m.mktInstalledCollapsed {
-		installedArrow = "\u25b8"
-	}
-	installedHeader := fmt.Sprintf(" %s %s", installedArrow, bold.Render("INSTALLED"))
-	if len(filteredInstalled) > 0 {
-		installedHeader += dimStyle.Render(fmt.Sprintf(" (%d)", len(filteredInstalled)))
-	}
-	lines = append(lines, zone.Mark("mkt-installed-header", installedHeader))
-
-	if !m.mktInstalledCollapsed {
-		if len(filteredInstalled) == 0 {
-			lines = append(lines, dimStyle.Render("   No bundles installed"))
-		}
-		for _, item := range filteredInstalled {
-			nameStr := "   " + bold.Render(item.name)
-			if item.version != "" {
-				nameStr += " " + dimStyle.Render("v"+item.version)
-			}
-			// Action buttons
-			updateBtn := zone.Mark("mkt-update-"+item.slug, dimStyle.Render("[update]"))
-			removeBtn := zone.Mark("mkt-remove-"+item.slug, lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("[remove]"))
-			detailBtn := zone.Mark("mkt-detail-"+item.slug, dimStyle.Render("[details]"))
-			nameStr += "  " + updateBtn + " " + removeBtn + " " + detailBtn
-			lines = append(lines, nameStr)
-			if item.description != "" {
-				lines = append(lines, dimStyle.Render("   "+item.description))
-			}
-			if item.author != "" {
-				lines = append(lines, dimStyle.Render("   by "+item.author))
-			}
-			if len(item.tags) > 0 {
-				lines = append(lines, dimStyle.Render("   "+strings.Join(item.tags, ", ")))
-			}
-			// Repo links
-			var repoLinks []string
-			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+strings.TrimSuffix(item.repo, ".git"))
-			}
-			if item.source != "" {
-				repoLinks = append(repoLinks, "source: "+item.source)
-			}
-			if len(repoLinks) > 0 {
-				lines = append(lines, dimStyle.Render("   "+strings.Join(repoLinks, "  \u00b7  ")))
-			}
-			lines = append(lines, "")
-		}
-	}
-
-	lines = append(lines, "")
-
-	// AVAILABLE section
 	filteredAvailable := filterMarketplaceItems(m.mktAvailable, matches)
-	availableArrow := "\u25be"
-	if m.mktAvailableCollapsed {
-		availableArrow = "\u25b8"
-	}
-	availableHeader := fmt.Sprintf(" %s %s", availableArrow, bold.Render("AVAILABLE"))
-	if len(filteredAvailable) > 0 {
-		availableHeader += dimStyle.Render(fmt.Sprintf(" (%d)", len(filteredAvailable)))
-	}
-	lines = append(lines, zone.Mark("mkt-available-header", availableHeader))
+	allFiltered := append(filteredInstalled, filteredAvailable...)
 
-	if !m.mktAvailableCollapsed {
-		if len(filteredAvailable) == 0 {
-			lines = append(lines, dimStyle.Render("   No additional bundles available"))
+	// Card inner width: fullWidth - 4 (margin) - 2 (border) - 2 (padding)
+	innerW := m.width - 8
+	if innerW < 20 {
+		innerW = 20
+	}
+
+	if len(allFiltered) == 0 {
+		if m.mktSearch != "" {
+			lines = append(lines, dimStyle.Render(fmt.Sprintf("  No results for \"%s\"", m.mktSearch)))
+		} else {
+			lines = append(lines, dimStyle.Render("  No bundles available"))
 		}
-		for _, item := range filteredAvailable {
-			nameStr := "   " + bold.Render(item.name)
-			installBtn := zone.Mark("mkt-install-"+item.slug, greenStyle.Render("[install]"))
-			detailBtn := zone.Mark("mkt-detail-"+item.slug, dimStyle.Render("[details]"))
-			nameStr += "  " + installBtn + " " + detailBtn
-			lines = append(lines, nameStr)
-			if item.description != "" {
-				lines = append(lines, dimStyle.Render("   "+item.description))
-			}
-			if item.author != "" {
-				lines = append(lines, dimStyle.Render("   by "+item.author))
-			}
-			if len(item.tags) > 0 {
-				lines = append(lines, dimStyle.Render("   "+strings.Join(item.tags, ", ")))
-			}
-			// Repo links
-			var repoLinks []string
-			if item.repo != "" {
-				repoLinks = append(repoLinks, "repo: "+strings.TrimSuffix(item.repo, ".git"))
-			}
-			if item.source != "" {
-				repoLinks = append(repoLinks, "source: "+item.source)
-			}
-			if len(repoLinks) > 0 {
-				lines = append(lines, dimStyle.Render("   "+strings.Join(repoLinks, "  \u00b7  ")))
-			}
-			lines = append(lines, "")
+	} else {
+		for _, item := range allFiltered {
+			cardContent := bundleCardLines(item, innerW)
+			cardLines := renderCard(cardContent, m.width)
+			lines = append(lines, cardLines...)
 		}
 	}
 
@@ -299,26 +287,16 @@ func (m *tuiModel) handleMarketplaceKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 
 // handleMarketplaceMouse handles mouse clicks on the marketplace tab.
 func (m *tuiModel) handleMarketplaceMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
-	// Refresh button
-	if zone.Get("mkt-refresh").InBounds(msg) {
-		m.mktLoading = true
-		m.mktLoaded = false
-		return m, loadMarketplace()
+	// Search bar click
+	if zone.Get("mkt-search-bar").InBounds(msg) {
+		m.mktSearchActive = true
+		m.mktSearch = ""
+		return m, nil
 	}
 
 	// Clear search
 	if zone.Get("mkt-clear-search").InBounds(msg) {
 		m.mktSearch = ""
-		return m, nil
-	}
-
-	// Section collapse toggles
-	if zone.Get("mkt-installed-header").InBounds(msg) {
-		m.mktInstalledCollapsed = !m.mktInstalledCollapsed
-		return m, nil
-	}
-	if zone.Get("mkt-available-header").InBounds(msg) {
-		m.mktAvailableCollapsed = !m.mktAvailableCollapsed
 		return m, nil
 	}
 
@@ -561,7 +539,6 @@ func (m *tuiModel) overlayMktDetails(maxH int) string {
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(rendered)
 }
-
 
 // capitalize returns s with first letter uppercased.
 func capitalize(s string) string {

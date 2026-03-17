@@ -77,69 +77,6 @@ func seedGlobalContent(gp string) {
 	// Content is embedded from the harness/ directory at build time.
 	seedHarnessContent(gp)
 
-	// Operator examples — only created on first run, never overwritten.
-	seeds := map[string]string{
-		"RULES/example-code-quality.md": `---
-description: Example rule — delete or rename this file
----
-
-## Keep It Simple
-Write the minimum code needed. Don't add abstractions, helpers, or
-configurability until they're needed more than once.
-
-## Clean As You Go
-Dead code, unused imports, stale comments — delete them immediately.
-Don't comment things out. Don't leave TODOs. Just remove them.
-`,
-		"SKILLS/example-review/SKILL.md": `---
-name: example-review
-description: Example skill — delete or rename this directory
-user-invocable: true
----
-
-# Code Review
-
-Before committing, review all staged changes:
-
-1. Run the test suite and confirm it passes
-2. Check for secrets, credentials, or .env values in the diff
-3. Verify naming is clear and consistent
-4. Confirm no debugging artifacts remain (console.log, print, etc.)
-5. Summarize what changed and why
-`,
-		"AGENTS/example-reviewer.md": `---
-name: example-reviewer
-description: Example agent — delete or rename this file
-skills:
-  - example-review
-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
----
-
-You review code changes for quality, security, and correctness.
-
-Focus on what matters: bugs, security issues, unclear names, dead code.
-Skip nitpicks. If the code works and reads clearly, approve it.
-`,
-		"MCP/example-hello.json": `{
-  "command": "echo",
-  "args": ["hello from Lore — replace this with a real MCP server"]
-}
-`,
-	}
-
-	for relPath, content := range seeds {
-		absPath := filepath.Join(gp, relPath)
-		if _, err := os.Stat(absPath); err == nil {
-			continue // don't overwrite existing files
-		}
-		dir := filepath.Dir(absPath)
-		os.MkdirAll(dir, 0755)
-		os.WriteFile(absPath, []byte(content), 0644)
-	}
 }
 
 // seedHarnessContent writes harness content from the embedded harness/ FS.

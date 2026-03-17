@@ -456,8 +456,7 @@ func scanAgenticDir(baseDir string) (rules, skills, agents map[string]*AgenticFi
 			name := strings.TrimSuffix(entry.Name(), ".md")
 			af, e := parseAgenticFile(filepath.Join(rulesDir, entry.Name()), "rule")
 			if e != nil {
-				fmt.Fprintf(os.Stderr, "warning: skipping rule %s: %v\n", name, e)
-				continue
+				continue // silently skip malformed files
 			}
 			af.Name = name
 			rules[name] = af
@@ -479,8 +478,7 @@ func scanAgenticDir(baseDir string) (rules, skills, agents map[string]*AgenticFi
 			name := entry.Name()
 			af, e := parseAgenticFile(skillFile, "skill")
 			if e != nil {
-				fmt.Fprintf(os.Stderr, "warning: skipping skill %s: %v\n", name, e)
-				continue
+				continue // silently skip malformed files
 			}
 			af.Name = name
 			af.SourceDir = skillDir
@@ -498,8 +496,7 @@ func scanAgenticDir(baseDir string) (rules, skills, agents map[string]*AgenticFi
 			name := strings.TrimSuffix(entry.Name(), ".md")
 			af, e := parseAgenticFile(filepath.Join(agentsDir, entry.Name()), "agent")
 			if e != nil {
-				fmt.Fprintf(os.Stderr, "warning: skipping agent %s: %v\n", name, e)
-				continue
+				continue // silently skip malformed files
 			}
 			af.Name = name
 			agents[name] = af

@@ -22,6 +22,16 @@ import (
 
 // viewExplore renders the Explore tab with a sub-tab bar and dispatches to the active sub-tab.
 func (m *tuiModel) viewExplore(maxH int) string {
+	// Bundle create modal takes over the entire explore area
+	if m.bundleCreateActive {
+		lines := make([]string, maxH)
+		for i := range lines {
+			lines[i] = ""
+		}
+		lines = m.overlayCreateBundleDialog(lines, m.width)
+		return strings.Join(lines, "\n")
+	}
+
 	subTabBar := m.renderExploreSubTabs()
 	subTabH := strings.Count(subTabBar, "\n") + 1
 	contentH := maxH - subTabH
@@ -37,9 +47,17 @@ func (m *tuiModel) viewExplore(maxH int) string {
 		content = m.viewSkillsExplorer(contentH)
 	case exploreSubSkillsMP:
 		content = m.viewSkillsMP(contentH)
+	case exploreSubSmithery:
+		content = m.viewSmithery(contentH)
 	}
 
-	return subTabBar + "\n" + content
+	// Safety clamp: ensure total output never exceeds maxH lines
+	result := subTabBar + "\n" + content
+	resultLines := strings.Split(result, "\n")
+	if len(resultLines) > maxH {
+		resultLines = resultLines[:maxH]
+	}
+	return strings.Join(resultLines, "\n")
 }
 
 // renderExploreSubTabs renders the sub-tab bar within the Explore tab.
@@ -64,8 +82,9 @@ func (m *tuiModel) renderExploreSubTabs() string {
 		id     exploreSubTab
 	}{
 		{"Bundles", "explore-sub-bundles", exploreSubBundles},
-		{"skills.sh", "explore-sub-skillssh", exploreSubSkillsSh},
 		{"SkillsMP", "explore-sub-skillsmp", exploreSubSkillsMP},
+		{"skills.sh", "explore-sub-skillssh", exploreSubSkillsSh},
+		{"Smithery", "explore-sub-smithery", exploreSubSmithery},
 	}
 
 	var parts []string
@@ -82,14 +101,14 @@ func (m *tuiModel) renderExploreSubTabs() string {
 	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
 
 	// Refresh button on the right
-	refreshBtn := zone.Mark("mkt-refresh", dimStyle.Render(" ↻ "))
+	refreshBtn := zone.Mark("mkt-refresh", dimStyle.Render(" \u21bb "))
 	barW := lipgloss.Width(tabBar)
 	btnW := lipgloss.Width(refreshBtn)
 	gap := m.width - barW - btnW
 	if gap < 1 {
 		gap = 1
 	}
-	filler := lipgloss.NewStyle().Foreground(borderFg).Render(strings.Repeat("─", gap))
+	filler := lipgloss.NewStyle().Foreground(borderFg).Render(strings.Repeat("\u2500", gap))
 
 	return lipgloss.JoinHorizontal(lipgloss.Bottom, tabBar, filler, refreshBtn)
 }
@@ -98,16 +117,42 @@ func (m *tuiModel) renderExploreSubTabs() string {
 func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 	key := msg.String()
 
+	// Bundle create modal intercepts all keys
+	if m.bundleCreateActive {
+		switch key {
+		case "esc":
+			m.bundleCreateActive = false
+		case "enter":
+			if m.bundleCreateName != "" && m.bundleCreateErr == "" {
+				return m.finishBundleCreate()
+			}
+		case "backspace":
+			if len(m.bundleCreateName) > 0 {
+				m.bundleCreateName = m.bundleCreateName[:len(m.bundleCreateName)-1]
+				m.bundleCreateErr = validateBundleSlug(m.bundleCreateName)
+			}
+		default:
+			if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
+				m.bundleCreateName += key
+				m.bundleCreateErr = validateBundleSlug(m.bundleCreateName)
+			}
+		}
+		return m, nil
+	}
+
 	// Tab/shift-tab cycles sub-tabs
 	if key == "tab" {
 		switch m.exploreSub {
 		case exploreSubBundles:
-			m.exploreSub = exploreSubSkillsSh
-			return m, m.ensureSkillsLoaded()
-		case exploreSubSkillsSh:
 			m.exploreSub = exploreSubSkillsMP
 			return m, m.ensureSkillsMPLoaded()
 		case exploreSubSkillsMP:
+			m.exploreSub = exploreSubSkillsSh
+			return m, m.ensureSkillsLoaded()
+		case exploreSubSkillsSh:
+			m.exploreSub = exploreSubSmithery
+			return m, m.ensureSmitheryLoaded()
+		case exploreSubSmithery:
 			m.exploreSub = exploreSubBundles
 			return m, nil
 		}
@@ -120,12 +165,58 @@ func (m *tuiModel) handleExploreKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 		return m.handleSkillsExplorerKey(msg)
 	case exploreSubSkillsMP:
 		return m.handleSkillsMPKey(msg)
+	case exploreSubSmithery:
+		return m.handleSmitheryKey(msg)
 	}
 	return m, nil
 }
 
 // handleExploreMouse dispatches mouse input to the active Explore sub-tab.
 func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
+	// Bundle create modal intercepts all clicks
+	if m.bundleCreateActive {
+		if zone.Get("bundle-create-confirm").InBounds(msg) {
+			if m.bundleCreateName != "" && m.bundleCreateErr == "" {
+				return m.finishBundleCreate()
+			}
+		}
+		if zone.Get("bundle-create-cancel").InBounds(msg) {
+			m.bundleCreateActive = false
+		}
+		return m, nil
+	}
+
+	// Refresh button — dispatches to active sub-tab
+	if zone.Get("mkt-refresh").InBounds(msg) {
+		switch m.exploreSub {
+		case exploreSubBundles:
+			m.mktLoading = true
+			m.mktLoaded = false
+			return m, loadMarketplace()
+		case exploreSubSkillsSh:
+			m.skillsResults = nil
+			m.skillsLoading = true
+			m.skillsScroll = 0
+			m.skillsInitLoaded = true
+			return m, loadSkillsLeaderboard()
+		case exploreSubSkillsMP:
+			if m.skillsMPAPIKey != "" {
+				m.skillsMPResults = nil
+				m.skillsMPLoading = true
+				m.skillsMPScroll = 0
+				m.skillsMPInitLoaded = true
+				return m, loadSkillsMPTop(m.skillsMPAPIKey)
+			}
+		case exploreSubSmithery:
+			m.smitheryResults = nil
+			m.smitheryLoading = true
+			m.smitheryScroll = 0
+			m.smitheryInitLoaded = true
+			return m, loadSmitheryTop()
+		}
+		return m, nil
+	}
+
 	// Sub-tab clicks
 	if zone.Get("explore-sub-bundles").InBounds(msg) {
 		m.exploreSub = exploreSubBundles
@@ -143,6 +234,10 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		m.exploreSub = exploreSubSkillsMP
 		return m, m.ensureSkillsMPLoaded()
 	}
+	if zone.Get("explore-sub-smithery").InBounds(msg) {
+		m.exploreSub = exploreSubSmithery
+		return m, m.ensureSmitheryLoaded()
+	}
 
 	switch m.exploreSub {
 	case exploreSubBundles:
@@ -151,6 +246,8 @@ func (m *tuiModel) handleExploreMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		return m.handleSkillsExplorerMouse(msg)
 	case exploreSubSkillsMP:
 		return m.handleSkillsMPMouse(msg)
+	case exploreSubSmithery:
+		return m.handleSmitheryMouse(msg)
 	}
 	return m, nil
 }
@@ -183,11 +280,45 @@ func skillGitHubURL(r skillsResult) string {
 	return "github.com/" + r.Source
 }
 
-// skillHyperlink returns an OSC 8 terminal hyperlink for a skill's source.
+// skillHyperlink returns an OSC 8 terminal hyperlink for a skill's repo.
+// skills.sh skill names don't map 1:1 to directory paths (e.g. "vercel-react-best-practices"
+// lives at skills/react-best-practices), so we link to the repo root.
 func skillHyperlink(r skillsResult) string {
 	display := "github.com/" + r.Source
-	url := "https://" + display
-	return fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", url, display)
+	linkURL := "https://" + display
+	return fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", linkURL, display)
+}
+
+// skillsShCardLines builds the content lines for a skills.sh skill card.
+func skillsShCardLines(r skillsResult, innerW int) []string {
+	var content []string
+
+	// Row 1: name + installs + [+ Add]
+	nameStr := bold.Render(r.Name)
+	installs := formatInstalls(r.Installs) + " installs"
+	addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
+	rightSide := dimStyle.Render(installs) + "  " + addBtn
+	nameW := lipgloss.Width(nameStr)
+	rightW := lipgloss.Width(rightSide)
+	gap := innerW - nameW - rightW
+	if gap < 1 {
+		gap = 1
+	}
+	content = append(content, nameStr+strings.Repeat(" ", gap)+rightSide)
+
+	// Row 2: author (extracted from source org/user) + source URL
+	var metaParts []string
+	if r.Source != "" {
+		parts := strings.SplitN(r.Source, "/", 2)
+		if len(parts) > 0 {
+			metaParts = append(metaParts, "by "+parts[0])
+		}
+	}
+	source := skillHyperlink(r)
+	metaParts = append(metaParts, source)
+	content = append(content, dimStyle.Render(strings.Join(metaParts, "  ")))
+
+	return content
 }
 
 // viewSkillsExplorer renders the skills.sh leaderboard view.
@@ -195,16 +326,6 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	// Target picker overlay
 	if m.skillsAddActive {
 		return m.overlaySkillsTargetPicker(maxH)
-	}
-
-	// Importing overlay
-	if m.skillsImporting {
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(maxH).
-			Align(lipgloss.Center, lipgloss.Center).
-			Faint(true).
-			Render(fmt.Sprintf("Importing %s...", m.skillsImportName))
 	}
 
 	var lines []string
@@ -216,11 +337,11 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	// Search bar
 	var searchContent string
 	if m.skillsSearchActive {
-		searchContent = " 🔍  " + m.skillsSearch + "\u2588"
+		searchContent = " \U0001f50d  " + m.skillsSearch + "\u2588"
 	} else if m.skillsSearch != "" {
-		searchContent = " 🔍  " + m.skillsSearch + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
+		searchContent = " \U0001f50d  " + m.skillsSearch + "  " + zone.Mark("skills-clear-search", dimStyle.Render("[clear]"))
 	} else {
-		searchContent = dimStyle.Render(" 🔍  Search skills ...")
+		searchContent = dimStyle.Render(" \U0001f50d  Search skills ...")
 	}
 	searchBox := zone.Mark("skills-search-bar", searchContent)
 
@@ -232,7 +353,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	lines = append(lines, " "+searchBox+strings.Repeat(" ", searchGap)+slashHint+" ")
 
 	// Separator
-	lines = append(lines, dimStyle.Render(" "+strings.Repeat("─", m.width-2)))
+	lines = append(lines, dimStyle.Render(" "+strings.Repeat("\u2500", m.width-2)))
 	lines = append(lines, "")
 
 	// Table content
@@ -243,33 +364,16 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	} else if len(m.skillsResults) == 0 {
 		lines = append(lines, dimStyle.Render("  Loading leaderboard..."))
 	} else {
-		// Column header
-		colHeader := dimStyle.Render(fmt.Sprintf(" %-5s %-30s %*s",
-			"#", "SKILL", m.width-42, "INSTALLS"))
-		lines = append(lines, colHeader)
-		lines = append(lines, "")
+		// Card inner width: fullWidth - 4 (margin) - 2 (border) - 2 (padding)
+		innerW := m.width - 8
+		if innerW < 20 {
+			innerW = 20
+		}
 
-		// Skill rows
-		for i, r := range m.skillsResults {
-			rank := fmt.Sprintf("%-5d", i+1)
-			installs := formatInstalls(r.Installs)
-			source := dimStyle.Render(skillHyperlink(r))
-			addBtn := zone.Mark("skills-add-"+r.ID, greenStyle.Render("[+ Add]"))
-
-			// Row 1: rank + bold name + installs + add button
-			nameStr := bold.Render(r.Name)
-			rightSide := installs + "  " + addBtn
-			rightW := lipgloss.Width(rightSide)
-			nameW := lipgloss.Width(nameStr)
-			gap := m.width - 7 - nameW - rightW
-			if gap < 1 {
-				gap = 1
-			}
-			row := " " + dimStyle.Render(rank) + " " + nameStr + strings.Repeat(" ", gap) + rightSide
-			lines = append(lines, row)
-
-			// Row 2: source URL (indented under name)
-			lines = append(lines, "       "+source)
+		for _, r := range m.skillsResults {
+			cardContent := skillsShCardLines(r, innerW)
+			cardLines := renderCard(cardContent, m.width)
+			lines = append(lines, cardLines...)
 		}
 	}
 
@@ -298,7 +402,7 @@ func (m *tuiModel) viewSkillsExplorer(maxH int) string {
 	}
 	for i, line := range visible {
 		if lipgloss.Width(line) > m.width {
-			visible[i] = ansi.Truncate(line, m.width, "…")
+			visible[i] = ansi.Truncate(line, m.width, "\u2026")
 		}
 	}
 
@@ -323,10 +427,19 @@ func (m *tuiModel) handleSkillsExplorerKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) 
 				m.skillsAddCursor--
 			}
 		case "enter":
+			targetDir := m.skillsAddPaths[m.skillsAddCursor]
+			if targetDir == createNewBundleSentinel {
+				m.bundleCreateActive = true
+				m.bundleCreateName = ""
+				m.bundleCreateErr = ""
+				m.bundleCreateCallback = "skills"
+				m.bundleCreateKind = "SKILLS"
+				return m, nil
+			}
 			m.skillsAddActive = false
 			m.skillsImporting = true
 			m.skillsImportName = m.skillsAddItem.Name
-			targetDir := m.skillsAddPaths[m.skillsAddCursor]
+			m.notify("Importing "+m.skillsAddItem.Name+"...", "info")
 			source := m.skillsAddItem.Source
 			skillName := m.skillsAddItem.Name
 			return m, doSkillImport(source, skillName, targetDir, source)
@@ -404,10 +517,18 @@ func (m *tuiModel) handleSkillsExplorerMouse(msg tea.MouseMsg) (*tuiModel, tea.C
 	if m.skillsAddActive {
 		for i := range m.skillsAddTargets {
 			if zone.Get(fmt.Sprintf("skills-target-%d", i)).InBounds(msg) {
+				targetDir := m.skillsAddPaths[i]
+				if targetDir == createNewBundleSentinel {
+					m.bundleCreateActive = true
+					m.bundleCreateName = ""
+					m.bundleCreateErr = ""
+					m.bundleCreateCallback = "skills"
+					m.bundleCreateKind = "SKILLS"
+					return m, nil
+				}
 				m.skillsAddActive = false
 				m.skillsImporting = true
 				m.skillsImportName = m.skillsAddItem.Name
-				targetDir := m.skillsAddPaths[i]
 				source := m.skillsAddItem.Source
 				skillName := m.skillsAddItem.Name
 				return m, doSkillImport(source, skillName, targetDir, source)
@@ -493,17 +614,70 @@ func saveSkillsMPKey(key string) tea.Cmd {
 	}
 }
 
-// ensureSkillsMPLoaded resolves the API key on first access.
+// ensureSkillsMPLoaded resolves the API key and triggers initial load on first access.
 func (m *tuiModel) ensureSkillsMPLoaded() tea.Cmd {
 	if m.skillsMPAPIKey == "" {
 		m.skillsMPAPIKey = resolveSkillsMPKey()
 	}
-	return nil
+	if m.skillsMPAPIKey == "" {
+		return nil // no key, show auth screen
+	}
+	if m.skillsMPInitLoaded || m.skillsMPLoading {
+		return nil
+	}
+	m.skillsMPInitLoaded = true
+	m.skillsMPLoading = true
+	return loadSkillsMPTop(m.skillsMPAPIKey)
 }
 
 // skillsMPHyperlink returns an OSC 8 terminal hyperlink.
 func skillsMPHyperlink(url, display string) string {
 	return fmt.Sprintf("\033]8;;%s\033\\%s\033]8;;\033\\", url, display)
+}
+
+// skillsMPCardLines builds the content lines for a SkillsMP skill card.
+func skillsMPCardLines(r skillsMPResult, innerW int) []string {
+	var content []string
+
+	// Row 1: name + stars + [+ Add]
+	nameStr := bold.Render(r.Name)
+	stars := formatStars(r.Stars)
+	addBtn := zone.Mark("smp-add-"+r.Name, greenStyle.Render("[+ Add]"))
+	rightSide := dimStyle.Render(stars) + "  " + addBtn
+	nameW := lipgloss.Width(nameStr)
+	rightW := lipgloss.Width(rightSide)
+	gap := innerW - nameW - rightW
+	if gap < 1 {
+		gap = 1
+	}
+	content = append(content, nameStr+strings.Repeat(" ", gap)+rightSide)
+
+	// Row 2: description (truncated)
+	if r.Description != "" {
+		desc := strings.ReplaceAll(strings.ReplaceAll(r.Description, "\n", " "), "\r", "")
+		if len(desc) > innerW {
+			desc = desc[:innerW-1] + "\u2026"
+		}
+		content = append(content, dimStyle.Render(desc))
+	}
+
+	// Row 3: author + source link
+	var metaParts []string
+	if r.Author != "" {
+		metaParts = append(metaParts, "by "+r.Author)
+	}
+	if r.GithubURL != "" {
+		display := r.GithubURL
+		if strings.HasPrefix(display, "https://") {
+			display = display[8:]
+		}
+		metaParts = append(metaParts, skillsMPHyperlink(r.GithubURL, display))
+	}
+	if len(metaParts) > 0 {
+		content = append(content, dimStyle.Render(strings.Join(metaParts, "  ")))
+	}
+
+	return content
 }
 
 // viewSkillsMP renders the SkillsMP sub-tab.
@@ -565,16 +739,6 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 		return m.overlaySkillsMPTargetPicker(maxH)
 	}
 
-	// Importing overlay
-	if m.skillsMPImporting {
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(maxH).
-			Align(lipgloss.Center, lipgloss.Center).
-			Faint(true).
-			Render(fmt.Sprintf("Importing %s...", m.skillsMPImportName))
-	}
-
 	var lines []string
 
 	// Header
@@ -603,6 +767,39 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 	lines = append(lines, dimStyle.Render(" "+strings.Repeat("\u2500", m.width-2)))
 	lines = append(lines, "")
 
+	// Category chips (shown above results when no active search query)
+	if m.skillsMPQuery == "" && len(m.skillsMPResults) > 0 {
+		categories := []struct{ name, query string }{
+			{"Tools", "tools"},
+			{"Development", "development"},
+			{"Business", "business"},
+			{"Data & AI", "data ai"},
+			{"DevOps", "devops"},
+			{"Test & Security", "testing security"},
+			{"Documentation", "documentation"},
+			{"Content & Media", "content media"},
+		}
+		chipStyle := lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.NormalBorder(), false, true, false, true).BorderForeground(lipgloss.AdaptiveColor{Light: "236", Dark: "248"})
+
+		var row []string
+		rowW := 2
+		for i, cat := range categories {
+			chip := zone.Mark(fmt.Sprintf("smp-cat-%d", i), chipStyle.Render(cat.name))
+			chipW := lipgloss.Width(chip) + 1
+			if rowW+chipW > m.width-2 && len(row) > 0 {
+				lines = append(lines, "  "+strings.Join(row, " "))
+				row = nil
+				rowW = 2
+			}
+			row = append(row, chip)
+			rowW += chipW
+		}
+		if len(row) > 0 {
+			lines = append(lines, "  "+strings.Join(row, " "))
+		}
+		lines = append(lines, "")
+	}
+
 	// Content
 	if m.skillsMPLoading {
 		lines = append(lines, dimStyle.Render("  Loading..."))
@@ -611,7 +808,7 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 	} else if len(m.skillsMPResults) == 0 && m.skillsMPQuery != "" {
 		lines = append(lines, dimStyle.Render(fmt.Sprintf("  No results for \"%s\"", m.skillsMPQuery)))
 	} else if len(m.skillsMPResults) == 0 {
-		// Category chips as search shortcuts
+		// No API key loaded yet or initial load hasn't started — show category chips as landing
 		categories := []struct{ name, query string }{
 			{"Tools", "tools"},
 			{"Development", "development"},
@@ -626,9 +823,8 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 		lines = append(lines, dimStyle.Render("  Browse by category"))
 		lines = append(lines, "")
 
-		// Lay out chips in rows that fit terminal width
 		var row []string
-		rowW := 2 // indent
+		rowW := 2
 		for i, cat := range categories {
 			chip := zone.Mark(fmt.Sprintf("smp-cat-%d", i), chipStyle.Render(cat.name))
 			chipW := lipgloss.Width(chip) + 1
@@ -646,55 +842,16 @@ func (m *tuiModel) viewSkillsMPSearch(maxH int) string {
 		lines = append(lines, "")
 		lines = append(lines, dimStyle.Render("  400,000+ agent skills  \u2022  Press / to search"))
 	} else {
-		// Column header
-		colHeader := dimStyle.Render(fmt.Sprintf(" %-30s %*s",
-			"SKILL", m.width-36, "STARS"))
-		lines = append(lines, colHeader)
-		lines = append(lines, "")
+		// Card inner width: fullWidth - 4 (margin) - 2 (border) - 2 (padding)
+		innerW := m.width - 8
+		if innerW < 20 {
+			innerW = 20
+		}
 
-		// Result rows
 		for _, r := range m.skillsMPResults {
-			stars := formatStars(r.Stars)
-			addBtn := zone.Mark("smp-add-"+r.Name, greenStyle.Render("[+ Add]"))
-
-			// Row 1: bold name + stars + add button
-			nameStr := bold.Render(r.Name)
-			rightSide := stars + "  " + addBtn
-			rightW := lipgloss.Width(rightSide)
-			nameW := lipgloss.Width(nameStr)
-			gap := m.width - 2 - nameW - rightW
-			if gap < 1 {
-				gap = 1
-			}
-			row := " " + nameStr + strings.Repeat(" ", gap) + rightSide
-			lines = append(lines, row)
-
-			// Row 2: description (truncated, newlines stripped)
-			if r.Description != "" {
-				desc := strings.ReplaceAll(strings.ReplaceAll(r.Description, "\n", " "), "\r", "")
-				maxDescW := m.width - 8
-				if maxDescW > 0 && len(desc) > maxDescW {
-					desc = desc[:maxDescW-1] + "\u2026"
-				}
-				lines = append(lines, "  "+dimStyle.Render(desc))
-			}
-
-			// Row 3: author + source link
-			var metaParts []string
-			if r.Author != "" {
-				metaParts = append(metaParts, "by "+r.Author)
-			}
-			if r.GithubURL != "" {
-				display := r.GithubURL
-				if strings.HasPrefix(display, "https://") {
-					display = display[8:]
-				}
-				metaParts = append(metaParts, skillsMPHyperlink(r.GithubURL, display))
-			}
-			if len(metaParts) > 0 {
-				lines = append(lines, "  "+dimStyle.Render(strings.Join(metaParts, "  ")))
-			}
-			lines = append(lines, "")
+			cardContent := skillsMPCardLines(r, innerW)
+			cardLines := renderCard(cardContent, m.width)
+			lines = append(lines, cardLines...)
 		}
 	}
 
@@ -788,10 +945,18 @@ func (m *tuiModel) handleSkillsMPKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 				m.skillsMPAddCursor--
 			}
 		case "enter":
+			targetDir := m.skillsMPAddPaths[m.skillsMPAddCursor]
+			if targetDir == createNewBundleSentinel {
+				m.bundleCreateActive = true
+				m.bundleCreateName = ""
+				m.bundleCreateErr = ""
+				m.bundleCreateCallback = "skillsmp"
+				m.bundleCreateKind = "SKILLS"
+				return m, nil
+			}
 			m.skillsMPAddActive = false
 			m.skillsMPImporting = true
 			m.skillsMPImportName = m.skillsMPAddItem.Name
-			targetDir := m.skillsMPAddPaths[m.skillsMPAddCursor]
 			source := m.skillsMPAddItem.GithubURL
 			if source == "" {
 				source = m.skillsMPAddItem.SkillURL
@@ -836,6 +1001,9 @@ func (m *tuiModel) handleSkillsMPKey(msg tea.KeyMsg) (*tuiModel, tea.Cmd) {
 			m.skillsMPQuery = ""
 			m.skillsMPResults = nil
 			m.skillsMPScroll = 0
+			// Reload top 100
+			m.skillsMPLoading = true
+			return m, loadSkillsMPTop(m.skillsMPAPIKey)
 		}
 	case "j", "down":
 		m.skillsMPScroll++
@@ -878,7 +1046,9 @@ func (m *tuiModel) handleSkillsMPMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 		m.skillsMPSearchMode = false
 		m.skillsMPResults = nil
 		m.skillsMPScroll = 0
-		return m, nil
+		// Reload top 100
+		m.skillsMPLoading = true
+		return m, loadSkillsMPTop(m.skillsMPAPIKey)
 	}
 
 	// Category chip clicks
@@ -898,10 +1068,18 @@ func (m *tuiModel) handleSkillsMPMouse(msg tea.MouseMsg) (*tuiModel, tea.Cmd) {
 	if m.skillsMPAddActive {
 		for i := range m.skillsMPAddTargets {
 			if zone.Get(fmt.Sprintf("smp-target-%d", i)).InBounds(msg) {
+				targetDir := m.skillsMPAddPaths[i]
+				if targetDir == createNewBundleSentinel {
+					m.bundleCreateActive = true
+					m.bundleCreateName = ""
+					m.bundleCreateErr = ""
+					m.bundleCreateCallback = "skillsmp"
+					m.bundleCreateKind = "SKILLS"
+					return m, nil
+				}
 				m.skillsMPAddActive = false
 				m.skillsMPImporting = true
 				m.skillsMPImportName = m.skillsMPAddItem.Name
-				targetDir := m.skillsMPAddPaths[i]
 				source := m.skillsMPAddItem.GithubURL
 				if source == "" {
 					source = m.skillsMPAddItem.SkillURL
@@ -939,12 +1117,11 @@ func (m *tuiModel) overlaySkillsMPTargetPicker(maxH int) string {
 
 	var targetLines []string
 	for i, label := range m.skillsMPAddTargets {
-		icon := m.skillsMPAddIcons[i]
 		if i == m.skillsMPAddCursor {
-			line := selectedStyle.Render("\u25b8 " + icon + "  " + label)
+			line := selectedStyle.Render("\u25b8 " + label)
 			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("smp-target-%d", i), line))
 		} else {
-			line := "  " + icon + "  " + label
+			line := "  " + label
 			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("smp-target-%d", i), line))
 		}
 	}
@@ -981,11 +1158,11 @@ func (m *tuiModel) buildSkillsMPTargets() {
 
 	m.skillsMPAddTargets = append(m.skillsMPAddTargets, "Project")
 	m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(".lore", "SKILLS"))
-	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f4c1")
+	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "")
 
 	m.skillsMPAddTargets = append(m.skillsMPAddTargets, "Global")
 	m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(globalPath(), "SKILLS"))
-	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f310")
+	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "")
 
 	bundles := discoverBundles()
 	for _, b := range bundles {
@@ -995,11 +1172,73 @@ func (m *tuiModel) buildSkillsMPTargets() {
 		}
 		m.skillsMPAddTargets = append(m.skillsMPAddTargets, b.Name)
 		m.skillsMPAddPaths = append(m.skillsMPAddPaths, filepath.Join(b.Dir, "SKILLS"))
-		m.skillsMPAddIcons = append(m.skillsMPAddIcons, "\U0001f4e6")
+		m.skillsMPAddIcons = append(m.skillsMPAddIcons, "")
 	}
+
+	m.skillsMPAddTargets = append(m.skillsMPAddTargets, "Create new bundle...")
+	m.skillsMPAddPaths = append(m.skillsMPAddPaths, createNewBundleSentinel)
+	m.skillsMPAddIcons = append(m.skillsMPAddIcons, "")
 }
 
 // ── SkillsMP async commands ─────────────────────────────────────────
+
+// loadSkillsMPTop fires multiple broad queries to approximate a top-100 leaderboard.
+func loadSkillsMPTop(apiKey string) tea.Cmd {
+	return func() tea.Msg {
+		queries := []string{"tools", "development", "devops", "testing", "security", "data", "api", "business", "documentation", "content"}
+		seen := map[string]bool{}
+		var all []skillsMPResult
+
+		client := &http.Client{Timeout: 10 * time.Second}
+
+		for _, q := range queries {
+			apiURL := fmt.Sprintf("https://skillsmp.com/api/v1/skills/search?q=%s&limit=30&sortBy=stars",
+				url.QueryEscape(q))
+
+			req, err := http.NewRequest("GET", apiURL, nil)
+			if err != nil {
+				continue
+			}
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+			req.Header.Set("Accept", "application/json")
+
+			resp, err := client.Do(req)
+			if err != nil {
+				continue
+			}
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if resp.StatusCode != 200 || err != nil {
+				continue
+			}
+
+			var result struct {
+				Data struct {
+					Skills []skillsMPResult `json:"skills"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(body, &result); err != nil {
+				continue
+			}
+			for _, s := range result.Data.Skills {
+				if !seen[s.Name] {
+					seen[s.Name] = true
+					all = append(all, s)
+				}
+			}
+		}
+
+		sort.Slice(all, func(i, j int) bool {
+			return all[i].Stars > all[j].Stars
+		})
+
+		if len(all) > 100 {
+			all = all[:100]
+		}
+
+		return skillsMPSearchMsg{results: all}
+	}
+}
 
 // searchSkillsMP fetches skill search results from the SkillsMP API.
 func searchSkillsMP(query, apiKey string) tea.Cmd {
@@ -1064,12 +1303,11 @@ func (m *tuiModel) overlaySkillsTargetPicker(maxH int) string {
 
 	var targetLines []string
 	for i, label := range m.skillsAddTargets {
-		icon := m.skillsAddIcons[i]
 		if i == m.skillsAddCursor {
-			line := selectedStyle.Render("▸ " + icon + "  " + label)
+			line := selectedStyle.Render("\u25b8 " + label)
 			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("skills-target-%d", i), line))
 		} else {
-			line := "  " + icon + "  " + label
+			line := "  " + label
 			targetLines = append(targetLines, zone.Mark(fmt.Sprintf("skills-target-%d", i), line))
 		}
 	}
@@ -1106,11 +1344,11 @@ func (m *tuiModel) buildSkillTargets() {
 
 	m.skillsAddTargets = append(m.skillsAddTargets, "Project")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(".lore", "SKILLS"))
-	m.skillsAddIcons = append(m.skillsAddIcons, "📁")
+	m.skillsAddIcons = append(m.skillsAddIcons, "")
 
 	m.skillsAddTargets = append(m.skillsAddTargets, "Global")
 	m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(globalPath(), "SKILLS"))
-	m.skillsAddIcons = append(m.skillsAddIcons, "🌐")
+	m.skillsAddIcons = append(m.skillsAddIcons, "")
 
 	// Only show user-created bundles (no .git = not installed from registry)
 	bundles := discoverBundles()
@@ -1121,8 +1359,12 @@ func (m *tuiModel) buildSkillTargets() {
 		}
 		m.skillsAddTargets = append(m.skillsAddTargets, b.Name)
 		m.skillsAddPaths = append(m.skillsAddPaths, filepath.Join(b.Dir, "SKILLS"))
-		m.skillsAddIcons = append(m.skillsAddIcons, "📦")
+		m.skillsAddIcons = append(m.skillsAddIcons, "")
 	}
+
+	m.skillsAddTargets = append(m.skillsAddTargets, "Create new bundle...")
+	m.skillsAddPaths = append(m.skillsAddPaths, createNewBundleSentinel)
+	m.skillsAddIcons = append(m.skillsAddIcons, "")
 }
 
 // ── Async commands ─────────────────────────────────────────────────
